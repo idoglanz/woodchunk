@@ -1,5 +1,7 @@
 import streamlit as st
+
 from models.wood import Project
+
 
 @st.dialog("Create New Project")
 def new_project_dialog():
@@ -9,8 +11,7 @@ def new_project_dialog():
     if st.button("Create", type="primary", use_container_width=True):
         if new_project_name:
             new_project = Project(
-                name=new_project_name,
-                description=new_project_description
+                name=new_project_name, description=new_project_description
             )
             st.session_state.current_project = new_project
             st.session_state.project_manager.save_project(new_project)

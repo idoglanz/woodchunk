@@ -94,7 +94,7 @@ def render_assembly_table(
 
         # Add save, units, and delete buttons in a row
         _, col3, col4 = st.columns([0.8, 0.1, 0.1])
-        
+
         if col3.button("💾", key=f"save_{index}", help="Save changes"):
             # Convert the edited DataFrame back to meters before saving
             edited_df["Length (cm)"] = edited_df["Length (cm)"].astype(float)
@@ -134,19 +134,19 @@ def handle_table_edit(edited_data: list, assembly: Assembly, catalog: WoodTypeCa
         # Skip empty rows or non-dict rows
         if not isinstance(row, dict):
             continue
-            
+
         # Get the values, with proper type handling
         wood_type = row.get("Wood Type")
         length = row.get("Length (m)")  # Now getting length in meters
         quantity = row.get("Quantity")
-        
+
         if not all(x is not None for x in [wood_type, length, quantity]):
             continue
 
         # Find the wood type index from the selection
         wood_type_str = str(wood_type)
         wood_types = catalog.get_all_wood_types()
-        
+
         # Try to find the matching wood type
         wood_type_index = None
         for i, wt in enumerate(wood_types):
@@ -154,7 +154,7 @@ def handle_table_edit(edited_data: list, assembly: Assembly, catalog: WoodTypeCa
             if formatted == wood_type_str:
                 wood_type_index = i
                 break
-        
+
         # If no match found, keep the existing wood type index
         if wood_type_index is None:
             wood_type_index = row.get("_wood_type_index", 0)

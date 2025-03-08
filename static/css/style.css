@@ -142,7 +142,7 @@ div[data-testid="stHorizontalBlock"] div[data-testid="column"] div {
     .sidebar .block-container {
         padding: 1rem 0.5rem;
     }
-    
+
     .stButton > button {
         width: 100%;
     }
@@ -168,4 +168,4 @@ div[data-testid="stInfo"] {
 div[data-testid="stSuccess"] {
     background-color: rgba(45, 90, 39, 0.1);
     border-color: var(--accent-moss);
-} 
+}

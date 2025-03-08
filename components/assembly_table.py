@@ -24,7 +24,13 @@ def render_assembly_table(
             f"{format_dimensions(wt.width, wt.height)} - {wt.description}"
             for wt in catalog.get_all_wood_types()
         ]
-
+        units = st.number_input(
+            "Number of units",
+            min_value=1,
+            value=assembly.units,
+            key=f"units_{index}",
+            help="Number of times this assembly is needed",
+        )
         # Initialize pieces_data with at least one empty row if no pieces exist
         pieces_data = []
         for piece in assembly.pieces:
@@ -33,7 +39,7 @@ def render_assembly_table(
                 pieces_data.append(
                     {
                         "Wood Type": f"{format_dimensions(wood_type.width, wood_type.height)} - {wood_type.description}",
-                        "Length (m)": piece.length,
+                        "Length (cm)": piece.length * 100,  # Convert to cm for display
                         "Quantity": piece.quantity,
                         "_wood_type_index": piece.wood_type_index,
                     }
@@ -43,7 +49,7 @@ def render_assembly_table(
             pieces_data.append(
                 {
                     "Wood Type": wood_type_options[0] if wood_type_options else "",
-                    "Length (m)": 0.0,
+                    "Length (cm)": 0.0,
                     "Quantity": 1,
                     "_wood_type_index": 0,
                 }
@@ -65,11 +71,11 @@ def render_assembly_table(
                     width="medium",
                     options=wood_type_options,
                 ),
-                "Length (m)": st.column_config.NumberColumn(
-                    "Length (m)",
-                    help="Length in meters",
+                "Length (cm)": st.column_config.NumberColumn(
+                    "Length (cm)",
+                    help="Length in centimeters",
                     min_value=0.0,
-                    step=0.1,
+                    step=1.0,
                     format="%.1f",
                     width="small",
                 ),
@@ -86,9 +92,16 @@ def render_assembly_table(
             hide_index=True,
         )
 
-        # Handle changes to the table
-        if not edited_df.equals(df):
-            handle_table_edit(edited_df.to_dict("records"), assembly, catalog)
+        # Add save, units, and delete buttons in a row
+        _, col3, col4 = st.columns([0.8, 0.1, 0.1])
+        
+        if col3.button("💾", key=f"save_{index}", help="Save changes"):
+            # Convert the edited DataFrame back to meters before saving
+            edited_df["Length (cm)"] = edited_df["Length (cm)"].astype(float)
+            edited_df_meters = edited_df.copy()
+            edited_df_meters["Length (m)"] = edited_df["Length (cm)"] / 100
+            handle_table_edit(edited_df_meters.to_dict("records"), assembly, catalog)
+            assembly.units = units  # Save the units value
             # Save project after modifying pieces
             if (
                 "project_manager" in st.session_state
@@ -96,56 +109,65 @@ def render_assembly_table(
                 and project.name != "Untitled Project"
             ):
                 st.session_state.project_manager.save_project(project)
+                st.success("Changes saved!")
 
-        # Add delete button
-        col1, col2 = st.columns([0.9, 0.1])
-        with col2:
-            if st.button("🗑️", key=f"del_{index}", help="Delete assembly"):
-                if project and project.assemblies:
-                    project.assemblies.remove(assembly)
-                    # Save project after deleting assembly
-                    if (
-                        "project_manager" in st.session_state
-                        and project.name != "Untitled Project"
-                    ):
-                        st.session_state.project_manager.save_project(project)
-                    return True
+        if col4.button("🗑️", key=f"del_{index}", help="Delete assembly"):
+            if project and project.assemblies:
+                project.assemblies.remove(assembly)
+                # Save project after deleting assembly
+                if (
+                    "project_manager" in st.session_state
+                    and project.name != "Untitled Project"
+                ):
+                    st.session_state.project_manager.save_project(project)
+                return True
     return False
 
 
 def handle_table_edit(edited_data: list, assembly: Assembly, catalog: WoodTypeCatalog):
     """Handle edits to the assembly table"""
-    if edited_data is None:
+    if not edited_data:
         return
 
     new_pieces = []
     for row in edited_data:
-        # Skip empty rows
-        if (
-            pd.isna(row["Wood Type"])
-            or pd.isna(row["Length (m)"])
-            or pd.isna(row["Quantity"])
-        ):
+        # Skip empty rows or non-dict rows
+        if not isinstance(row, dict):
+            continue
+            
+        # Get the values, with proper type handling
+        wood_type = row.get("Wood Type")
+        length = row.get("Length (m)")  # Now getting length in meters
+        quantity = row.get("Quantity")
+        
+        if not all(x is not None for x in [wood_type, length, quantity]):
             continue
 
         # Find the wood type index from the selection
-        wood_type_str = row["Wood Type"]
-        wood_type_index = next(
-            (
-                i
-                for i, wt in enumerate(catalog.get_all_wood_types())
-                if f"{format_dimensions(wt.width, wt.height)} - {wt.description}"
-                == wood_type_str
-            ),
-            row.get("_wood_type_index", 0),
-        )
+        wood_type_str = str(wood_type)
+        wood_types = catalog.get_all_wood_types()
+        
+        # Try to find the matching wood type
+        wood_type_index = None
+        for i, wt in enumerate(wood_types):
+            formatted = f"{format_dimensions(wt.width, wt.height)} - {wt.description}"
+            if formatted == wood_type_str:
+                wood_type_index = i
+                break
+        
+        # If no match found, keep the existing wood type index
+        if wood_type_index is None:
+            wood_type_index = row.get("_wood_type_index", 0)
 
-        new_pieces.append(
-            AssemblyPiece(
-                wood_type_index=wood_type_index,
-                length=float(row["Length (m)"]),
-                quantity=int(row["Quantity"]),
+        try:
+            new_pieces.append(
+                AssemblyPiece(
+                    wood_type_index=wood_type_index,
+                    length=float(length),  # Length is already in meters
+                    quantity=int(quantity),
+                )
             )
-        )
+        except (ValueError, TypeError):
+            continue  # Skip invalid entries
 
     assembly.pieces = new_pieces

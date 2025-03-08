@@ -20,6 +20,7 @@ class AssemblyPiece(BaseModel):
 class Assembly(BaseModel):
     name: str
     pieces: List[AssemblyPiece] = []
+    units: int = 1  # Default to 1 unit
 
 
 class Project(BaseModel):

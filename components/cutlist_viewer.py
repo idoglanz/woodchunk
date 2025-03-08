@@ -1,6 +1,7 @@
 import io
 
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 from catalog import WoodTypeCatalog
@@ -23,8 +24,8 @@ def calculate_cut_list(project: Project, catalog: WoodTypeCatalog) -> list[CutLi
                         "total_price": 0,
                     }
 
-                # Add piece length and price to totals
-                total_length = piece.length * piece.quantity
+                # Add piece length and price to totals, multiplied by assembly units
+                total_length = piece.length * piece.quantity * assembly.units
                 wood_type_pieces[piece.wood_type_index]["total_length"] += total_length
                 wood_type_pieces[piece.wood_type_index]["total_price"] += (
                     total_length * wood_type.price_per_meter
@@ -49,18 +50,22 @@ def get_detailed_cut_list(project: Project, catalog: WoodTypeCatalog) -> list[di
         for piece in assembly.pieces:
             wood_type = catalog.get_wood_type(piece.wood_type_index)
             if wood_type:
+                # Calculate quantities accounting for assembly units
+                total_quantity = piece.quantity * assembly.units
+                total_length = piece.length * total_quantity
+                total_price = total_length * wood_type.price_per_meter
+                
                 detailed_list.append(
                     {
-                        "Assembly": assembly.name,
+                        "Assembly": f"{assembly.name} (x{assembly.units})",
                         "Wood Type": f"{wood_type.width}x{wood_type.height}mm",
                         "Description": wood_type.description,
                         "Length (m)": piece.length,
-                        "Quantity": piece.quantity,
-                        "Total Length (m)": piece.length * piece.quantity,
+                        "Quantity per Unit": piece.quantity,
+                        "Total Quantity": total_quantity,
+                        "Total Length (m)": total_length,
                         "Price/m": wood_type.price_per_meter,
-                        "Total Price": piece.length
-                        * piece.quantity
-                        * wood_type.price_per_meter,
+                        "Total Price": total_price,
                     }
                 )
 
@@ -134,9 +139,23 @@ def render_cut_list(project: Project, catalog: WoodTypeCatalog):
             use_container_width=True,
         )
 
-    st.markdown("---")
-
+    # Prepare data for the pie chart
+    chart_data = []
+    for item in cut_list:
+        wood_name = f"{item.wood_type.width}x{item.wood_type.height}mm"
+        if item.wood_type.description:
+            wood_name += f" - {item.wood_type.description}"
+        
+        chart_data.append({
+            "Wood Type": wood_name,
+            "Total Length (m)": item.total_length,
+            "Total Price (₪)": item.total_price
+        })
+    
+    df = pd.DataFrame(chart_data)
+    
     # Display the cut list
+    st.markdown("---")
     st.subheader("Required Wood Pieces")
 
     # Calculate total price
@@ -165,3 +184,40 @@ def render_cut_list(project: Project, catalog: WoodTypeCatalog):
     # Display total price
     st.markdown("---")
     st.metric("Total Project Cost", f"₪{total_price:.2f}")
+
+    st.subheader("Wood Type Distribution")
+
+    # Create tabs for different visualizations
+    chart_tab1, chart_tab2 = st.tabs(["Distribution by Length", "Distribution by Cost"])
+    
+    with chart_tab1:
+        fig_length = px.pie(
+            df,
+            values="Total Length (m)",
+            names="Wood Type",
+            title="Wood Distribution by Total Length",
+            hole=0.4,  # Makes it a donut chart
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+        fig_length.update_traces(
+            textposition='inside',
+            textinfo='percent+label',
+            hovertemplate="<b>%{label}</b><br>Length: %{value:.1f}m<br>Percentage: %{percent}<extra></extra>"
+        )
+        st.plotly_chart(fig_length, use_container_width=True)
+        
+    with chart_tab2:
+        fig_cost = px.pie(
+            df,
+            values="Total Price (₪)",
+            names="Wood Type",
+            title="Wood Distribution by Cost",
+            hole=0.4,  # Makes it a donut chart
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+        fig_cost.update_traces(
+            textposition='inside',
+            textinfo='percent+label',
+            hovertemplate="<b>%{label}</b><br>Cost: ₪%{value:.2f}<br>Percentage: %{percent}<extra></extra>"
+        )
+        st.plotly_chart(fig_cost, use_container_width=True)

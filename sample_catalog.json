@@ -1,0 +1,52 @@
+{
+  "wood_types": [
+    {
+      "width": 100.0,
+      "height": 50.0,
+      "price_per_meter": 20.0,
+      "available_lengths": [
+        2.4,
+        3.0,
+        3.6
+      ],
+      "description": "Standard pine beam"
+    },
+    {
+      "width": 150.0,
+      "height": 75.0,
+      "price_per_meter": 25.0,
+      "available_lengths": [
+        2.4,
+        3.0,
+        3.6,
+        4.8
+      ],
+      "description": "Heavy duty construction beam"
+    },
+    {
+      "width": 90.0,
+      "height": 45.0,
+      "price_per_meter": 12.0,
+      "available_lengths": [
+        1.8,
+        2.4,
+        3.0
+      ],
+      "description": "Light framing timber"
+    },
+    {
+      "width": 50.0,
+      "height": 10.0,
+      "price_per_meter": 0.0,
+      "available_lengths": [],
+      "description": ""
+    },
+    {
+      "width": 10.0,
+      "height": 10.0,
+      "price_per_meter": 13.0,
+      "available_lengths": [],
+      "description": "Testing wood"
+    }
+  ]
+}

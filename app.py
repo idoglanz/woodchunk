@@ -32,6 +32,17 @@ st.set_page_config(
 load_css()
 
 
+@st.dialog(title="Delete Project")
+def delete_project_dialog():
+    st.write("Are you sure you want to delete this project?")
+    if st.button("Yes, delete it", use_container_width=True):
+        st.session_state.project_manager.delete_project(
+            st.session_state.current_project.name
+        )
+        st.session_state.current_project = Project(name="Untitled Project")
+        st.rerun()
+
+
 def calculate_project_stats(project: Project):
     """Calculate basic stats for the project"""
     total_assemblies = len(project.assemblies)
@@ -54,8 +65,6 @@ def main():
         st.session_state.project_manager = ProjectManager()
     if "current_project" not in st.session_state:
         st.session_state.current_project = Project(name="Untitled Project")
-    if "show_new_project_dialog" not in st.session_state:
-        st.session_state.show_new_project_dialog = False
 
     # Project management section
     with st.sidebar:
@@ -127,6 +136,8 @@ def main():
                 st.success(
                     f"Project '{st.session_state.current_project.name}' saved successfully!"
                 )
+            if st.button("🗑️ Delete Project", use_container_width=True, type="primary"):
+                delete_project_dialog()
 
     # Main content area
     st.markdown(

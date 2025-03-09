@@ -8,6 +8,7 @@ from components.assembly_builder import render_assembly_builder
 from components.catalog_view import render_catalog_management
 from components.cutlist_viewer import render_cut_list
 from components.new_project import new_project_dialog
+from components.woodboard_planner import render_woodboard_planner
 from models.wood import Project
 from project_manager import ProjectManager
 
@@ -150,12 +151,13 @@ def main():
     )
 
     # Main tabs with custom styling
-    tab1, tab2, tab3, tab4 = st.tabs(
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
         [
             "👋 Welcome Guide",
             "🔨 Assembly Builder",
             "📊 Cut List Summary",
             "📋 Catalog Management",
+            "📏 Woodboard Planner",
         ]
     )
 
@@ -234,6 +236,9 @@ def main():
 
     with tab4:
         render_catalog_management(st.session_state.catalog)
+
+    with tab5:
+        render_woodboard_planner()
 
 
 if __name__ == "__main__":

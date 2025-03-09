@@ -1,0 +1,38 @@
+{
+  "name": "Matans Bed",
+  "assemblies": [
+    {
+      "name": "Bed",
+      "pieces": [
+        {
+          "wood_type_index": 39,
+          "length": 2.2,
+          "quantity": 3
+        },
+        {
+          "wood_type_index": 9,
+          "length": 0.3,
+          "quantity": 4
+        },
+        {
+          "wood_type_index": 27,
+          "length": 0.44,
+          "quantity": 4
+        }
+      ],
+      "units": 1
+    },
+    {
+      "name": "Fence",
+      "pieces": [
+        {
+          "wood_type_index": 0,
+          "length": 0.3,
+          "quantity": 4
+        }
+      ],
+      "units": 2
+    }
+  ],
+  "description": "A bed for Yarden"
+}

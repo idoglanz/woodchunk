@@ -132,7 +132,7 @@ def main():
     st.markdown(
         f"""
         <h1 style='text-align: center; color: #8B4513; margin-bottom: 30px;'>
-            {st.session_state.current_project.name}
+            Project: {st.session_state.current_project.name}
         </h1>
     """,
         unsafe_allow_html=True,

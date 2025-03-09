@@ -139,19 +139,89 @@ def main():
     )
 
     # Main tabs with custom styling
-    tab1, tab2, tab3 = st.tabs(
-        ["🔨 Assembly Builder", "📊 Cut List Summary", "📋 Catalog Management"]
+    tab1, tab2, tab3, tab4 = st.tabs(
+        [
+            "👋 Welcome Guide",
+            "🔨 Assembly Builder",
+            "📊 Cut List Summary",
+            "📋 Catalog Management",
+        ]
     )
 
     with tab1:
+        st.header("Welcome to WoodChunk! 🪵")
+
+        st.markdown(
+            """
+        This app helps you plan your woodworking projects by managing your wood inventory,
+        designing assemblies, and generating detailed cut lists.
+
+        ### 📝 Basic Concepts
+        - **Project**: A collection of assemblies (e.g., a table project might include table top, legs, and supports)
+        - **Assembly**: A group of wood pieces that form a component (e.g., table top)
+        - **Units**: How many copies of an assembly you need (e.g., 4 chair legs)
+        - **Wood Type**: A specific wood dimension and type from your catalog
+
+        ### 🚀 Getting Started
+        1. First, go to the **Catalog Management** tab to:
+           - Add your available wood types
+           - Specify dimensions, prices, and available lengths
+           - Add descriptions to help identify wood types
+
+        2. Create a new project using the **Create New Project** button in the sidebar
+
+        3. In the **Assembly Builder** tab:
+           - Add new assemblies to your project
+           - For each assembly, specify:
+             - Wood types needed
+             - Lengths (in centimeters)
+             - Quantity of each piece
+             - Number of units needed
+           - Use the 💾 button to save your changes
+
+        ### 📊 Using the Cut List
+        The **Cut List Summary** tab shows:
+        - Total wood needed by type
+        - Cost breakdown
+        - Visual distribution of wood usage
+        - Detailed list of all pieces needed
+
+        You can export your cut list in two formats:
+        - Summary: Overview of total wood needed by type
+        - Detailed: Complete breakdown including assembly information
+
+        ### 💡 Tips
+        - All length inputs are in centimeters for ease of use
+        - Prices are calculated per meter of wood
+        - Save your changes frequently using the 💾 buttons
+        - Use the units feature to easily duplicate assemblies
+        - Check the project stats in the sidebar to track your progress
+
+        ### 🔄 Workflow Example
+        1. Create a new project
+        2. Add wood types to your catalog
+        3. Create assemblies for each component
+        4. Add wood pieces to each assembly
+        5. Specify quantities and units needed
+        6. Generate and export your cut list
+
+        ### 🎯 Best Practices
+        - Organize your assemblies logically
+        - Use descriptive names for assemblies
+        - Double-check measurements before saving
+        - Review the cut list for optimization opportunities
+        """
+        )
+
+    with tab2:
         render_assembly_builder(
             st.session_state.catalog, st.session_state.current_project
         )
 
-    with tab2:
+    with tab3:
         render_cut_list(st.session_state.current_project, st.session_state.catalog)
 
-    with tab3:
+    with tab4:
         render_catalog_management(st.session_state.catalog)
 
 

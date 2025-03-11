@@ -3,7 +3,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 
-class WoodType(BaseModel):
+class Lumber(BaseModel):
     width: float
     height: float
     price_per_meter: float
@@ -12,7 +12,7 @@ class WoodType(BaseModel):
 
 
 class AssemblyPiece(BaseModel):
-    wood_type_index: int  # Index in the catalog
+    lumber_index: int  # Index in the catalog
     length: float
     quantity: int = 1
 
@@ -29,15 +29,15 @@ class Project(BaseModel):
     description: str = ""
 
 
-class WoodPiece(WoodType):
+class WoodPiece(Lumber):
     length: float
     total_price: float
 
 
 class CutList(BaseModel):
-    """a 'pivot' of the wood pieces to the wood type"""
+    """a 'pivot' of the wood pieces to the lumber type"""
 
-    wood_type: WoodType
+    lumber: Lumber
     total_price: float
     total_length: float
 

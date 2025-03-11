@@ -3,14 +3,14 @@ from pathlib import Path
 
 import streamlit as st
 
-from catalog import WoodTypeCatalog
 from components.assembly_builder import render_assembly_builder
 from components.catalog_view import render_catalog_management
 from components.cutlist_viewer import render_cut_list
 from components.new_project import new_project_dialog
 from components.woodboard_planner import render_woodboard_planner
 from models.wood import Project
-from project_manager import ProjectManager
+from repositories.catalog import WoodCatalog
+from repositories.project_manager import ProjectManager
 
 
 # Load custom CSS
@@ -61,7 +61,7 @@ def calculate_project_stats(project: Project):
 def main():
     # Initialize catalog and session state
     if "catalog" not in st.session_state:
-        st.session_state.catalog = WoodTypeCatalog("sample_catalog.json")
+        st.session_state.catalog = WoodCatalog("sample_catalog.json")
     if "project_manager" not in st.session_state:
         st.session_state.project_manager = ProjectManager()
     if "current_project" not in st.session_state:
@@ -238,7 +238,7 @@ def main():
         render_catalog_management(st.session_state.catalog)
 
     with tab5:
-        render_woodboard_planner()
+        render_woodboard_planner(st.session_state.catalog)
 
 
 if __name__ == "__main__":

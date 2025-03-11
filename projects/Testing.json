@@ -1,5 +1,11 @@
 {
   "name": "Testing",
-  "assemblies": [],
+  "assemblies": [
+    {
+      "name": "Table",
+      "pieces": [],
+      "units": 1
+    }
+  ],
   "description": ""
 }

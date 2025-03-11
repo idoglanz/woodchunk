@@ -1,35 +1,84 @@
 from uuid import uuid4
 
-import pandas as pd
 import streamlit as st
 
-from models.woodboard import BaseWoodBoard, WoodBoardPiece
-from woodboard_solver import plot_woodboard, solve_woodboard
+from components.woodboard_list import render_woodboard_list
+from models.woodboard import BaseWoodBoard
+from repositories.catalog import WoodCatalog
 
 
-def render_woodboard_planner():
+def render_woodboard_planner(catalog: WoodCatalog):
     st.header("📏 Woodboard Planner")
 
     # Initialize session state for woodboards if not exists
     if "woodboards" not in st.session_state:
         st.session_state.woodboards = []
+    if "selected_wood_type" not in st.session_state:
+        st.session_state.selected_wood_type = None
 
     # Add new woodboard section
     with st.container():
         st.subheader("Add New Woodboard")
-        col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
 
-        with col1:
-            wood_type = st.text_input("Wood Type", value="pine", key="new_board_type")
-        with col2:
-            thickness = st.number_input(
-                "Thickness (mm)", value=10, min_value=1, key="new_board_thickness"
-            )
-        with col3:
-            price = st.number_input(
-                "Price per Board", value=100, min_value=0, key="new_board_price"
-            )
-        with col4:
+        # Get available wood types from catalog
+        available_boards = catalog.get_all_woodboards()
+        wood_type_options = list(
+            set(board.wood_type.value for board in available_boards)
+        )
+
+        # Create a container for the woodboard inputs
+        with st.container():
+            col1, col2, col3 = st.columns([2, 1, 1])
+
+            with col1:
+                # Wood type selection with on_change callback
+                selected_type = st.selectbox(
+                    "Wood Type",
+                    options=wood_type_options,
+                    key="new_board_type",
+                    index=wood_type_options.index(st.session_state.selected_wood_type)
+                    if st.session_state.selected_wood_type in wood_type_options
+                    else 0,
+                    on_change=lambda: setattr(
+                        st.session_state,
+                        "selected_wood_type",
+                        st.session_state.new_board_type,
+                    ),
+                )
+
+            with col2:
+                # Get available thicknesses for selected wood type
+                thickness_options = list(
+                    set(
+                        board.thickness
+                        for board in available_boards
+                        if board.wood_type.value == selected_type
+                    )
+                )
+                thickness = st.selectbox(
+                    "Thickness (mm)",
+                    options=thickness_options,
+                    key="new_board_thickness",
+                )
+            with col3:
+                # Get price from catalog for selected wood type and thickness
+                matching_board = next(
+                    (
+                        board
+                        for board in available_boards
+                        if board.wood_type.value == selected_type
+                        and board.thickness == thickness
+                    ),
+                    None,
+                )
+                price = st.number_input(
+                    "Price per Board",
+                    value=int(matching_board.price_per_board) if matching_board else 0,
+                    min_value=0,
+                    key="new_board_price",
+                )
+
+            # Add button outside the columns
             if st.button("Add Woodboard", use_container_width=True):
                 new_board = {
                     "id": str(uuid4()),
@@ -37,7 +86,7 @@ def render_woodboard_planner():
                         width=120,
                         length=240,
                         thickness=thickness,
-                        wood_type=wood_type,
+                        wood_type=selected_type,
                         price_per_board=price,
                     ),
                     "pieces": [],
@@ -45,118 +94,10 @@ def render_woodboard_planner():
                     "result_boards": None,  # Store the last planning result
                 }
                 st.session_state.woodboards.append(new_board)
+                st.success("Woodboard added successfully!")
 
-    # Display existing woodboards
-    for board_idx, board in enumerate(st.session_state.woodboards):
-        with st.expander(
-            f"Woodboard {board_idx + 1}: {board['base_board'].wood_type} ({board['base_board'].thickness}mm)",
-            expanded=True,
-        ):
-            # Create a DataFrame for the pieces
-            if board["temp_df"] is None:
-                if len(board["pieces"]) > 0:
-                    df = pd.DataFrame(
-                        [
-                            {
-                                "Label": piece.label or "",
-                                "Width (cm)": piece.width,
-                                "Length (cm)": piece.length,
-                            }
-                            for piece in board["pieces"]
-                        ]
-                    )
-                else:
-                    df = pd.DataFrame(columns=["Label", "Width (cm)", "Length (cm)"])
-                board["temp_df"] = df
-
-            # Edit the DataFrame
-            edited_df = st.data_editor(
-                board["temp_df"],
-                num_rows="dynamic",
-                use_container_width=True,
-                column_config={
-                    "Label": st.column_config.TextColumn(
-                        "Label", help="Optional label for the piece", default=""
-                    ),
-                    "Width (cm)": st.column_config.NumberColumn(
-                        "Width (cm)",
-                        help="Width in centimeters",
-                        min_value=1,
-                        max_value=board["base_board"].width,
-                        default=30,
-                    ),
-                    "Length (cm)": st.column_config.NumberColumn(
-                        "Length (cm)",
-                        help="Length in centimeters",
-                        min_value=1,
-                        max_value=board["base_board"].length,
-                        default=30,
-                    ),
-                },
-            )
-            board["temp_df"] = edited_df
-
-            # Action buttons
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                if st.button(
-                    "🎯 Run Planner", key=f"run_{board['id']}", use_container_width=True
-                ):
-                    if len(board["pieces"]) > 0:
-                        try:
-                            board["result_boards"] = solve_woodboard(
-                                board["base_board"], board["pieces"]
-                            )
-                            st.success(
-                                f"Successfully planned {len(board['result_boards'])} boards!"
-                            )
-                        except Exception as e:
-                            st.error(f"Error planning woodboard: {str(e)}")
-                    else:
-                        st.warning("Please add some pieces first!")
-
-            with col2:
-                if st.button(
-                    "🗑️ Delete Board",
-                    key=f"delete_{board['id']}",
-                    use_container_width=True,
-                ):
-                    st.session_state.woodboards.pop(board_idx)
-                    st.rerun()
-
-            with col3:
-                if st.button(
-                    "💾 Save Changes",
-                    key=f"save_{board['id']}",
-                    use_container_width=True,
-                ):
-                    # Update pieces from edited DataFrame
-                    board["pieces"] = [
-                        WoodBoardPiece(
-                            label=row["Label"] if pd.notna(row["Label"]) else None,
-                            width=row["Width (cm)"],
-                            length=row["Length (cm)"],
-                        )
-                        for _, row in edited_df.iterrows()
-                    ]
-
-                    # Run the planner automatically on save if there are pieces
-                    if len(board["pieces"]) > 0:
-                        try:
-                            board["result_boards"] = solve_woodboard(
-                                board["base_board"], board["pieces"]
-                            )
-                            st.success(
-                                f"Changes saved! Successfully planned {len(board['result_boards'])} boards!"
-                            )
-                        except Exception as e:
-                            st.error(f"Error planning woodboard: {str(e)}")
-                    else:
-                        st.success("Changes saved!")
-
-            # Display the plots if they exist
-            if board["result_boards"]:
-                st.markdown("### Cutting Layout")
-                for idx, result_board in enumerate(board["result_boards"]):
-                    st.markdown(f"#### Board {idx + 1}")
-                    plot_woodboard(result_board)
+    # Display existing woodboards using the new component
+    if st.session_state.woodboards:
+        st.markdown("---")
+        st.subheader("Woodboard List")
+        render_woodboard_list(st.session_state.woodboards)

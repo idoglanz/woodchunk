@@ -1,8 +1,8 @@
 import pandas as pd
 import streamlit as st
 
-from catalog import WoodTypeCatalog
 from models.wood import Assembly, AssemblyPiece
+from repositories.catalog import WoodCatalog
 
 
 def format_dimensions(width: float, height: float) -> str:
@@ -11,7 +11,7 @@ def format_dimensions(width: float, height: float) -> str:
 
 
 def render_assembly_table(
-    assembly: Assembly, catalog: WoodTypeCatalog, index: int, project=None
+    assembly: Assembly, catalog: WoodCatalog, index: int, project=None
 ):
     """Render a single assembly table with editable pieces"""
 
@@ -20,9 +20,9 @@ def render_assembly_table(
 
     with st.expander(f"📦 {assembly.name}", expanded=True):
         # Convert assembly pieces to table format
-        wood_type_options = [
+        lumber_options = [
             f"{format_dimensions(wt.width, wt.height)} - {wt.description}"
-            for wt in catalog.get_all_wood_types()
+            for wt in catalog.get_all_lumber()
         ]
         units = st.number_input(
             "Number of units",
@@ -34,24 +34,24 @@ def render_assembly_table(
         # Initialize pieces_data with at least one empty row if no pieces exist
         pieces_data = []
         for piece in assembly.pieces:
-            wood_type = catalog.get_wood_type(piece.wood_type_index)
-            if wood_type:
+            lumber = catalog.get_lumber(piece.lumber_index)
+            if lumber:
                 pieces_data.append(
                     {
-                        "Wood Type": f"{format_dimensions(wood_type.width, wood_type.height)} - {wood_type.description}",
+                        "Wood Type": f"{format_dimensions(lumber.width, lumber.height)} - {lumber.description}",
                         "Length (cm)": piece.length * 100,  # Convert to cm for display
                         "Quantity": piece.quantity,
-                        "_wood_type_index": piece.wood_type_index,
+                        "_lumber_index": piece.lumber_index,
                     }
                 )
 
         if not pieces_data:
             pieces_data.append(
                 {
-                    "Wood Type": wood_type_options[0] if wood_type_options else "",
+                    "Wood Type": lumber_options[0] if lumber_options else "",
                     "Length (cm)": 0.0,
                     "Quantity": 1,
-                    "_wood_type_index": 0,
+                    "_lumber_index": 0,
                 }
             )
 
@@ -69,7 +69,7 @@ def render_assembly_table(
                     "Wood Type",
                     help="Select the type of wood",
                     width="medium",
-                    options=wood_type_options,
+                    options=lumber_options,
                 ),
                 "Length (cm)": st.column_config.NumberColumn(
                     "Length (cm)",
@@ -87,7 +87,7 @@ def render_assembly_table(
                     format="%d",
                     width="small",
                 ),
-                "_wood_type_index": None,
+                "_lumber_index": None,
             },
             hide_index=True,
         )
@@ -124,7 +124,7 @@ def render_assembly_table(
     return False
 
 
-def handle_table_edit(edited_data: list, assembly: Assembly, catalog: WoodTypeCatalog):
+def handle_table_edit(edited_data: list, assembly: Assembly, catalog: WoodCatalog):
     """Handle edits to the assembly table"""
     if not edited_data:
         return
@@ -143,26 +143,26 @@ def handle_table_edit(edited_data: list, assembly: Assembly, catalog: WoodTypeCa
         if not all(x is not None for x in [wood_type, length, quantity]):
             continue
 
-        # Find the wood type index from the selection
+        # Find the lumber index from the selection
         wood_type_str = str(wood_type)
-        wood_types = catalog.get_all_wood_types()
+        lumber_types = catalog.get_all_lumber()
 
-        # Try to find the matching wood type
-        wood_type_index = None
-        for i, wt in enumerate(wood_types):
+        # Try to find the matching lumber type
+        lumber_index = None
+        for i, wt in enumerate(lumber_types):
             formatted = f"{format_dimensions(wt.width, wt.height)} - {wt.description}"
             if formatted == wood_type_str:
-                wood_type_index = i
+                lumber_index = i
                 break
 
-        # If no match found, keep the existing wood type index
-        if wood_type_index is None:
-            wood_type_index = row.get("_wood_type_index", 0)
+        # If no match found, keep the existing lumber index
+        if lumber_index is None:
+            lumber_index = row.get("_lumber_index", 0)
 
         try:
             new_pieces.append(
                 AssemblyPiece(
-                    wood_type_index=wood_type_index,
+                    lumber_index=lumber_index,
                     length=float(length),  # Length is already in meters
                     quantity=int(quantity),
                 )

@@ -1,5 +1,5 @@
 {
-  "wood_types": [
+  "lumber_types": [
     {
       "width": 50.0,
       "height": 22.0,
@@ -12,7 +12,7 @@
         4.8,
         6.0
       ],
-      "description": "לבן 22/50 שימור - עץ לבן עם טיפול שימור"
+      "description": "\u05dc\u05d1\u05df 22/50 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05dc\u05d1\u05df \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 100.0,
@@ -26,7 +26,7 @@
         4.8,
         6.0
       ],
-      "description": "לבן 22/100 שימור - עץ לבן עם טיפול שימור"
+      "description": "\u05dc\u05d1\u05df 22/100 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05dc\u05d1\u05df \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 100.0,
@@ -40,7 +40,7 @@
         4.8,
         6.0
       ],
-      "description": "לבן 22/100 גולמי - עץ לבן ללא טיפול"
+      "description": "\u05dc\u05d1\u05df 22/100 \u05d2\u05d5\u05dc\u05de\u05d9 - \u05e2\u05e5 \u05dc\u05d1\u05df \u05dc\u05dc\u05d0 \u05d8\u05d9\u05e4\u05d5\u05dc"
     },
     {
       "width": 125.0,
@@ -54,7 +54,7 @@
         4.8,
         6.0
       ],
-      "description": "לבן 22/125 (18/120 נטו) מוקצע - עץ לבן מהוקצע"
+      "description": "\u05dc\u05d1\u05df 22/125 (18/120 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05dc\u05d1\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 150.0,
@@ -68,7 +68,7 @@
         4.8,
         6.0
       ],
-      "description": "לבן 22/150 שימור - עץ לבן עם טיפול שימור"
+      "description": "\u05dc\u05d1\u05df 22/150 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05dc\u05d1\u05df \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 200.0,
@@ -82,7 +82,7 @@
         4.8,
         6.0
       ],
-      "description": "לבן 22/200 (18/195 נטו) מוקצע - עץ לבן מהוקצע"
+      "description": "\u05dc\u05d1\u05df 22/200 (18/195 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05dc\u05d1\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 200.0,
@@ -96,7 +96,7 @@
         4.8,
         6.0
       ],
-      "description": "לבן 22/200 (18/195 נטו) מוקצע שימור - עץ לבן מהוקצע עם טיפול שימור"
+      "description": "\u05dc\u05d1\u05df 22/200 (18/195 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05dc\u05d1\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 100.0,
@@ -110,7 +110,7 @@
         4.8,
         6.0
       ],
-      "description": "לבן 44/100 גולמי - עץ לבן ללא טיפול"
+      "description": "\u05dc\u05d1\u05df 44/100 \u05d2\u05d5\u05dc\u05de\u05d9 - \u05e2\u05e5 \u05dc\u05d1\u05df \u05dc\u05dc\u05d0 \u05d8\u05d9\u05e4\u05d5\u05dc"
     },
     {
       "width": 100.0,
@@ -124,7 +124,7 @@
         4.8,
         6.0
       ],
-      "description": "לבן 44/100 שימור - עץ לבן עם טיפול שימור"
+      "description": "\u05dc\u05d1\u05df 44/100 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05dc\u05d1\u05df \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 150.0,
@@ -138,7 +138,7 @@
         4.8,
         6.0
       ],
-      "description": "לבן 44/150 שימור - עץ לבן עם טיפול שימור"
+      "description": "\u05dc\u05d1\u05df 44/150 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05dc\u05d1\u05df \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 50.0,
@@ -152,7 +152,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 25/50 (20/45 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 25/50 (20/45 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 50.0,
@@ -166,7 +166,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 25/50 (20/45 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 25/50 (20/45 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 50.0,
@@ -180,7 +180,7 @@
         4.8,
         6.0
       ],
-      "description": "הצללה למסילות אורן 25/50 (20/45 נטו) מוקצע - עץ אורן מהוקצע למסילות הצללה"
+      "description": "\u05d4\u05e6\u05dc\u05dc\u05d4 \u05dc\u05de\u05e1\u05d9\u05dc\u05d5\u05ea \u05d0\u05d5\u05e8\u05df 25/50 (20/45 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05dc\u05de\u05e1\u05d9\u05dc\u05d5\u05ea \u05d4\u05e6\u05dc\u05dc\u05d4"
     },
     {
       "width": 75.0,
@@ -194,7 +194,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 25/75 (20/70 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 25/75 (20/70 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 100.0,
@@ -208,7 +208,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 25/100 (20/95 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 25/100 (20/95 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 100.0,
@@ -222,7 +222,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 25/100 (20/95 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 25/100 (20/95 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 125.0,
@@ -236,7 +236,7 @@
         4.8,
         6.0
       ],
-      "description": "מרועף אורן 25/125 (20/120 נטו) מוקצע שימור - עץ אורן מרועף מהוקצע עם טיפול שימור"
+      "description": "\u05de\u05e8\u05d5\u05e2\u05e3 \u05d0\u05d5\u05e8\u05df 25/125 (20/120 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05e8\u05d5\u05e2\u05e3 \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 150.0,
@@ -250,7 +250,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 25/150 (20/145 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 25/150 (20/145 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 150.0,
@@ -264,7 +264,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 25/150 (20/145 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 25/150 (20/145 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 150.0,
@@ -278,7 +278,7 @@
         4.8,
         6.0
       ],
-      "description": "לוג אורן 25/150 (20/145 נטו) מוקצע שימור - עץ אורן לוג מהוקצע עם טיפול שימור"
+      "description": "\u05dc\u05d5\u05d2 \u05d0\u05d5\u05e8\u05df 25/150 (20/145 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05dc\u05d5\u05d2 \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 150.0,
@@ -292,7 +292,7 @@
         4.8,
         6.0
       ],
-      "description": "ציפוי נגיעה אורן 25/150 (20/145 נטו) מוקצע שימור - עץ אורן עם ציפוי נגיעה מהוקצע עם טיפול שימור"
+      "description": "\u05e6\u05d9\u05e4\u05d5\u05d9 \u05e0\u05d2\u05d9\u05e2\u05d4 \u05d0\u05d5\u05e8\u05df 25/150 (20/145 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05e2\u05dd \u05e6\u05d9\u05e4\u05d5\u05d9 \u05e0\u05d2\u05d9\u05e2\u05d4 \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 200.0,
@@ -306,7 +306,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 25/200 (20/195 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 25/200 (20/195 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 150.0,
@@ -320,7 +320,7 @@
         4.8,
         6.0
       ],
-      "description": "קרולינה 32/150 (26/140 נטו) מוקצע - עץ אורן קרולינה מהוקצע"
+      "description": "\u05e7\u05e8\u05d5\u05dc\u05d9\u05e0\u05d4 32/150 (26/140 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05e7\u05e8\u05d5\u05dc\u05d9\u05e0\u05d4 \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 38.0,
@@ -334,7 +334,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 38/38 (32/32 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 38/38 (32/32 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 38.0,
@@ -348,7 +348,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 38/38 (32/32 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 38/38 (32/32 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 50.0,
@@ -362,12 +362,12 @@
         4.8,
         6.0
       ],
-      "description": "אורן 38/50 (32/45 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 38/50 (32/45 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 75.0,
       "height": 38.0,
-      "price_per_meter": 8.50,
+      "price_per_meter": 8.5,
       "available_lengths": [
         2.4,
         3.0,
@@ -376,7 +376,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 38/75 (32/70 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 38/75 (32/70 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 75.0,
@@ -390,7 +390,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 38/75 (32/70 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 38/75 (32/70 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 100.0,
@@ -404,7 +404,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 38/100 (32/95 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 38/100 (32/95 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 100.0,
@@ -418,7 +418,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 38/100 (32/95 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 38/100 (32/95 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 150.0,
@@ -432,7 +432,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 38/150 (32/145 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 38/150 (32/145 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 150.0,
@@ -446,7 +446,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 38/150 (32/145 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 38/150 (32/145 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 150.0,
@@ -460,12 +460,12 @@
         4.8,
         6.0
       ],
-      "description": "לוג אורן 38/150 (32/145 נטו) מוקצע שימור - עץ אורן לוג מהוקצע עם טיפול שימור"
+      "description": "\u05dc\u05d5\u05d2 \u05d0\u05d5\u05e8\u05df 38/150 (32/145 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05dc\u05d5\u05d2 \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 200.0,
       "height": 38.0,
-      "price_per_meter": 22.30,
+      "price_per_meter": 22.3,
       "available_lengths": [
         2.4,
         3.0,
@@ -474,7 +474,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 38/200 (32/195 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 38/200 (32/195 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 200.0,
@@ -488,7 +488,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 38/200 (32/195 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 38/200 (32/195 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 50.0,
@@ -502,12 +502,12 @@
         4.8,
         6.0
       ],
-      "description": "אורן 50/50 (45/45 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 50/50 (45/45 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 50.0,
       "height": 50.0,
-      "price_per_meter": 7.50,
+      "price_per_meter": 7.5,
       "available_lengths": [
         2.4,
         3.0,
@@ -516,7 +516,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 50/50 (45/45 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 50/50 (45/45 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 75.0,
@@ -530,7 +530,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 50/75 (45/70 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 50/75 (45/70 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 75.0,
@@ -544,7 +544,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 50/75 (45/70 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 50/75 (45/70 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 100.0,
@@ -558,12 +558,12 @@
         4.8,
         6.0
       ],
-      "description": "אורן 50/100 (45/95 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 50/100 (45/95 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 100.0,
       "height": 50.0,
-      "price_per_meter": 14.50,
+      "price_per_meter": 14.5,
       "available_lengths": [
         2.4,
         3.0,
@@ -572,12 +572,12 @@
         4.8,
         6.0
       ],
-      "description": "אורן 50/100 (45/95 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 50/100 (45/95 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 150.0,
       "height": 50.0,
-      "price_per_meter": 21.60,
+      "price_per_meter": 21.6,
       "available_lengths": [
         2.4,
         3.0,
@@ -586,7 +586,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 50/150 (45/145 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 50/150 (45/145 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 150.0,
@@ -600,7 +600,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 50/150 (45/145 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 50/150 (45/145 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 200.0,
@@ -614,7 +614,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 50/200 (45/195 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 50/200 (45/195 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 200.0,
@@ -628,7 +628,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 50/200 (45/195 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 50/200 (45/195 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 75.0,
@@ -642,7 +642,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 75/75 (70/70 נטו) מוקצע - עץ אורן מהוקצע"
+      "description": "\u05d0\u05d5\u05e8\u05df 75/75 (70/70 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 75.0,
@@ -656,7 +656,7 @@
         4.8,
         6.0
       ],
-      "description": "אורן 75/75 (70/70 נטו) מוקצע שימור - עץ אורן מהוקצע עם טיפול שימור"
+      "description": "\u05d0\u05d5\u05e8\u05df 75/75 (70/70 \u05e0\u05d8\u05d5) \u05de\u05d5\u05e7\u05e6\u05e2 \u05e9\u05d9\u05de\u05d5\u05e8 - \u05e2\u05e5 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2 \u05e2\u05dd \u05d8\u05d9\u05e4\u05d5\u05dc \u05e9\u05d9\u05de\u05d5\u05e8"
     },
     {
       "width": 10.0,
@@ -670,7 +670,7 @@
         4.8,
         6.0
       ],
-      "description": "ציפוי 12 מ\"מ (נוטפדר) רוחב 10 עובי 12 מוקצע - ציפוי אורן מהוקצע"
+      "description": "\u05e6\u05d9\u05e4\u05d5\u05d9 12 \u05de\"\u05de (\u05e0\u05d5\u05d8\u05e4\u05d3\u05e8) \u05e8\u05d5\u05d7\u05d1 10 \u05e2\u05d5\u05d1\u05d9 12 \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e6\u05d9\u05e4\u05d5\u05d9 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
     },
     {
       "width": 15.0,
@@ -684,7 +684,58 @@
         4.8,
         6.0
       ],
-      "description": "ציפוי 14 מ\"מ (נוטפדר) רוחב 15 עובי 14 מוקצע - ציפוי אורן מהוקצע"
+      "description": "\u05e6\u05d9\u05e4\u05d5\u05d9 14 \u05de\"\u05de (\u05e0\u05d5\u05d8\u05e4\u05d3\u05e8) \u05e8\u05d5\u05d7\u05d1 15 \u05e2\u05d5\u05d1\u05d9 14 \u05de\u05d5\u05e7\u05e6\u05e2 - \u05e6\u05d9\u05e4\u05d5\u05d9 \u05d0\u05d5\u05e8\u05df \u05de\u05d4\u05d5\u05e7\u05e6\u05e2"
+    }
+  ],
+  "woodboards": [
+    {
+      "width": 1200.0,
+      "length": 2400.0,
+      "thickness": 18.0,
+      "wood_type": "pine",
+      "price_per_board": 450.0
+    },
+    {
+      "width": 1200.0,
+      "length": 2400.0,
+      "thickness": 18.0,
+      "wood_type": "birch",
+      "price_per_board": 650.0
+    },
+    {
+      "width": 1200.0,
+      "length": 2400.0,
+      "thickness": 25.0,
+      "wood_type": "pine",
+      "price_per_board": 550.0
+    },
+    {
+      "width": 1200.0,
+      "length": 2400.0,
+      "thickness": 12.0,
+      "wood_type": "laminate",
+      "price_per_board": 350.0
+    },
+    {
+      "width": 1200.0,
+      "length": 2400.0,
+      "thickness": 15.0,
+      "wood_type": "sandwich",
+      "price_per_board": 400.0
+    },
+    {
+      "width": 1200.0,
+      "length": 2400.0,
+      "thickness": 8.0,
+      "wood_type": "birch",
+      "price_per_board": 0.0
+    },
+    {
+      "width": 1200.0,
+      "length": 2400.0,
+      "thickness": 12.0,
+      "wood_type": "birch",
+      "price_per_board": 0.0
     }
   ]
 }

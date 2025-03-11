@@ -1,8 +1,8 @@
 import streamlit as st
 
-from catalog import WoodTypeCatalog
 from components.assembly_table import render_assembly_table
 from models.wood import Assembly, Project
+from repositories.catalog import WoodCatalog
 
 
 def format_dimensions(width: float, height: float) -> str:
@@ -14,7 +14,7 @@ def calculate_piece_price(length: float, price_per_meter: float) -> float:
     return length * price_per_meter
 
 
-def render_assembly_builder(catalog: WoodTypeCatalog, project: Project):
+def render_assembly_builder(catalog: WoodCatalog, project: Project):
     """Render the assembly builder tab"""
     st.header("Assembly Builder")
 

@@ -5,14 +5,14 @@
       "name": "Sawhorse",
       "pieces": [
         {
-          "wood_type_index": 7,
           "length": 0.86,
-          "quantity": 4
+          "quantity": 4,
+          "lumber_index": 7
         },
         {
-          "wood_type_index": 7,
           "length": 0.6,
-          "quantity": 2
+          "quantity": 2,
+          "lumber_index": 7
         }
       ],
       "units": 3
@@ -21,14 +21,14 @@
       "name": "Table",
       "pieces": [
         {
-          "wood_type_index": 7,
           "length": 2.4,
-          "quantity": 2
+          "quantity": 2,
+          "lumber_index": 7
         },
         {
-          "wood_type_index": 7,
           "length": 0.8,
-          "quantity": 6
+          "quantity": 6,
+          "lumber_index": 7
         }
       ],
       "units": 1

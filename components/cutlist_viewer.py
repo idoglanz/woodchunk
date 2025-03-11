@@ -4,21 +4,21 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from catalog import WoodTypeCatalog
-from models.wood import CutList, Project, WoodType
+from models.wood import CutList, Lumber, Project
+from repositories.catalog import WoodCatalog
 
 
-def calculate_cut_list(project: Project, catalog: WoodTypeCatalog) -> list[CutList]:
+def calculate_cut_list(project: Project, catalog: WoodCatalog) -> list[CutList]:
     """Calculate the cut list from all assemblies in the project"""
     # Group pieces by wood type
     wood_type_pieces = {}
 
     for assembly in project.assemblies:
         for piece in assembly.pieces:
-            wood_type = catalog.get_wood_type(piece.wood_type_index)
+            wood_type = catalog.get_lumber(piece.lumber_index)
             if wood_type:
-                if piece.wood_type_index not in wood_type_pieces:
-                    wood_type_pieces[piece.wood_type_index] = {
+                if piece.lumber_index not in wood_type_pieces:
+                    wood_type_pieces[piece.lumber_index] = {
                         "wood_type": wood_type,
                         "total_length": 0,
                         "total_price": 0,
@@ -26,15 +26,15 @@ def calculate_cut_list(project: Project, catalog: WoodTypeCatalog) -> list[CutLi
 
                 # Add piece length and price to totals, multiplied by assembly units
                 total_length = piece.length * piece.quantity * assembly.units
-                wood_type_pieces[piece.wood_type_index]["total_length"] += total_length
-                wood_type_pieces[piece.wood_type_index]["total_price"] += (
+                wood_type_pieces[piece.lumber_index]["total_length"] += total_length
+                wood_type_pieces[piece.lumber_index]["total_price"] += (
                     total_length * wood_type.price_per_meter
                 )
 
     # Convert to list of CutList objects
     return [
         CutList(
-            wood_type=info["wood_type"],
+            lumber=info["wood_type"],
             total_length=info["total_length"],
             total_price=info["total_price"],
         )
@@ -42,13 +42,13 @@ def calculate_cut_list(project: Project, catalog: WoodTypeCatalog) -> list[CutLi
     ]
 
 
-def get_detailed_cut_list(project: Project, catalog: WoodTypeCatalog) -> list[dict]:
+def get_detailed_cut_list(project: Project, catalog: WoodCatalog) -> list[dict]:
     """Get a detailed cut list with assembly information"""
     detailed_list = []
 
     for assembly in project.assemblies:
         for piece in assembly.pieces:
-            wood_type = catalog.get_wood_type(piece.wood_type_index)
+            wood_type = catalog.get_lumber(piece.lumber_index)
             if wood_type:
                 # Calculate quantities accounting for assembly units
                 total_quantity = piece.quantity * assembly.units
@@ -78,10 +78,10 @@ def export_summary_csv(cut_list: list[CutList]) -> str:
     for item in cut_list:
         data.append(
             {
-                "Dimensions": f"{item.wood_type.width}x{item.wood_type.height}mm",
-                "Description": item.wood_type.description,
+                "Dimensions": f"{item.lumber.width}x{item.lumber.height}mm",
+                "Description": item.lumber.description,
                 "Total Length (m)": item.total_length,
-                "Price/m": item.wood_type.price_per_meter,
+                "Price/m": item.lumber.price_per_meter,
                 "Total Price": item.total_price,
             }
         )
@@ -100,7 +100,7 @@ def export_detailed_csv(detailed_list: list[dict]) -> str:
     return buffer.getvalue()
 
 
-def render_cut_list(project: Project, catalog: WoodTypeCatalog):
+def render_cut_list(project: Project, catalog: WoodCatalog):
     """Render the cut list summary tab"""
     st.header("Cut List Summary")
 
@@ -142,9 +142,9 @@ def render_cut_list(project: Project, catalog: WoodTypeCatalog):
     # Prepare data for the pie chart
     chart_data = []
     for item in cut_list:
-        wood_name = f"{item.wood_type.width}x{item.wood_type.height}mm"
-        if item.wood_type.description:
-            wood_name += f" - {item.wood_type.description}"
+        wood_name = f"{item.lumber.width}x{item.lumber.height}mm"
+        if item.lumber.description:
+            wood_name += f" - {item.lumber.description}"
 
         chart_data.append(
             {
@@ -166,21 +166,21 @@ def render_cut_list(project: Project, catalog: WoodTypeCatalog):
     # Display each wood type's requirements
     for item in cut_list:
         with st.expander(
-            f"{item.wood_type.width}x{item.wood_type.height}mm - {item.wood_type.description}",
+            f"{item.lumber.width}x{item.lumber.height}mm - {item.lumber.description}",
             expanded=True,
         ):
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric("Total Length", f"{item.total_length:.1f}m")
             with col2:
-                st.metric("Price per Meter", f"₪{item.wood_type.price_per_meter:.2f}")
+                st.metric("Price per Meter", f"₪{item.lumber.price_per_meter:.2f}")
             with col3:
                 st.metric("Total Price", f"₪{item.total_price:.2f}")
 
-            if item.wood_type.available_lengths:
+            if item.lumber.available_lengths:
                 st.write(
                     "Available Lengths:",
-                    ", ".join(f"{l}m" for l in item.wood_type.available_lengths),
+                    ", ".join(f"{l}m" for l in item.lumber.available_lengths),
                 )
 
     # Display total price

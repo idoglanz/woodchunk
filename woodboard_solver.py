@@ -18,19 +18,42 @@ def verify_wood_pieces(
     return True
 
 
+def unwind_wood_pieces(wood_pieces: List[WoodBoardPiece]) -> List[WoodBoardPiece]:
+    """Expand wood pieces based on their quantity, creating new pieces with unique IDs."""
+    unwound_pieces = []
+
+    for piece in wood_pieces:
+        # Create quantity copies of the piece
+        for _ in range(piece.quantity):
+            # Create a new piece with same attributes but new ID
+            new_piece = WoodBoardPiece(
+                width=piece.width,
+                length=piece.length,
+                label=piece.label,
+                bottom_left=piece.bottom_left,
+                quantity=1,  # Set quantity to 1 for the new piece
+            )
+            unwound_pieces.append(new_piece)
+
+    return unwound_pieces
+
+
 def solve_woodboard(
     woodboard: BaseWoodBoard, wood_pieces: List[WoodBoardPiece], buffer: float = 0.0
 ) -> WoodBoard:
     # Normalize, buffer and verify wood pieces
-    wood_pieces = [piece.normalize() for piece in wood_pieces]
-
-    if buffer > 0:
-        wood_pieces = [piece.buffer(buffer) for piece in wood_pieces]
+    for piece in wood_pieces:
+        piece.normalize()
+        if buffer > 0:
+            piece.buffer(buffer)
 
     if not verify_wood_pieces(woodboard, wood_pieces):
         raise ValueError(
             f"Some wood pieces are too large for the woodboard, make sure pieces are less than {woodboard.width}x{woodboard.length}"
         )
+
+    # expand list with pieces that have quantity > 1
+    wood_pieces = unwind_wood_pieces(wood_pieces)
 
     # Calculate boards needed
     total_area = sum(piece.area for piece in wood_pieces)
@@ -162,7 +185,8 @@ def plot_woodboard(woodboard: WoodBoard):
 
     # Hide the scatter points but keep hover data
     fig.update_traces(marker_color="rgba(0,0,0,0)")
-    fig.show()
+    # fig.show()
+    return fig
 
 
 if __name__ == "__main__":

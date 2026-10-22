@@ -1,0 +1,272 @@
+"use client";
+
+import { ArrowDown, ArrowUp, Copy, LayoutTemplate, MoreHorizontal, Plus, Sparkles, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { useMemo } from "react";
+import { useProjectCtx } from "@/components/project/context";
+import { ItemPicker, rememberMaterial } from "@/components/project/material-picker";
+import { Button, IconButton } from "@/components/ui/button";
+import { LengthInput, NumberInput } from "@/components/ui/field";
+import { AsmChip, Card, EmptyState } from "@/components/ui/misc";
+import { Menu, MenuItem, MenuSeparator, Tip } from "@/components/ui/overlay";
+import { Stepper } from "@/components/ui/stepper";
+import type { Assembly, CatalogItem, HardwareLine, Part } from "@/lib/api/client";
+import { cn } from "@/lib/cn";
+import { newId, nextLetter, useEditor } from "@/lib/editor";
+import { money } from "@/lib/format";
+import { useCatalog } from "@/lib/queries";
+
+function useItems() {
+  const q = useCatalog({});
+  const items = useMemo(() => q.data ?? [], [q.data]);
+  const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+  return { items, byId };
+}
+
+export function DesignView() {
+  const content = useEditor((s) => s.content);
+  const readOnly = useEditor((s) => s.readOnly);
+  const edit = useEditor((s) => s.edit);
+  const { openAI } = useProjectCtx();
+  const { items, byId } = useItems();
+  if (!content) return null;
+
+  const addAssembly = () =>
+    edit((d) => {
+      d.assemblies.push({ id: newId(), letter: nextLetter(d.assemblies.map((a) => a.letter)), name: `Assembly ${d.assemblies.length + 1}`, qty: 1, parts: [], hardware: [], notes: "" });
+    });
+
+  if (!content.assemblies.length) {
+    return (
+      <Card>
+        <EmptyState title="What are you building?"
+          text="Add an assembly for each thing you're making (a table, two sawhorses…), then list the parts it's cut from."
+          action={<div className="flex flex-wrap justify-center gap-2">
+            {!readOnly ? <Button variant="primary" icon={<Sparkles size={16} />} onClick={openAI}>Describe it</Button> : null}
+            {!readOnly ? <Button icon={<Plus size={16} />} onClick={addAssembly}>Add assembly</Button> : null}
+            <Link href="/templates" className="inline-flex h-11 items-center gap-2 rounded-xl px-4 text-[15px] font-medium text-ink-2 hover:text-ink"><LayoutTemplate size={16} />Templates</Link>
+          </div>} />
+      </Card>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {content.assemblies.map((a, i) => (
+        <AssemblyCard key={a.id} a={a} index={i} count={content.assemblies.length} items={items} byId={byId} />
+      ))}
+      <ExtrasCard lines={content.extras} items={items} byId={byId} />
+      {!readOnly ? (
+        <div>
+          <Button icon={<Plus size={16} strokeWidth={2.4} />} onClick={addAssembly}>Add assembly</Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: number; count: number; items: CatalogItem[]; byId: Map<string, CatalogItem> }) {
+  const edit = useEditor((s) => s.edit);
+  const readOnly = useEditor((s) => s.readOnly);
+  const { plan } = useProjectCtx();
+  const unplaced = useMemo(() => new Map((plan?.unplaced ?? []).map((u) => [u.part_id, u.reason])), [plan]);
+  const upd = (fn: (x: Assembly) => void, key?: string) => edit((d) => { const x = d.assemblies.find((y) => y.id === a.id); if (x) fn(x); }, key);
+
+  const addPart = () => upd((x) => {
+    const last = x.parts[x.parts.length - 1];
+    x.parts.push({ id: newId(), name: "", item_id: last?.item_id ?? null, qty: 1, length_mm: 0, width_mm: null, grain_locked: false, notes: "" });
+  });
+
+  const move = (dir: -1 | 1) => edit((d) => {
+    const i = d.assemblies.findIndex((y) => y.id === a.id);
+    const j = i + dir;
+    if (j < 0 || j >= d.assemblies.length) return;
+    [d.assemblies[i], d.assemblies[j]] = [d.assemblies[j], d.assemblies[i]];
+  });
+
+  return (
+    <Card className="flex flex-col">
+      <div className="flex flex-wrap items-center gap-3 px-4 pb-2 pt-4 sm:px-5">
+        <AsmChip letter={a.letter} className="h-7 min-w-7 text-[13px]" />
+        <InlineText value={a.name} placeholder="Assembly name" ariaLabel="Assembly name" readOnly={readOnly}
+          onCommit={(v) => upd((x) => { x.name = v || "Assembly"; })} className="text-[17px] font-semibold" />
+        <div className="ms-auto flex items-center gap-1">
+          {readOnly ? <span className="tnum text-[15px] font-semibold text-ink-2">×{a.qty}</span> : (
+            <Tip content="How many of this you're building. Multiplies its parts and hardware.">
+              <span><Stepper label="assemblies" value={a.qty} onChange={(n) => upd((x) => { x.qty = n; }, `qty-${a.id}`)} /></span>
+            </Tip>
+          )}
+          {!readOnly ? (
+            <Menu trigger={<IconButton label="Assembly options" size="sm"><MoreHorizontal size={18} /></IconButton>}>
+              <MenuItem icon={<Copy size={15} />} onSelect={() => edit((d) => {
+                const src = d.assemblies.find((y) => y.id === a.id)!;
+                const copy: Assembly = { ...structuredClone(src), id: newId(), letter: nextLetter(d.assemblies.map((y) => y.letter)), name: `${src.name} copy` };
+                copy.parts = copy.parts.map((p) => ({ ...p, id: newId() }));
+                copy.hardware = copy.hardware.map((h) => ({ ...h, id: newId() }));
+                d.assemblies.splice(index + 1, 0, copy);
+              })}>Duplicate</MenuItem>
+              <MenuItem icon={<ArrowUp size={15} />} disabled={index === 0} onSelect={() => move(-1)}>Move up</MenuItem>
+              <MenuItem icon={<ArrowDown size={15} />} disabled={index === count - 1} onSelect={() => move(1)}>Move down</MenuItem>
+              <MenuSeparator />
+              <MenuItem danger icon={<Trash2 size={15} />} onSelect={() => edit((d) => { d.assemblies = d.assemblies.filter((y) => y.id !== a.id); })}>Delete assembly</MenuItem>
+            </Menu>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="px-2 sm:px-3">
+        {a.parts.length ? (
+          <div className="hidden grid-cols-[44px_minmax(0,1fr)_minmax(0,1.35fr)_64px_104px_104px_36px_32px] gap-2 px-2 pb-1 pt-1 text-[12px] font-medium text-ink-3 md:grid">
+            <span>Label</span><span>Part</span><span>Material</span><span className="text-end">Qty</span><span className="text-end">Length</span><span className="text-end">Width</span><span /><span />
+          </div>
+        ) : null}
+        <div className="flex flex-col">
+          {a.parts.map((p, i) => (
+            <PartRow key={p.id} a={a} p={p} label={`${a.letter}${i + 1}`} items={items} byId={byId} problem={unplaced.get(p.id)} />
+          ))}
+        </div>
+        {!a.parts.length ? <p className="px-2 py-3 text-[14px] text-ink-2">No parts yet.</p> : null}
+      </div>
+
+      <HardwareList title="Hardware" lines={a.hardware} items={items} byId={byId} multiplier={a.qty}
+        onEdit={(fn) => upd((x) => fn(x.hardware))} />
+
+      {!readOnly ? (
+        <div className="flex flex-wrap gap-1 border-t border-line px-3 py-2 sm:px-4">
+          <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={addPart}>Add part</Button>
+          <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => upd((x) => { x.hardware.push({ id: newId(), item_id: null, name: "", qty: 1, unit_price: null }); })}>Add hardware</Button>
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
+function PartRow({ a, p, label, items, byId, problem }: {
+  a: Assembly; p: Part; label: string; items: CatalogItem[]; byId: Map<string, CatalogItem>; problem?: string;
+}) {
+  const edit = useEditor((s) => s.edit);
+  const readOnly = useEditor((s) => s.readOnly);
+  const { units } = useProjectCtx();
+  const item = p.item_id ? byId.get(p.item_id) : undefined;
+  const isSheet = item?.kind === "sheet";
+  const upd = (fn: (x: Part) => void) => edit((d) => {
+    const x = d.assemblies.find((y) => y.id === a.id)?.parts.find((y) => y.id === p.id);
+    if (x) fn(x);
+  });
+
+  return (
+    <div className={cn("group grid grid-cols-[44px_minmax(0,1fr)_32px] items-center gap-x-2 gap-y-1.5 rounded-xl px-2 py-1.5 md:grid-cols-[44px_minmax(0,1fr)_minmax(0,1.35fr)_64px_104px_104px_36px_32px]", problem && "bg-kerf-soft/50")}>
+      <div className="flex items-center">
+        {problem ? (
+          <Tip content={problem}><span><AsmChip letter={a.letter} className="shadow-[0_0_0_1.5px_var(--kerf)]">{label}</AsmChip></span></Tip>
+        ) : <AsmChip letter={a.letter}>{label}</AsmChip>}
+      </div>
+      <InlineText value={p.name} placeholder="Part name" ariaLabel={`${label} name`} readOnly={readOnly} onCommit={(v) => upd((x) => { x.name = v; })} className="text-[15px]" boxed />
+      <div className="col-start-3 row-start-1 flex justify-end md:col-start-8">
+        {!readOnly ? <IconButton label={`Delete ${label}`} size="sm" className="text-ink-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
+          onClick={() => edit((d) => { const x = d.assemblies.find((y) => y.id === a.id); if (x) x.parts = x.parts.filter((y) => y.id !== p.id); })}><X size={16} /></IconButton> : null}
+      </div>
+      <div className="col-span-3 md:col-span-1 md:col-start-3 md:row-start-1">
+        <ItemPicker items={items} value={p.item_id} kinds={["lumber", "sheet"]} ariaLabel={`${label} material`} disabled={readOnly}
+          onChange={(id) => { if (!id) return; rememberMaterial(id); upd((x) => { x.item_id = id; const it = byId.get(id); if (it?.kind !== "sheet") { x.width_mm = null; x.grain_locked = false; } }); }} />
+      </div>
+      <div className="col-span-3 grid grid-cols-[64px_1fr_1fr_36px] gap-2 md:contents">
+        <NumberInput ariaLabel={`${label} quantity`} value={p.qty} min={1} onChange={(n) => upd((x) => { x.qty = Math.max(1, Math.round(n ?? 1)); })} />
+        <LengthInput ariaLabel={`${label} length`} units={units} value={p.length_mm} placeholder="Length"
+          invalid={!!problem && problem.includes("length")} onChange={(mm) => upd((x) => { x.length_mm = mm ?? 0; })} />
+        {isSheet ? (
+          <LengthInput ariaLabel={`${label} width`} units={units} value={p.width_mm} placeholder="Width" allowEmpty
+            invalid={!!problem && problem.includes("width")} onChange={(mm) => upd((x) => { x.width_mm = mm; })} />
+        ) : <span className="flex h-9 items-center justify-end pe-2.5 text-[14px] text-ink-3" aria-hidden="true">—</span>}
+        {isSheet && item?.has_grain ? (
+          <Tip content={p.grain_locked ? "Grain runs along the length. Won't be rotated." : "Free to rotate on the sheet. Click to lock grain direction."}>
+            <button type="button" aria-pressed={p.grain_locked} aria-label={`${label} grain lock`} disabled={readOnly}
+              onClick={() => upd((x) => { x.grain_locked = !x.grain_locked; })}
+              className={cn("flex h-9 w-9 items-center justify-center rounded-lg", p.grain_locked ? "bg-accent-soft text-ink" : "text-ink-3 hover:bg-surface-2")}>
+              <GrainIcon />
+            </button>
+          </Tip>
+        ) : <span />}
+      </div>
+    </div>
+  );
+}
+
+function GrainIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M2 5c3-1.6 5 1.6 8 0s4-1 6 0M2 9c3-1.6 5 1.6 8 0s4-1 6 0M2 13c3-1.6 5 1.6 8 0s4-1 6 0" />
+    </svg>
+  );
+}
+
+function ExtrasCard({ lines, items, byId }: { lines: HardwareLine[]; items: CatalogItem[]; byId: Map<string, CatalogItem> }) {
+  const edit = useEditor((s) => s.edit);
+  const readOnly = useEditor((s) => s.readOnly);
+  if (readOnly && !lines.length) return null;
+  return (
+    <Card className="flex flex-col">
+      <div className="flex items-center justify-between gap-3 px-4 pb-1 pt-4 sm:px-5">
+        <div className="flex flex-col">
+          <h2 className="text-[17px] font-semibold">Extras</h2>
+          <p className="text-[13px] text-ink-2">Glue, finish and anything bought once for the whole project.</p>
+        </div>
+      </div>
+      <HardwareList lines={lines} items={items} byId={byId} multiplier={1} onEdit={(fn) => edit((d) => fn(d.extras))} />
+      {!readOnly ? (
+        <div className="border-t border-line px-3 py-2 sm:px-4">
+          <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => edit((d) => { d.extras.push({ id: newId(), item_id: null, name: "", qty: 1, unit_price: null }); })}>Add item</Button>
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
+function HardwareList({ title, lines, items, byId, multiplier, onEdit }: {
+  title?: string; lines: HardwareLine[]; items: CatalogItem[]; byId: Map<string, CatalogItem>; multiplier: number;
+  onEdit: (fn: (list: HardwareLine[]) => void) => void;
+}) {
+  const readOnly = useEditor((s) => s.readOnly);
+  if (!lines.length) return null;
+  const upd = (id: string, fn: (h: HardwareLine) => void) => onEdit((list) => { const h = list.find((x) => x.id === id); if (h) fn(h); });
+  return (
+    <div className="flex flex-col px-2 pb-2 sm:px-3">
+      {title ? <p className="px-2 pb-1 pt-3 text-[12px] font-medium text-ink-3">{title}</p> : <div className="h-2" />}
+      {lines.map((h) => {
+        const item = h.item_id ? byId.get(h.item_id) : undefined;
+        const price = h.unit_price ?? item?.price ?? null;
+        return (
+          <div key={h.id} className="group grid grid-cols-[minmax(0,1fr)_76px_32px] items-center gap-2 rounded-xl px-2 py-1 sm:grid-cols-[minmax(0,1fr)_76px_110px_120px_32px]">
+            <ItemPicker items={items} value={h.item_id} kinds={["hardware"]} ariaLabel="Hardware item" disabled={readOnly} allowFree
+              placeholder={h.name || "Choose or type hardware"}
+              onChange={(id, free) => upd(h.id, (x) => { if (id) { x.item_id = id; x.name = byId.get(id)?.name.en ?? x.name; } else if (free) { x.item_id = null; x.name = free; } })} />
+            <NumberInput ariaLabel="Hardware quantity" value={h.qty} min={0} decimals={1} onChange={(n) => upd(h.id, (x) => { x.qty = n ?? 0; })} />
+            <div className="hidden sm:block">
+              {item?.price != null ? (
+                <span className="tnum flex h-9 items-center justify-end text-[13px] text-ink-2">{money(item.price)}{item.pack_size > 1 ? ` / ${item.pack_size}` : ""}</span>
+              ) : (
+                <NumberInput ariaLabel="Price each" value={h.unit_price} min={0} decimals={2} suffix="₪" onChange={(n) => upd(h.id, (x) => { x.unit_price = n; })} />
+              )}
+            </div>
+            <span className="tnum hidden h-9 items-center justify-end text-[13px] text-ink-2 sm:flex">
+              {multiplier > 1 ? `×${multiplier} = ${(h.qty * multiplier).toLocaleString()}` : price == null ? "no price" : ""}
+            </span>
+            {!readOnly ? <IconButton label="Remove hardware" size="sm" className="text-ink-3 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
+              onClick={() => onEdit((list) => { const i = list.findIndex((x) => x.id === h.id); if (i >= 0) list.splice(i, 1); })}><X size={16} /></IconButton> : <span />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function InlineText({ value, onCommit, placeholder, ariaLabel, readOnly, className, boxed }: {
+  value: string; onCommit: (v: string) => void; placeholder: string; ariaLabel: string; readOnly: boolean; className?: string; boxed?: boolean;
+}) {
+  return (
+    <input key={value} defaultValue={value} placeholder={placeholder} aria-label={ariaLabel} readOnly={readOnly} dir="auto"
+      onBlur={(e) => { const v = e.target.value.trim(); if (v !== value) onCommit(v); }}
+      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") { (e.target as HTMLInputElement).value = value; (e.target as HTMLInputElement).blur(); } }}
+      className={cn("h-9 min-w-0 rounded-lg bg-transparent px-2 outline-none placeholder:text-ink-3 focus:bg-surface-2", boxed ? "hover:bg-surface-2/70" : "hover:bg-surface-2/60", className)} />
+  );
+}

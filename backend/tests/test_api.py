@@ -1,0 +1,273 @@
+"""End-to-end API flows against a real MongoDB test database, with a fake AI client."""
+
+from app.services.ai import client as ai_client
+from app.services.ai.catalog_ai import ExtractedItem, Extraction, Translation, Translations
+from app.services.ai.project_chat import ChatAnswer
+from app.services.proposals import AIOp
+from tests.conftest import auth
+
+USER = "maker@test.dev"
+
+
+async def find_item(client, q: str, kind: str) -> dict:
+    r = await client.get("/api/catalog", params={"q": q, "kind": kind}, headers=auth())
+    assert r.status_code == 200, r.text
+    items = r.json()
+    assert items, f"no catalog item for {q!r}"
+    return items[0]
+
+
+def op(**kw) -> AIOp:
+    base = dict(name=None, qty=None, target=None, item_id=None, length_mm=None, width_mm=None, grain_locked=None,
+                unit_price=None)
+    return AIOp(**{**base, **kw})
+
+
+async def new_project(client, email=USER, **content) -> dict:
+    r = await client.post("/api/projects", json={"name": content.pop("name", "Test bench")}, headers=auth(email))
+    assert r.status_code == 201, r.text
+    p = r.json()
+    if content:
+        body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, **content,
+                "version": p["version"]}
+        r = await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(email))
+        assert r.status_code == 200, r.text
+        p = r.json()
+    return p
+
+
+async def test_me_and_catalog(client):
+    r = await client.get("/api/me", headers=auth())
+    assert r.json()["role"] == "admin"
+    r = await client.get("/api/me", headers=auth(USER))
+    assert r.json()["role"] == "user"
+    r = await client.get("/api/catalog", params={"q": "44 × 100"}, headers=auth(USER))
+    assert any("44 × 100" in i["name"]["en"] for i in r.json())
+    assert (await client.get("/api/catalog", headers={})).status_code == 401
+
+
+async def test_plan_shop_buy_cut_cycle(client):
+    beam = await find_item(client, "44 × 100 whitewood rough", "lumber")
+    ply = await find_item(client, "18 mm birch", "sheet")
+    p = await new_project(client, assemblies=[
+        {"name": "Sawhorse", "qty": 2, "parts": [
+            {"name": "Leg", "item_id": beam["id"], "qty": 4, "length_mm": 760},
+            {"name": "Beam", "item_id": beam["id"], "qty": 1, "length_mm": 900}]},
+        {"name": "Top", "qty": 1, "parts": [
+            {"name": "Panel", "item_id": ply["id"], "qty": 1, "length_mm": 1800, "width_mm": 800, "grain_locked": True},
+            {"name": "Missing width", "item_id": ply["id"], "qty": 1, "length_mm": 300}]},
+    ])
+    assert [a["letter"] for a in p["assemblies"]] == ["A", "B"]
+
+    plan = (await client.get(f"/api/projects/{p['id']}/plan", headers=auth(USER))).json()
+    assert plan["totals"]["parts"] == 2 * 5 + 2
+    assert [u["label"] for u in plan["unplaced"]] == ["B2"]
+    assert "width" in plan["unplaced"][0]["reason"]
+    lumber = plan["lumber"][0]
+    placed = sum(1 for pat in lumber["patterns"] for s in pat["segments"] if s["kind"] == "part" for _ in range(pat["count"]))
+    assert placed == 10
+    sheet = plan["sheets"][0]
+    assert len(sheet["layouts"]) == 1 and sheet["layouts"][0]["cuts"]
+    assert sheet["cost"] == 650.0
+
+    # Can't buy while something doesn't fit.
+    r = await client.post(f"/api/projects/{p['id']}/status", json={"status": "bought"}, headers=auth(USER))
+    assert r.status_code == 409
+    p["assemblies"][1]["parts"].pop()
+    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    p = (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).json()
+
+    # Stale version is rejected.
+    body["version"] = 1
+    assert (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).status_code == 409
+
+    shop = (await client.get(f"/api/projects/{p['id']}/shopping", headers=auth(USER))).json()
+    assert shop["count"] >= 2
+    key = shop["groups"][0]["lines"][0]["key"]
+    r = await client.put(f"/api/projects/{p['id']}/shopping/checked", json={"key": key, "checked": True},
+                         headers=auth(USER))
+    assert r.status_code == 204
+    shop = (await client.get(f"/api/projects/{p['id']}/shopping", headers=auth(USER))).json()
+    assert shop["checked"] == 1
+
+    p = (await client.post(f"/api/projects/{p['id']}/status", json={"status": "bought"}, headers=auth(USER))).json()
+    assert p["status"] == "bought" and p["purchase"]["lines"]
+    # After buying, nothing left to buy until the design changes.
+    shop = (await client.get(f"/api/projects/{p['id']}/shopping", headers=auth(USER))).json()
+    assert not any(ln["kind"] in ("lumber", "sheet") for g in shop["groups"] for ln in g["lines"])
+
+    # Add a part after buying: only the extra stock appears.
+    p["assemblies"][0]["parts"].append({"name": "Shelf rail", "item_id": beam["id"], "qty": 4, "length_mm": 2000})
+    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    p = (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).json()
+    shop = (await client.get(f"/api/projects/{p['id']}/shopping", headers=auth(USER))).json()
+    extra = [ln for g in shop["groups"] for ln in g["lines"] if ln["kind"] == "lumber"]
+    assert extra, "extra boards should be on the list"
+
+    p = (await client.post(f"/api/projects/{p['id']}/status", json={"status": "bought"}, headers=auth(USER))).json()
+    p = (await client.post(f"/api/projects/{p['id']}/status", json={"status": "cut"}, headers=auth(USER))).json()
+    assert p["status"] == "cut"
+    inv = (await client.get("/api/workshop/inventory", headers=auth(USER))).json()
+    assert any(e["kind"] == "offcut" and e["source_project_id"] == p["id"] for e in inv)
+    # Done projects are read-only.
+    p = (await client.post(f"/api/projects/{p['id']}/status", json={"status": "done"}, headers=auth(USER))).json()
+    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    assert (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).status_code == 409
+
+
+async def test_inventory_is_used_first(client):
+    beam = await find_item(client, "44 × 100 whitewood rough", "lumber")
+    email = "stock@test.dev"
+    r = await client.post("/api/workshop/inventory", json={"item_id": beam["id"], "kind": "full", "length_mm": 2400,
+                                                            "qty": 2}, headers=auth(email))
+    assert r.status_code == 201, r.text
+    p = await new_project(client, email, assemblies=[
+        {"name": "Frame", "qty": 1, "parts": [{"name": "Rail", "item_id": beam["id"], "qty": 2, "length_mm": 1100}]}])
+    plan = (await client.get(f"/api/projects/{p['id']}/plan", headers=auth(email))).json()
+    assert plan["totals"]["from_inventory"] == 1
+    assert plan["totals"]["lumber_cost"] == 0
+
+
+async def test_carry_limit_reports_parts(client):
+    beam = await find_item(client, "44 × 100 whitewood rough", "lumber")
+    p = await new_project(client, assemblies=[
+        {"name": "Beam", "qty": 1, "parts": [{"name": "Long", "item_id": beam["id"], "qty": 1, "length_mm": 3200}]}],
+        settings={"max_stock_length_mm": 3000})
+    plan = (await client.get(f"/api/projects/{p['id']}/plan", headers=auth(USER))).json()
+    assert plan["unplaced"] and "carry limit" in plan["unplaced"][0]["reason"]
+
+
+class FakeAI:
+    enabled = True
+
+    def __init__(self, answers: dict):
+        self.answers = answers
+        self.calls: list[str] = []
+
+    async def generate(self, schema, system, contents, *, what, temperature=0.2):
+        self.calls.append(what)
+        ans = self.answers[what]
+        return (ans(contents) if callable(ans) else ans), "fake-model"
+
+
+async def test_ai_chat_proposal_apply(client):
+    beam = await find_item(client, "44 × 100 whitewood rough", "lumber")
+    screws = await find_item(client, "Wood screw 5×80", "hardware")
+    p = await new_project(client, name="Chat build")
+    fake = FakeAI({"project.chat": ChatAnswer(reply="הוספתי סוס עבודה", summary="Add a sawhorse", ops=[
+        op(action="add_assembly", assembly="NEW1", name="Sawhorse", qty=2),
+        op(action="add_part", assembly="NEW1", name="Leg", item_id=beam["id"], qty=4, length_mm=760),
+        op(action="add_part", assembly="NEW1", name="Ghost", item_id="does-not-exist", qty=1, length_mm=500),
+        op(action="add_hardware", assembly="NEW1", name="Screw", item_id=screws["id"], qty=16),
+    ])})
+    ai_client.set_ai(fake)
+    try:
+        r = await client.post(f"/api/ai/projects/{p['id']}/chat", json={"message": "תוסיף סוס עבודה"},
+                              headers=auth(USER))
+        assert r.status_code == 200, r.text
+        convo = r.json()
+        assert [m["role"] for m in convo["messages"]] == ["user", "assistant"]
+        prop = convo["proposals"][0]
+        assert prop["cost_after"] > prop["cost_before"] == 0
+        assert any("pick a material" in d["text"] for d in prop["diff"])
+        p2 = (await client.post(f"/api/ai/proposals/{prop['id']}/apply", headers=auth(USER))).json()
+        a = p2["assemblies"][0]
+        assert a["letter"] == "A" and a["qty"] == 2
+        assert a["parts"][1]["item_id"] is None  # invented id was not trusted
+        # Applying twice is refused.
+        assert (await client.post(f"/api/ai/proposals/{prop['id']}/apply", headers=auth(USER))).status_code == 409
+
+        # An edit referring to a part label.
+        fake.answers["project.chat"] = ChatAnswer(reply="Done", summary="Longer legs", ops=[
+            op(action="update_part", assembly="A", target="A1", length_mm=800)])
+        convo = (await client.post(f"/api/ai/projects/{p['id']}/chat", json={"message": "legs 80cm"},
+                                   headers=auth(USER))).json()
+        prop = [x for x in convo["proposals"] if x["status"] == "pending"][0]
+        # Someone edits first: the suggestion becomes stale.
+        body = {**{k: p2[k] for k in ("name", "description", "settings", "assemblies", "extras")},
+                "version": p2["version"]}
+        await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))
+        assert (await client.post(f"/api/ai/proposals/{prop['id']}/apply", headers=auth(USER))).status_code == 409
+    finally:
+        ai_client.set_ai(None)
+
+
+async def test_ai_catalog_import_and_translation(client):
+    extraction = Extraction(supplier_name="Test Timber", currency="ILS", items=[
+        ExtractedItem(kind="lumber", name_en="44 × 70 pine, treated", name_he="אורן 44/70 שימור", material="pine",
+                      treatment="treated", category="beams", sku="T-1", url=None, thickness_mm=44, width_mm=70,
+                      price_per_m=11.0, stock_lengths_mm=[3000, 4000], stock_length_prices=None,
+                      sheet_lengths_mm=None, sheet_widths_mm=None, sheet_prices=None, has_grain=None, pack_size=None,
+                      unit=None, price=None),
+        ExtractedItem(kind="sheet", name_en="18 mm MDF", name_he="MDF 18 מ״מ", material="mdf", treatment=None,
+                      category="mdf", sku=None, url=None, thickness_mm=18, width_mm=None, price_per_m=None,
+                      stock_lengths_mm=None, stock_length_prices=None, sheet_lengths_mm=[2440],
+                      sheet_widths_mm=[1220], sheet_prices=[210], has_grain=None, pack_size=None, unit=None,
+                      price=None),
+    ])
+    fake = FakeAI({"catalog.import": extraction,
+                   "translate": lambda contents: Translations(items=[
+                       Translation(source=s[2:], text=f"עב:{s[2:]}") for s in contents.split("\n")[1:]])})
+    ai_client.set_ai(fake)
+    try:
+        r = await client.post("/api/ai/catalog/import", data={"text": "44/70 pine treated 11/m; MDF 18mm 210"},
+                              headers=auth())
+        assert r.status_code == 200, r.text
+        imp = r.json()
+        assert imp["supplier_name"] == "Test Timber"
+        assert [i["action"] for i in imp["items"]] == ["new", "new"]
+        assert imp["items"][1]["item"]["has_grain"] is False
+        r = await client.post(f"/api/ai/catalog/imports/{imp['id']}/apply", json={"selected": [0, 1]}, headers=auth())
+        assert r.json()["created"] == 2
+        mdf = await find_item(client, "18 mm mdf", "sheet")
+        assert mdf["supplier_name"] == "Test Timber"
+
+        p = await new_project(client, name="Translate me", assemblies=[{"name": "Frame", "qty": 1, "parts": [
+            {"name": "Leg", "item_id": mdf["id"], "qty": 1, "length_mm": 500, "width_mm": 300}]}])
+        tr = (await client.post(f"/api/projects/{p['id']}/translations", params={"lang": "he"},
+                                headers=auth(USER))).json()
+        assert tr["Leg"] == "עב:Leg"
+        csv = (await client.get(f"/api/projects/{p['id']}/export/cutlist.csv", params={"lang": "he"},
+                                headers=auth(USER))).text
+        assert "עב:Leg" in csv and "תווית" in csv
+        # Cached: a second request does not call the model again.
+        n = fake.calls.count("translate")
+        await client.post(f"/api/projects/{p['id']}/translations", params={"lang": "he"}, headers=auth(USER))
+        assert fake.calls.count("translate") == n
+    finally:
+        ai_client.set_ai(None)
+
+
+async def test_ai_not_configured_is_a_clear_error(client):
+    p = await new_project(client, name="No AI")
+    r = await client.post(f"/api/ai/projects/{p['id']}/chat", json={"message": "hi"}, headers=auth(USER))
+    assert r.status_code == 503 and "GOOGLE_API_KEY" in r.json()["detail"]
+
+
+async def test_sharing_and_permissions(client):
+    p = await new_project(client, name="Shared")
+    other = "friend@test.dev"
+    assert (await client.get(f"/api/projects/{p['id']}", headers=auth(other))).status_code == 404
+    inv = (await client.post(f"/api/projects/{p['id']}/invites", json={"role": "viewer"}, headers=auth(USER))).json()
+    assert (await client.get(f"/api/invites/{inv['token']}", headers=auth(other))).json()["project_name"] == "Shared"
+    r = await client.post(f"/api/invites/{inv['token']}/accept", headers=auth(other))
+    assert r.status_code == 200
+    assert (await client.get(f"/api/projects/{p['id']}", headers=auth(other))).status_code == 200
+    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    assert (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(other))).status_code == 403
+
+
+async def test_templates(client):
+    tpls = (await client.get("/api/templates", headers=auth(USER))).json()
+    bench = next(t for t in tpls if t["title"].startswith("Workbench"))
+    r = await client.post("/api/projects", json={"template_id": bench["id"]}, headers=auth(USER))
+    assert r.status_code == 201
+    p = r.json()
+    assert p["name"].startswith("Workbench") and not p["is_template"]
+    plan = (await client.get(f"/api/projects/{p['id']}/plan", headers=auth(USER))).json()
+    assert not plan["unplaced"], plan["unplaced"]
+    assert plan["sheets"] and plan["lumber"]
+    for t in tpls:
+        q = await client.post("/api/projects", json={"template_id": t["id"]}, headers=auth(USER))
+        plan = (await client.get(f"/api/projects/{q.json()['id']}/plan", headers=auth(USER))).json()
+        assert not plan["unplaced"], (t["title"], plan["unplaced"])

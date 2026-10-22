@@ -1,0 +1,42 @@
+[project]
+name = "woodchunk-backend"
+version = "0.1.0"
+description = "Woodchunk API: projects, catalog, cut optimization and AI assistance"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi==0.159.1",
+    "uvicorn[standard]==0.54.0",
+    "pydantic==2.14.1",
+    "pydantic-settings==2.16.1",
+    "pymongo==4.19.0",
+    "ortools==9.15.6755",
+    "google-genai==2.32.0",
+    "descope>=2.16.0,<3.0",
+    "httpx==0.28.1",
+    "beautifulsoup4==4.15.0",
+    "lxml==6.1.3",
+    "openpyxl==3.1.5",
+    "python-multipart==0.0.32",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "hypothesis==6.170.5",
+    "ruff==0.17.1",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008", "E501"]

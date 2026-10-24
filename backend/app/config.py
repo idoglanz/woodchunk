@@ -41,4 +41,11 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    s = Settings()
+    # Checked here rather than in a validator so the error never echoes secrets from the environment.
+    # Dev tokens let anyone sign in as any email, so a public server must never run with them.
+    if s.environment == "production" and s.auth_mode != "descope":
+        raise RuntimeError("ENVIRONMENT=production requires AUTH_MODE=descope")
+    if s.auth_mode == "descope" and not s.descope_project_id:
+        raise RuntimeError("AUTH_MODE=descope requires DESCOPE_PROJECT_ID")
+    return s

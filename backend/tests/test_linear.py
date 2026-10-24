@@ -40,7 +40,7 @@ def assert_valid(result, pieces, stocks, s):
         # Cuts do not overlap and stay on the board, with a kerf between pieces.
         cuts = sorted(b.cuts, key=lambda c: c.start)
         assert cuts[0].start >= s.end_trim - EPS
-        for a, c in zip(cuts, cuts[1:]):
+        for a, c in zip(cuts, cuts[1:], strict=False):
             assert c.start >= a.start + a.piece.length + s.kerf - EPS
         assert cuts[-1].start + cuts[-1].piece.length <= b.stock.length + EPS
         assert b.leftover >= 0

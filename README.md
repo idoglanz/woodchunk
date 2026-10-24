@@ -54,4 +54,6 @@ Three services, as in zizi-tripo:
 2. **backend** (root `backend/`, Dockerfile): set `MONGODB_URI`, `ENVIRONMENT=production`, `AUTH_MODE=descope`, `DESCOPE_PROJECT_ID`, `ADMIN_EMAILS`, `FRONTEND_URL`, `GOOGLE_API_KEY`.
 3. **frontend** (root `frontend/`, Dockerfile): build args `NEXT_PUBLIC_API_URL` (the backend URL) and `NEXT_PUBLIC_DESCOPE_PROJECT_ID`.
 
+Each service's settings live in `backend/railway.json` and `frontend/railway.json` (Dockerfile build, health check, restart on failure). Railway reads that path from the repo root, so set each service's config file to `/backend/railway.json` or `/frontend/railway.json`. The API refuses to start with `ENVIRONMENT=production` unless `AUTH_MODE=descope` is set, so dev sign-in can't reach a public server. Add the frontend's domain to the Descope project's approved domains.
+
 For Descope, use a `sign-up-or-in` flow and add `email` to the session token claims. To copy the original projects to your real account after your first sign-in, run `uv run python -m scripts.import_legacy you@example.com` against the production database.

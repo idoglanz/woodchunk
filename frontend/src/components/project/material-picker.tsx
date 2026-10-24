@@ -104,8 +104,8 @@ export function ItemPicker({ items, value, onChange, kinds, placeholder = "Choos
         </button>
       }>
       <div className="flex flex-col gap-2 border-b border-line px-3 pb-2.5 pt-1">
-        <div className="flex items-center gap-2">
-          <Search size={15} className="text-ink-3" />
+        <div className="flex items-center gap-3 ps-0.5">
+          <Search size={15} className="shrink-0 text-ink-3" />
           <input autoFocus value={q} onChange={(e) => { setQ(e.target.value); setActive(0); }}
             placeholder={allowFree ? "Search or type a name" : kind === "sheet" ? "Search, e.g. 18 birch" : "Search, e.g. 44x100 treated"}
             aria-label="Search catalog" className="h-10 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-3"

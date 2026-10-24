@@ -23,7 +23,7 @@ export function JoinPage({ token }: { token: string }) {
         <p className="text-[15px] text-ink-2">You&apos;ll be able to {inv.data.role === "editor" ? "view and edit" : "view"} the project.</p>
         <Button variant="primary" loading={busy} onClick={async () => {
           setBusy(true);
-          try { const p = await unwrap<Project>(api.POST("/api/invites/{token}/accept", { params: { path: { token } } })); router.replace(`/projects/${p.id}/design`); }
+          try { const p = await unwrap<Project>(api.POST("/api/invites/{token}/accept", { params: { path: { token } } })); router.replace(`/projects/${p.id}/build`); }
           catch (e) { toast.error(e instanceof Error ? e.message : "Couldn't join."); setBusy(false); }
         }}>Join project</Button>
       </Card>

@@ -6,11 +6,17 @@ import { cn } from "@/lib/cn";
 
 type Layout = Schemas["SheetLayoutOut"];
 
-export function SheetDiagram({ layout, hasGrain, highlight, print = false }: { layout: Layout; hasGrain: boolean; highlight?: number | null; print?: boolean }) {
+export function SheetDiagram({ layout, hasGrain, highlight, print = false, active, onPick }: {
+  layout: Layout; hasGrain: boolean; highlight?: number | null; print?: boolean;
+  /** Part id to emphasise; the other parts on this sheet fade back. */
+  active?: string | null;
+  onPick?: (partId: string) => void;
+}) {
   const L = layout.length;
   const W = layout.width;
   const x = (v: number) => `${(v / L) * 100}%`;
   const y = (v: number) => `${(v / W) * 100}%`;
+  const dim = !!active && layout.parts.some((p) => p.part_id === active);
   return (
     <div className="flex flex-col gap-1.5" style={{ width: `min(100%, ${Math.round((440 * L) / W)}px)` }}>
       <div className="tnum flex justify-between text-[11px] text-ink-3">
@@ -28,8 +34,12 @@ export function SheetDiagram({ layout, hasGrain, highlight, print = false }: { l
           </div>
         ))}
         {layout.parts.map((p, i) => (
-          <div key={`p${i}`} className="@container absolute flex flex-col items-center justify-center overflow-hidden text-center"
-            style={{ left: x(p.x), top: y(p.y), width: x(p.w), height: y(p.h), boxShadow: "inset 0 0 0 1px var(--line-strong)", ...(print ? { background: "#fff", color: "#000" } : asmColors(p.assembly)) }}
+          <div key={`p${i}`} data-part={p.part_id} onClick={onPick ? () => onPick(p.part_id) : undefined}
+            className={cn("@container absolute flex flex-col items-center justify-center overflow-hidden text-center transition-opacity duration-150",
+              onPick && "cursor-pointer", dim && p.part_id !== active && "opacity-35", p.part_id === active && "z-10")}
+            style={{ left: x(p.x), top: y(p.y), width: x(p.w), height: y(p.h),
+              boxShadow: p.part_id === active && !print ? "inset 0 0 0 2.5px var(--ink)" : "inset 0 0 0 1px var(--line-strong)",
+              ...(print ? { background: "#fff", color: "#000" } : asmColors(p.assembly)) }}
             title={`${p.label} ${p.name} · ${Math.round(p.rotated ? p.h : p.w)} × ${Math.round(p.rotated ? p.w : p.h)} mm${p.rotated ? " (rotated)" : ""}`}>
             <span className="hidden text-[12px] font-bold leading-tight @min-[26px]:block">{p.label}</span>
             <span className="tnum hidden font-mono text-[10px] leading-tight opacity-80 @min-[64px]:block">{Math.round(p.w)}×{Math.round(p.h)}</span>

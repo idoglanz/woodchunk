@@ -20,7 +20,8 @@ const IDEAS = [
   "Which screws do I need?",
 ];
 
-export function AIPanel({ onClose }: { onClose: () => void }) {
+/** `embedded` fills the Build tab's side panel; otherwise it's a sidebar (desktop) or full screen (phone). */
+export function AIPanel({ onClose, embedded }: { onClose: () => void; embedded?: boolean }) {
   const { id, readOnly } = useProjectCtx();
   const convo = useConversation(id);
   const ai = useAIStatus();
@@ -94,7 +95,8 @@ export function AIPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <aside aria-label="Ask Woodchunk"
-      className="no-print animate-slide fixed inset-0 z-40 flex flex-col bg-surface md:sticky md:inset-auto md:top-[52px] md:z-auto md:h-[calc(100dvh-52px)] md:w-[400px] md:shrink-0 md:border-s md:border-line">
+      className={cn("no-print animate-slide flex flex-col bg-surface", embedded ? "h-full min-h-0"
+        : "fixed inset-0 z-40 md:sticky md:inset-auto md:top-[52px] md:z-auto md:h-[calc(100dvh-52px)] md:w-[400px] md:shrink-0 md:border-s md:border-line")}>
       <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-accent-ink"><Sparkles size={15} /></span>

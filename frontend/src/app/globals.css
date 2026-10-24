@@ -204,6 +204,13 @@ input[type="number"]::-webkit-outer-spin-button {
 .animate-slide { animation: wc-slide-in 220ms ease-out both; }
 .animate-sheet { animation: wc-sheet-up 220ms ease-out both; }
 
+/* A part row the layout just pointed at. */
+@keyframes wc-flash {
+  from { background: var(--accent-soft); }
+  to { background: transparent; }
+}
+.flash { animation: wc-flash 1200ms ease-out both; }
+
 /* Print: only the document. */
 @media print {
   @page { margin: 12mm; }

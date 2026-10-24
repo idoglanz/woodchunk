@@ -23,7 +23,7 @@ export function TemplatesPage() {
       <div className="flex flex-col gap-8">
         <PageTitle title="Templates" subtitle="Start from a proven build and change the sizes. Ask Woodchunk to adapt it, e.g. “make it 150 cm wide”." />
         {tpls.isLoading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-48 rounded-[16px]" />)}</div> : !tpls.data?.length ? (
-          <Card><EmptyState title="No templates yet" text="Save any project as a template from its Design tab." /></Card>
+          <Card><EmptyState title="No templates yet" text="Save any project as a template from its ••• menu." /></Card>
         ) : categories.map((cat) => (
           <section key={cat} className="flex flex-col gap-3">
             <h2 className="text-[13px] font-semibold capitalize text-ink-2">{cat}</h2>
@@ -42,7 +42,7 @@ export function TemplatesPage() {
                   <div className="mt-auto flex items-center justify-between pt-2">
                     <span className="text-[13px] text-ink-3">{plural(t.parts, "part")}{t.mine ? " · yours" : ""}</span>
                     <Button size="sm" variant="primary" loading={create.isPending && create.variables?.template_id === t.id}
-                      onClick={() => create.mutate({ template_id: t.id, name: t.title }, { onSuccess: (p) => router.push(`/projects/${p.id}/design`) })}>Use template</Button>
+                      onClick={() => create.mutate({ template_id: t.id, name: t.title }, { onSuccess: (p) => router.push(`/projects/${p.id}/build`) })}>Use template</Button>
                   </div>
                 </Card>
               ))}

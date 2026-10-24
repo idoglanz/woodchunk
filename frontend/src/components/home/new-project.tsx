@@ -36,12 +36,12 @@ export function NewProjectSheet({ open, onOpenChange }: { open: boolean; onOpenC
         onSuccess: (p) => {
           try { sessionStorage.setItem(PENDING_PROMPT_KEY, JSON.stringify({ id: p.id, prompt })); } catch {}
           onOpenChange(false);
-          router.push(`/projects/${p.id}/design?ask=1`);
+          router.push(`/projects/${p.id}/build?ask=1`);
         },
       });
     } else {
       create.mutate({ name: name.trim() || "Untitled project" }, {
-        onSuccess: (p) => { onOpenChange(false); router.push(`/projects/${p.id}/design`); },
+        onSuccess: (p) => { onOpenChange(false); router.push(`/projects/${p.id}/build`); },
       });
     }
   };

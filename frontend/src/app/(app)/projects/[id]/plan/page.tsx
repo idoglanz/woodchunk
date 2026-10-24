@@ -1,5 +1,7 @@
-import { PlanView } from "@/components/project/plan-view";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return <PlanView />;
+// Design and Plan were merged into Build; keep old links working.
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  redirect(`/projects/${id}/build`);
 }

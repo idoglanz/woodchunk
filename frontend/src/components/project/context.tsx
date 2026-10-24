@@ -11,7 +11,9 @@ export type ProjectCtx = {
   me: User | undefined;
   plan: Plan | undefined;
   planFetching: boolean;
+  aiOpen: boolean;
   openAI: () => void;
+  closeAI: () => void;
 };
 
 export const ProjectContext = createContext<ProjectCtx | null>(null);

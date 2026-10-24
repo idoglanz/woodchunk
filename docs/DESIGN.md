@@ -85,7 +85,7 @@ Hebrew uses the same stack (SF Hebrew / Arial Hebrew), with `dir="rtl"` on Hebre
   - *plain* (text only, ink-2 → ink on hover);
   - *destructive* (kerf text on surface-2).
   - Height 36 (small) or 44 (regular), radius 12, weight 600.
-- **Segmented control:** surface-2 track, the selected item is a surface pill with a shadow. Used for the project tabs (Design · Plan · Buy · Shop sheet), units and language.
+- **Segmented control:** surface-2 track, the selected item is a surface pill with a shadow. Used for the project tabs (Build · Buy · Shop sheet), units and language.
 - **Field:** label above in Caption/ink-2, input on surface-2 with no border at rest and a 2 px accent focus ring. Units sit as a suffix inside the field.
 - **Stepper (×qty):** a − / value / + cluster on surface-2, used for assembly quantity.
 - **Pill / status:**
@@ -105,7 +105,8 @@ Hebrew uses the same stack (SF Hebrew / Arial Hebrew), with `dir="rtl"` on Hebre
 - **Ruler:** above the first bar of each material, ticks every 100 mm, labels every 500 mm, `--ink-3`. This is the only place the "tape" motif appears.
 - **Sheet layout:** drawn to scale with x along the sheet length and grain. Grain direction shows as a small arrow label. Part rectangles have 1 px `--line-strong` edges. Kerf gaps show `--kerf`. Offcuts are dashed.
 - **Cut sequence:** numbered list in accent circles. Hovering a step highlights its cut line on the sheet.
-- **Interaction:** hover or tap a part to see a tooltip (label, name, assembly, dimensions). Clicking a part in the Plan view jumps to it in Design.
+- **Interaction:** hover or tap a part to see a tooltip (label, name, assembly, dimensions). Editing or hovering a part row outlines its pieces and fades the rest; clicking a piece jumps to its row.
+- **Build tab layout:** parts on the left, the live cutting plan in a sticky panel on the right (≥1024 px), which can go full width. Below that the plan lives in a bottom drawer that peeks with the totals and snaps to half and full height. On desktop the assistant opens in the same panel. Part rows size by their column (container queries), not the window.
 
 ## Motion
 

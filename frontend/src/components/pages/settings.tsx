@@ -37,7 +37,7 @@ export function SettingsPage() {
         </Card>
         <Card className="flex flex-col gap-2 p-6">
           <h2 className="text-[17px] font-semibold">Cutting defaults for new projects</h2>
-          <p className="mb-3 text-[14px] text-ink-2">Each project can override these from its Plan tab.</p>
+          <p className="mb-3 text-[14px] text-ink-2">Each project can override these from its Build tab.</p>
           <CuttingSettingsForm value={prefs.cutting} units={prefs.units}
             onChange={(fn) => { const c = structuredClone(prefs.cutting); fn(c); save({ cutting: c }); }} />
         </Card>

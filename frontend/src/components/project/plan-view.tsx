@@ -1,47 +1,68 @@
 "use client";
 
 import { AlertCircle, Check, ChevronDown, Info } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useProjectCtx } from "@/components/project/context";
-import { CuttingSettingsButton } from "@/components/project/cutting-settings";
 import { LumberBars } from "@/components/diagrams/lumber";
 import { SheetDiagram, cutText } from "@/components/diagrams/sheet";
-import { AsmChip, Badge, Callout, Card, EmptyState, Skeleton } from "@/components/ui/misc";
+import { Spinner } from "@/components/ui/button";
+import { Badge, Callout, Skeleton } from "@/components/ui/misc";
 import { Tip } from "@/components/ui/overlay";
 import type { LumberPlan, SheetPlan } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
-import { useEditor } from "@/lib/editor";
+import { useActivePart } from "@/lib/focus";
 import { money, pct, plural } from "@/lib/format";
 import { fmtMeters } from "@/lib/units";
 
-export function PlanView() {
-  const { plan, planFetching, units, id } = useProjectCtx();
-  const assemblies = useEditor((s) => s.content?.assemblies ?? []);
-  if (!plan) return <div className="flex flex-col gap-4"><Skeleton className="h-10 w-80" /><Skeleton className="h-56 rounded-[16px]" /><Skeleton className="h-80 rounded-[16px]" /></div>;
-  const empty = !plan.lumber.length && !plan.sheets.length;
+export const materialCardId = (itemId: string) => `mat-${itemId}`;
+
+/** Cost, what to buy and waste, in one line. Shown at the top of the layout panel and on the phone drawer. */
+export function PlanSummary({ onIssues, compact }: { onIssues?: () => void; compact?: boolean }) {
+  const { plan, planFetching } = useProjectCtx();
+  if (!plan) return <span className="flex items-center gap-2 text-[14px] text-ink-3"><Spinner className="h-3.5 w-3.5" />Planning…</span>;
+  const t = plan.totals;
+  const stock = [t.boards ? plural(t.boards, "board") : "", t.sheets ? plural(t.sheets, "sheet") : ""].filter(Boolean).join(" + ") || "Nothing to buy";
+  return (
+    <div className={cn("flex min-w-0 items-baseline gap-x-3 gap-y-1", compact ? "flex-nowrap" : "flex-wrap")}>
+      <span className="tnum shrink-0 text-[20px] font-bold tracking-[-0.01em]">{money(t.cost, plan.currency)}</span>
+      <span className={cn("tnum text-[14px] text-ink-2", compact && "min-w-0 truncate")}>
+        {stock}{t.waste_pct ? ` · ${pct(t.waste_pct)} waste` : ""}
+        {t.unpriced_lines ? <span className="text-warn"> · {t.unpriced_lines} unpriced</span> : null}
+      </span>
+      {plan.unplaced.length ? (
+        <button type="button" onClick={onIssues} aria-label={`${plural(plan.unplaced.length, "part")} to fix`}
+          className="inline-flex shrink-0 items-center gap-1.5 self-center rounded-full bg-kerf-soft px-2.5 py-0.5 text-[13px] font-semibold text-kerf">
+          <AlertCircle size={14} />{compact ? plan.unplaced.length : `${plural(plan.unplaced.length, "part")} to fix`}
+        </button>
+      ) : null}
+      {planFetching ? <Spinner className="h-3.5 w-3.5 self-center text-ink-3" /> : null}
+    </div>
+  );
+}
+
+/**
+ * The cutting plan: what to buy per material, with board and sheet layouts.
+ * `wide` is the full-width view; otherwise it fits the side panel or the phone drawer.
+ */
+export function PlanContent({ wide, onPick }: { wide?: boolean; onPick: (partId: string) => void }) {
+  const { plan, planFetching } = useProjectCtx();
+  if (!plan) return <div className="flex flex-col gap-4"><Skeleton className="h-48 rounded-[16px]" /><Skeleton className="h-72 rounded-[16px]" /></div>;
+  const empty = !plan.lumber.length && !plan.sheets.length && !plan.hardware.length;
+  const h2 = "text-[13px] font-semibold uppercase tracking-[0.04em] text-ink-3";
 
   return (
-    <div className={cn("flex flex-col gap-6 transition-opacity duration-200", planFetching && "opacity-60")}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-x-4 gap-y-2">
-          {assemblies.map((a) => (
-            <span key={a.id} className="inline-flex items-center gap-2 text-[14px]">
-              <AsmChip letter={a.letter} />{a.name}{a.qty > 1 ? <span className="tnum text-ink-2">×{a.qty}</span> : null}
-            </span>
-          ))}
-        </div>
-        <CuttingSettingsButton units={units} />
-      </div>
-
+    <div className={cn("flex flex-col gap-5 transition-opacity duration-200", planFetching && "opacity-60")}>
       {plan.unplaced.length ? (
         <Callout tone="kerf" icon={<AlertCircle size={18} />} title={`${plural(plan.unplaced.length, "part")} can't be planned yet`}>
           <ul className="mt-1 flex flex-col gap-1">
             {plan.unplaced.map((u) => (
-              <li key={u.part_id}><span className="font-semibold">{u.label}</span> {u.name !== u.label ? `${u.name}: ` : ""}{u.reason}</li>
+              <li key={u.part_id}>
+                <button type="button" onClick={() => onPick(u.part_id)} className="text-start hover:underline">
+                  <span className="font-semibold">{u.label}</span> {u.name !== u.label ? `${u.name}: ` : ""}{u.reason}
+                </button>
+              </li>
             ))}
           </ul>
-          <Link href={`/projects/${id}/design`} className="mt-2 inline-block text-[14px] font-semibold text-kerf">Fix in Design</Link>
         </Callout>
       ) : null}
       {plan.warnings.length ? (
@@ -51,40 +72,43 @@ export function PlanView() {
       ) : null}
 
       {empty && !plan.unplaced.length ? (
-        <Card><EmptyState title="Nothing to cut yet" text="Add parts in Design and the cutting plan appears here." action={<Link href={`/projects/${id}/design`} className="font-semibold text-info">Go to Design</Link>} /></Card>
+        <div className="flex flex-col items-center gap-1 px-4 py-12 text-center">
+          <p className="text-[16px] font-semibold">Nothing to cut yet</p>
+          <p className="max-w-[300px] text-[14px] text-ink-2">Add parts with a material and size. The cheapest way to cut them shows up here as you type.</p>
+        </div>
       ) : null}
 
       {plan.lumber.length ? (
         <section className="flex flex-col gap-3">
-          <h2 className="text-[22px] font-semibold tracking-[-0.01em]">Lumber</h2>
-          {plan.lumber.map((lp) => <LumberCard key={lp.item_id} lp={lp} currency={plan.currency} />)}
+          <h2 className={h2}>Lumber</h2>
+          {plan.lumber.map((lp) => <LumberCard key={lp.item_id} lp={lp} currency={plan.currency} onPick={onPick} />)}
         </section>
       ) : null}
 
       {plan.sheets.length ? (
         <section className="flex flex-col gap-3">
-          <h2 className="text-[22px] font-semibold tracking-[-0.01em]">Sheets</h2>
-          {plan.sheets.map((sp) => <SheetCard key={sp.item_id} sp={sp} currency={plan.currency} />)}
+          <h2 className={h2}>Sheets</h2>
+          {plan.sheets.map((sp) => <SheetCard key={sp.item_id} sp={sp} currency={plan.currency} wide={wide} onPick={onPick} />)}
         </section>
       ) : null}
 
       {plan.hardware.length ? (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-[22px] font-semibold tracking-[-0.01em]">Hardware</h2>
-          <Card className="divide-y divide-line px-5">
+        <section className="flex flex-col gap-2">
+          <h2 className={h2}>Hardware</h2>
+          <div className="divide-y divide-line rounded-[14px] border border-line px-4">
             {plan.hardware.map((h) => (
-              <div key={h.key} className="flex items-center justify-between gap-3 py-3">
+              <div key={h.key} className="flex items-center justify-between gap-3 py-2.5">
                 <div className="flex min-w-0 flex-col">
-                  <span dir="auto" className="truncate">{h.name}</span>
-                  <span className="text-[13px] text-ink-2">{h.assemblies.length ? `for ${h.assemblies.join(", ")}` : "project extras"}</span>
+                  <span dir="auto" className="truncate text-[15px]">{h.name}</span>
+                  <span className="text-[13px] text-ink-2">
+                    {h.qty.toLocaleString()}{h.packs ? ` · ${plural(h.packs, "pack")} of ${h.pack_size}` : ""}
+                    {h.assemblies.length ? ` · for ${h.assemblies.join(", ")}` : " · project extras"}
+                  </span>
                 </div>
-                <div className="tnum flex items-baseline gap-4 text-end">
-                  <span className="text-[15px]">{h.qty.toLocaleString()}{h.packs ? <span className="text-ink-2"> · {plural(h.packs, "pack")} of {h.pack_size}</span> : null}</span>
-                  <span className="w-24 font-semibold">{h.total == null ? <span className="font-normal text-ink-3">no price</span> : money(h.total, plan.currency)}</span>
-                </div>
+                <span className="tnum shrink-0 text-[15px] font-semibold">{h.total == null ? <span className="font-normal text-ink-3">no price</span> : money(h.total, plan.currency)}</span>
               </div>
             ))}
-          </Card>
+          </div>
         </section>
       ) : null}
     </div>
@@ -108,61 +132,68 @@ function BuyLine({ lines, sheet }: { lines: LumberPlan["buy"]; sheet?: boolean }
   );
 }
 
-function LumberCard({ lp, currency }: { lp: LumberPlan; currency: string }) {
+function MaterialCard({ id, name, buy, cost, currency, meta, badge, sheet, children }: {
+  id: string; name: string; buy: LumberPlan["buy"]; cost: number; currency: string; meta: string; badge?: ReactNode; sheet?: boolean; children: ReactNode;
+}) {
   return (
-    <Card className="flex flex-col gap-4 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h3 className="text-[17px] font-semibold">{lp.name}</h3>
-          <BuyLine lines={lp.buy} />
+    <div id={materialCardId(id)} className="flex scroll-mt-4 flex-col gap-4 rounded-[16px] border border-line bg-surface p-4">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h3 className="text-[16px] font-semibold">{name}</h3>
+          <BuyLine lines={buy} sheet={sheet} />
         </div>
-        <div className="flex items-center gap-3">
-          {lp.optimal ? (
-            <Tip content="Proven cheapest for these parts and stock lengths, with the least unusable waste.">
-              <span><Badge tone="ok"><Check size={13} strokeWidth={2.6} />Optimal</Badge></span>
-            </Tip>
-          ) : <Tip content="Best plan found in the time allowed."><span><Badge>Best found</Badge></span></Tip>}
+        <div className="ms-auto flex items-center gap-3">
+          {badge}
           <div className="tnum flex flex-col items-end leading-tight">
-            <span className="text-[17px] font-semibold">{money(lp.cost, currency)}</span>
-            <span className="text-[12px] text-ink-3">{pct(lp.waste_pct)} waste · saw {lp.kerf} mm</span>
+            <span className="text-[16px] font-semibold">{money(cost, currency)}</span>
+            <span className="text-[12px] text-ink-3">{meta}</span>
           </div>
         </div>
       </div>
-      <LumberBars plan={lp} />
-    </Card>
+      {children}
+    </div>
   );
 }
 
-function SheetCard({ sp, currency }: { sp: SheetPlan; currency: string }) {
+function LumberCard({ lp, currency, onPick }: { lp: LumberPlan; currency: string; onPick: (partId: string) => void }) {
+  const active = useActivePart();
+  const badge = lp.optimal ? (
+    <Tip content="Proven cheapest for these parts and stock lengths, with the least unusable waste.">
+      <span><Badge tone="ok"><Check size={13} strokeWidth={2.6} />Optimal</Badge></span>
+    </Tip>
+  ) : <Tip content="Best plan found in the time allowed."><span><Badge>Best found</Badge></span></Tip>;
   return (
-    <Card className="flex flex-col gap-5 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h3 className="text-[17px] font-semibold">{sp.name}</h3>
-          <BuyLine lines={sp.buy} sheet />
-        </div>
-        <div className="tnum flex flex-col items-end leading-tight">
-          <span className="text-[17px] font-semibold">{money(sp.cost, currency)}</span>
-          <span className="text-[12px] text-ink-3">{pct(sp.waste_pct)} waste · saw {sp.kerf} mm{sp.edge_trim ? ` · trim ${sp.edge_trim} mm` : ""}</span>
-        </div>
-      </div>
-      {sp.layouts.map((lay, i) => <SheetLayoutBlock key={i} index={i} total={sp.layouts.length} lay={lay} hasGrain={sp.has_grain} />)}
-    </Card>
+    <MaterialCard id={lp.item_id} name={lp.name} buy={lp.buy} cost={lp.cost} currency={currency} meta={`${pct(lp.waste_pct)} waste · saw ${lp.kerf} mm`} badge={badge}>
+      <LumberBars plan={lp} active={active} onPick={onPick} />
+    </MaterialCard>
   );
 }
 
-function SheetLayoutBlock({ lay, index, total, hasGrain }: { lay: SheetPlan["layouts"][number]; index: number; total: number; hasGrain: boolean }) {
+function SheetCard({ sp, currency, wide, onPick }: { sp: SheetPlan; currency: string; wide?: boolean; onPick: (partId: string) => void }) {
+  return (
+    <MaterialCard id={sp.item_id} name={sp.name} buy={sp.buy} cost={sp.cost} currency={currency} sheet
+      meta={`${pct(sp.waste_pct)} waste · saw ${sp.kerf} mm${sp.edge_trim ? ` · trim ${sp.edge_trim} mm` : ""}`}>
+      {sp.layouts.map((lay, i) => <SheetLayoutBlock key={i} index={i} total={sp.layouts.length} lay={lay} hasGrain={sp.has_grain} wide={wide} onPick={onPick} />)}
+    </MaterialCard>
+  );
+}
+
+function SheetLayoutBlock({ lay, index, total, hasGrain, wide, onPick }: {
+  lay: SheetPlan["layouts"][number]; index: number; total: number; hasGrain: boolean; wide?: boolean; onPick: (partId: string) => void;
+}) {
+  const active = useActivePart();
   const [hl, setHl] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
-  const shown = open ? lay.cuts : lay.cuts.slice(0, 6);
+  const preview = wide ? 6 : 4;
+  const shown = open ? lay.cuts : lay.cuts.slice(0, preview);
   return (
     <div className="flex flex-col gap-3">
       {total > 1 ? <p className="text-[13px] font-medium text-ink-2">Sheet {index + 1} of {total} · {pct(lay.used_pct)} used{lay.source !== "buy" ? " · from your workshop" : ""}</p> : null}
-      <SheetDiagram layout={lay} hasGrain={hasGrain} highlight={hl} />
+      <SheetDiagram layout={lay} hasGrain={hasGrain} highlight={hl} active={hl ? null : active} onPick={onPick} />
       {lay.cuts.length ? (
         <div className="flex flex-col gap-1">
           <p className="text-[13px] font-semibold">Cut order <span className="font-normal text-ink-3">· {plural(lay.cuts.length, "cut")}, straight through</span></p>
-          <ol className="grid gap-x-6 sm:grid-cols-2">
+          <ol className={cn("grid gap-x-6", wide && "sm:grid-cols-2")}>
             {shown.map((c) => (
               <li key={c.n} onMouseEnter={() => setHl(c.n)} onMouseLeave={() => setHl(null)} onFocus={() => setHl(c.n)} onBlur={() => setHl(null)} tabIndex={0}
                 className={cn("flex cursor-default items-center gap-2.5 rounded-lg px-1.5 py-1 text-[14px]", hl === c.n && "bg-accent-soft")}>
@@ -171,7 +202,7 @@ function SheetLayoutBlock({ lay, index, total, hasGrain }: { lay: SheetPlan["lay
               </li>
             ))}
           </ol>
-          {lay.cuts.length > 6 ? (
+          {lay.cuts.length > preview ? (
             <button type="button" onClick={() => setOpen((o) => !o)} className="inline-flex items-center gap-1 self-start px-1.5 py-1 text-[14px] font-medium text-info">
               {open ? "Show fewer" : `Show all ${lay.cuts.length}`}<ChevronDown size={14} className={cn("transition-transform", open && "rotate-180")} />
             </button>

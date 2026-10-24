@@ -86,7 +86,7 @@ export function BuyView() {
       ) : null}
 
       {!data ? <Skeleton className="h-80 rounded-[16px]" /> : !data.count ? (
-        <Card><EmptyState title={project?.purchase ? "Nothing more to buy" : "Nothing to buy yet"} text={project?.purchase ? "Your purchase covers every part." : "Add parts in Design and they show up here, grouped by store."} /></Card>
+        <Card><EmptyState title={project?.purchase ? "Nothing more to buy" : "Nothing to buy yet"} text={project?.purchase ? "Your purchase covers every part." : "Add parts in Build and they show up here, grouped by store."} /></Card>
       ) : (
         <div dir={dirOf(lang)} lang={lang} className={cn("flex flex-col gap-4 transition-opacity", shop.isFetching && "opacity-60")}>
           <div className="flex flex-col gap-2">

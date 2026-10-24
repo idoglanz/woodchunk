@@ -92,7 +92,7 @@ Rules:
 - **Sheet plan**, per sheet material: a diagram per sheet showing placed parts, labels, grain direction and offcuts, plus an optional numbered **cut sequence** (rip/crosscut order).
 - Cost/waste comparison when there are alternatives, e.g. "3× 3.6 m (₪108, 4% waste) vs 4× 2.4 m (₪96, 11% waste)". The optimizer picks the cheapest; ties are broken by least waste.
 - "Doesn't fit" alerts for parts larger than any available stock, with a suggestion ("split the part" / "choose another material").
-- Cutting settings (a popover on the Plan view; defaults live in Settings):
+- Cutting settings (a popover on the cutting plan panel; defaults live in Settings):
   - **Saw blade width (kerf), set separately for sheets and lumber.** Sheets are cut with a track/table saw, where kerf adds up across many rips. Lumber is cut with a miter/circular saw. Presets: thin 2.2, standard 3.0, full 3.2 mm.
   - End trim and sheet edge trim.
   - Guillotine only (default on), allow rotation.
@@ -276,7 +276,7 @@ Projects embed assemblies and parts (one document, atomic autosave with an optim
 ## 6. Screens
 
 1. **Home**: project cards, New project (Describe / Template / Blank), recent activity.
-2. **Project workspace**: header (name, live totals), tabs **Design · Plan · Buy · Shop sheet**, and an AI chat panel that can be toggled (right side; a sheet on mobile).
+2. **Project workspace**: header (name, live totals), tabs **Build · Buy · Shop sheet** (Build = parts with the live cutting plan beside them; Design and Plan were merged after the first build), and an AI chat panel that can be toggled (right side; a sheet on mobile).
 3. **Catalog**: search + filters, item drawer, **Import** wizard, **Review queue** (admin).
 4. **Templates** gallery.
 5. **Workshop** (offcuts).

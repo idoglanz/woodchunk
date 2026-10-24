@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("plan a build from scratch: design → plan → buy", async ({ page }, info) => {
+test("plan a build from scratch: build → buy", async ({ page }, info) => {
   const email = `e2e-${info.project.name}-${Date.now()}@test.dev`;
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);
@@ -27,9 +27,11 @@ test("plan a build from scratch: design → plan → buy", async ({ page }, info
   await expect(page.getByText("Saved")).toBeVisible();
   await expect(page.getByLabel("A1 length")).toHaveValue("750");
 
-  await page.getByRole("tab", { name: "Plan" }).click();
-  await expect(page.getByRole("heading", { name: "Lumber" })).toBeVisible();
-  await expect(page.getByText("Optimal").first()).toBeVisible();
+  // The cutting plan sits beside the parts on desktop and in a bottom drawer on phones.
+  if (info.project.name === "phone") await page.getByRole("button", { name: "Show cutting plan" }).click();
+  const plan = page.getByRole(info.project.name === "phone" ? "region" : "complementary", { name: "Cutting plan" });
+  await expect(plan.getByRole("heading", { name: "Lumber" })).toBeVisible();
+  await expect(plan.getByText("Optimal").first()).toBeVisible();
 
   await page.getByRole("tab", { name: "Buy" }).click();
   await expect(page.getByText("44 × 100 whitewood, rough").first()).toBeVisible();

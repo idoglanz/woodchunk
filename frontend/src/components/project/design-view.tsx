@@ -13,6 +13,7 @@ import { Stepper } from "@/components/ui/stepper";
 import type { Assembly, CatalogItem, HardwareLine, Part } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { newId, nextLetter, useEditor } from "@/lib/editor";
+import { partRowId, useActivePart, usePartFocus } from "@/lib/focus";
 import { money } from "@/lib/format";
 import { useCatalog } from "@/lib/queries";
 
@@ -85,7 +86,7 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
   });
 
   return (
-    <Card className="flex flex-col">
+    <Card className="@container flex flex-col">
       <div className="flex flex-wrap items-center gap-3 px-4 pb-2 pt-4 sm:px-5">
         <AsmChip letter={a.letter} className="h-7 min-w-7 text-[13px]" />
         <InlineText value={a.name} placeholder="Assembly name" ariaLabel="Assembly name" readOnly={readOnly}
@@ -116,8 +117,9 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
 
       <div className="px-2 sm:px-3">
         {a.parts.length ? (
-          <div className="hidden grid-cols-[44px_minmax(0,1fr)_minmax(0,1.35fr)_64px_104px_104px_36px_32px] gap-2 px-2 pb-1 pt-1 text-[12px] font-medium text-ink-3 md:grid">
-            <span>Label</span><span>Part</span><span>Material</span><span className="text-end">Qty</span><span className="text-end">Length</span><span className="text-end">Width</span><span /><span />
+          <div className={cn(ROW, "hidden px-2 pb-1 pt-1 text-[12px] font-medium text-ink-3 @2xl:grid")}>
+            <span className="[grid-area:chip]">Label</span><span className="[grid-area:name] px-2">Part</span><span className="[grid-area:mat]">Material</span>
+            <span className={cn(NUMS, "[grid-area:nums]")}><span className="text-end">Qty</span><span className="text-end">Length</span><span className="text-end">Width</span><span /></span>
           </div>
         ) : null}
         <div className="flex flex-col">
@@ -141,36 +143,51 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
   );
 }
 
+// Part rows follow the width of the parts column, not the window: three lines when narrow,
+// two when there's room for the material beside the name, one line when wide.
+const ROW = "grid gap-x-2 gap-y-1.5 grid-cols-[40px_minmax(0,1fr)_32px] [grid-template-areas:'chip_name_del'_'mat_mat_mat'_'nums_nums_nums'] "
+  + "@lg:grid-cols-[40px_minmax(0,1fr)_minmax(0,1.3fr)_32px] @lg:[grid-template-areas:'chip_name_mat_del'_'._nums_nums_.'] "
+  + "@2xl:grid-cols-[34px_minmax(0,1fr)_minmax(0,1.5fr)_auto_28px] @2xl:[grid-template-areas:'chip_name_mat_nums_del']";
+const NUMS = "grid grid-cols-[60px_1fr_1fr_36px] gap-2 @2xl:grid-cols-[48px_84px_84px_30px]";
+
 function PartRow({ a, p, label, items, byId, problem }: {
   a: Assembly; p: Part; label: string; items: CatalogItem[]; byId: Map<string, CatalogItem>; problem?: string;
 }) {
   const edit = useEditor((s) => s.edit);
   const readOnly = useEditor((s) => s.readOnly);
   const { units } = useProjectCtx();
+  const active = useActivePart() === p.id;
   const item = p.item_id ? byId.get(p.item_id) : undefined;
   const isSheet = item?.kind === "sheet";
   const upd = (fn: (x: Part) => void) => edit((d) => {
     const x = d.assemblies.find((y) => y.id === a.id)?.parts.find((y) => y.id === p.id);
     if (x) fn(x);
   });
+  const focus = usePartFocus.getState();
 
   return (
-    <div className={cn("group grid grid-cols-[44px_minmax(0,1fr)_32px] items-center gap-x-2 gap-y-1.5 rounded-xl px-2 py-1.5 md:grid-cols-[44px_minmax(0,1fr)_minmax(0,1.35fr)_64px_104px_104px_36px_32px]", problem && "bg-kerf-soft/50")}>
-      <div className="flex items-center">
+    <div id={partRowId(p.id)}
+      onPointerEnter={() => focus.setHovered(p.id)} onPointerLeave={() => focus.setHovered(null)}
+      onFocus={() => focus.setFocused(p.id)}
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null) && usePartFocus.getState().focused === p.id) focus.setFocused(null); }}
+      className={cn(ROW, "group scroll-mt-24 items-center rounded-xl px-2 py-1.5 transition-colors", problem ? "bg-kerf-soft/50" : active && "bg-surface-2/70")}>
+      <div className="flex items-center [grid-area:chip]">
         {problem ? (
           <Tip content={problem}><span><AsmChip letter={a.letter} className="shadow-[0_0_0_1.5px_var(--kerf)]">{label}</AsmChip></span></Tip>
         ) : <AsmChip letter={a.letter}>{label}</AsmChip>}
       </div>
-      <InlineText value={p.name} placeholder="Part name" ariaLabel={`${label} name`} readOnly={readOnly} onCommit={(v) => upd((x) => { x.name = v; })} className="text-[15px]" boxed />
-      <div className="col-start-3 row-start-1 flex justify-end md:col-start-8">
-        {!readOnly ? <IconButton label={`Delete ${label}`} size="sm" className="text-ink-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
+      <div className="min-w-0 [grid-area:name]">
+        <InlineText value={p.name} placeholder="Part name" ariaLabel={`${label} name`} readOnly={readOnly} onCommit={(v) => upd((x) => { x.name = v; })} className="w-full text-[15px]" boxed />
+      </div>
+      <div className="flex justify-end [grid-area:del]">
+        {!readOnly ? <IconButton label={`Delete ${label}`} size="sm" className="text-ink-3 opacity-100 @2xl:opacity-0 @2xl:group-hover:opacity-100 @2xl:focus:opacity-100"
           onClick={() => edit((d) => { const x = d.assemblies.find((y) => y.id === a.id); if (x) x.parts = x.parts.filter((y) => y.id !== p.id); })}><X size={16} /></IconButton> : null}
       </div>
-      <div className="col-span-3 md:col-span-1 md:col-start-3 md:row-start-1">
+      <div className="min-w-0 [grid-area:mat]">
         <ItemPicker items={items} value={p.item_id} kinds={["lumber", "sheet"]} ariaLabel={`${label} material`} disabled={readOnly}
           onChange={(id) => { if (!id) return; rememberMaterial(id); upd((x) => { x.item_id = id; const it = byId.get(id); if (it?.kind !== "sheet") { x.width_mm = null; x.grain_locked = false; } }); }} />
       </div>
-      <div className="col-span-3 grid grid-cols-[64px_1fr_1fr_36px] gap-2 md:contents">
+      <div className={cn(NUMS, "[grid-area:nums]")}>
         <NumberInput ariaLabel={`${label} quantity`} value={p.qty} min={1} onChange={(n) => upd((x) => { x.qty = Math.max(1, Math.round(n ?? 1)); })} />
         <LengthInput ariaLabel={`${label} length`} units={units} value={p.length_mm} placeholder="Length"
           invalid={!!problem && problem.includes("length")} onChange={(mm) => upd((x) => { x.length_mm = mm ?? 0; })} />
@@ -205,7 +222,7 @@ function ExtrasCard({ lines, items, byId }: { lines: HardwareLine[]; items: Cata
   const readOnly = useEditor((s) => s.readOnly);
   if (readOnly && !lines.length) return null;
   return (
-    <Card className="flex flex-col">
+    <Card className="@container flex flex-col">
       <div className="flex items-center justify-between gap-3 px-4 pb-1 pt-4 sm:px-5">
         <div className="flex flex-col">
           <h2 className="text-[17px] font-semibold">Extras</h2>
@@ -236,22 +253,22 @@ function HardwareList({ title, lines, items, byId, multiplier, onEdit }: {
         const item = h.item_id ? byId.get(h.item_id) : undefined;
         const price = h.unit_price ?? item?.price ?? null;
         return (
-          <div key={h.id} className="group grid grid-cols-[minmax(0,1fr)_76px_32px] items-center gap-2 rounded-xl px-2 py-1 sm:grid-cols-[minmax(0,1fr)_76px_110px_120px_32px]">
+          <div key={h.id} className="group grid grid-cols-[minmax(0,1fr)_76px_32px] items-center gap-2 rounded-xl px-2 py-1 @lg:grid-cols-[minmax(0,1fr)_76px_110px_120px_32px]">
             <ItemPicker items={items} value={h.item_id} kinds={["hardware"]} ariaLabel="Hardware item" disabled={readOnly} allowFree
               placeholder={h.name || "Choose or type hardware"}
               onChange={(id, free) => upd(h.id, (x) => { if (id) { x.item_id = id; x.name = byId.get(id)?.name.en ?? x.name; } else if (free) { x.item_id = null; x.name = free; } })} />
             <NumberInput ariaLabel="Hardware quantity" value={h.qty} min={0} decimals={1} onChange={(n) => upd(h.id, (x) => { x.qty = n ?? 0; })} />
-            <div className="hidden sm:block">
+            <div className="hidden @lg:block">
               {item?.price != null ? (
                 <span className="tnum flex h-9 items-center justify-end text-[13px] text-ink-2">{money(item.price)}{item.pack_size > 1 ? ` / ${item.pack_size}` : ""}</span>
               ) : (
                 <NumberInput ariaLabel="Price each" value={h.unit_price} min={0} decimals={2} suffix="₪" onChange={(n) => upd(h.id, (x) => { x.unit_price = n; })} />
               )}
             </div>
-            <span className="tnum hidden h-9 items-center justify-end text-[13px] text-ink-2 sm:flex">
+            <span className="tnum hidden h-9 items-center justify-end text-[13px] text-ink-2 @lg:flex">
               {multiplier > 1 ? `×${multiplier} = ${(h.qty * multiplier).toLocaleString()}` : price == null ? "no price" : ""}
             </span>
-            {!readOnly ? <IconButton label="Remove hardware" size="sm" className="text-ink-3 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
+            {!readOnly ? <IconButton label="Remove hardware" size="sm" className="text-ink-3 @2xl:opacity-0 @2xl:group-hover:opacity-100 @2xl:focus:opacity-100"
               onClick={() => onEdit((list) => { const i = list.findIndex((x) => x.id === h.id); if (i >= 0) list.splice(i, 1); })}><X size={16} /></IconButton> : <span />}
           </div>
         );

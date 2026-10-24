@@ -21,7 +21,7 @@ export function MoreMenu({ owner, onTemplate }: { owner: boolean; onTemplate: ()
     <Menu trigger={<IconButton label="More" size="sm"><MoreHorizontal size={18} /></IconButton>}>
       <MenuItem icon={<Copy size={15} />} onSelect={async () => {
         await useEditor.getState().flush();
-        act.duplicate.mutate(project.id, { onSuccess: (p) => { toast.info("Duplicated"); router.push(`/projects/${p!.id}/design`); } });
+        act.duplicate.mutate(project.id, { onSuccess: (p) => { toast.info("Duplicated"); router.push(`/projects/${p!.id}/build`); } });
       }}>Duplicate</MenuItem>
       <MenuItem icon={<LayoutTemplate size={15} />} onSelect={onTemplate}>Save as template</MenuItem>
       {owner ? <>

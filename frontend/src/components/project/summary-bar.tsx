@@ -19,7 +19,7 @@ export function SummaryBar() {
       <Stat label="Waste" value={pct(t.waste_pct)} />
       <Stat label="Parts" value={String(t.parts)} />
       {plan.unplaced.length ? (
-        <Link href={`/projects/${id}/plan`} className="inline-flex items-center gap-1.5 rounded-full bg-kerf-soft px-2.5 py-1 text-[13px] font-semibold text-kerf">
+        <Link href={`/projects/${id}/build`} className="inline-flex items-center gap-1.5 rounded-full bg-kerf-soft px-2.5 py-1 text-[13px] font-semibold text-kerf">
           <AlertCircle size={14} />{plural(plan.unplaced.length, "part")} to fix
         </Link>
       ) : null}

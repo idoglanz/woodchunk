@@ -59,7 +59,7 @@ function ProjectCard({ p }: { p: ProjectSummary }) {
   const owner = p.role === "owner";
   return (
     <Card as="article" className="group relative flex flex-col gap-4 p-5 transition-shadow duration-200 hover:shadow-[var(--shadow-pop)]">
-      <Link href={`/projects/${p.id}/design`} className="absolute inset-0 rounded-[16px]" aria-label={`Open ${p.name}`} />
+      <Link href={`/projects/${p.id}/build`} className="absolute inset-0 rounded-[16px]" aria-label={`Open ${p.name}`} />
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <h2 className="truncate text-[17px] font-semibold">{p.name}</h2>
@@ -67,7 +67,7 @@ function ProjectCard({ p }: { p: ProjectSummary }) {
         </div>
         <div className="relative z-10 -me-2 -mt-1">
           <Menu trigger={<IconButton label="Project options" size="sm"><MoreHorizontal size={18} /></IconButton>}>
-            <MenuItem icon={<Copy size={15} />} onSelect={() => act.duplicate.mutate(p.id, { onSuccess: (np) => router.push(`/projects/${np!.id}/design`) })}>Duplicate</MenuItem>
+            <MenuItem icon={<Copy size={15} />} onSelect={() => act.duplicate.mutate(p.id, { onSuccess: (np) => router.push(`/projects/${np!.id}/build`) })}>Duplicate</MenuItem>
             {owner && !p.archived ? <MenuItem icon={<Archive size={15} />} onSelect={() => act.archive.mutate({ id: p.id, archived: true }, {
               onSuccess: () => toast.info(`Archived ${p.name}`, { label: "Undo", run: () => act.archive.mutate({ id: p.id, archived: false }) }),
             })}>Archive</MenuItem> : null}

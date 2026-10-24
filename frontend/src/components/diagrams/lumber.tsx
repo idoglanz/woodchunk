@@ -25,8 +25,14 @@ export function Ruler({ max, className }: { max: number; className?: string }) {
   );
 }
 
-export function LumberBars({ plan, labels = true, print = false }: { plan: LumberPlan; labels?: boolean; print?: boolean }) {
+export function LumberBars({ plan, labels = true, print = false, active, onPick }: {
+  plan: LumberPlan; labels?: boolean; print?: boolean;
+  /** Part id to emphasise; the other pieces fade back. */
+  active?: string | null;
+  onPick?: (partId: string) => void;
+}) {
   const max = Math.max(...plan.patterns.map((p) => p.stock_length), 1);
+  const dim = !!active && plan.patterns.some((pat) => pat.segments.some((s) => s.part_id === active));
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex gap-3">
@@ -54,7 +60,11 @@ export function LumberBars({ plan, labels = true, print = false }: { plan: Lumbe
                   );
                 }
                 return (
-                  <div key={j} title={title} className="@container flex min-w-[2px] flex-col justify-center overflow-hidden px-2" style={{ flex: `${s.length} 1 0`, ...(print ? { background: "#fff", color: "#000" } : asmColors(s.assembly)) }}>
+                  <div key={j} title={title} data-part={s.part_id} onClick={onPick ? () => onPick(s.part_id) : undefined}
+                    className={cn("@container flex min-w-[2px] flex-col justify-center overflow-hidden px-2 transition-opacity duration-150",
+                      onPick && "cursor-pointer", dim && s.part_id !== active && "opacity-35")}
+                    style={{ flex: `${s.length} 1 0`, ...(print ? { background: "#fff", color: "#000" } : asmColors(s.assembly)),
+                      ...(s.part_id === active && !print ? { boxShadow: "inset 0 0 0 2.5px var(--ink)" } : {}) }}>
                     {labels ? <>
                       <span className="hidden truncate text-[12px] font-bold leading-tight @min-[30px]:block">{s.label}</span>
                       <span className="tnum hidden truncate font-mono text-[11px] leading-tight opacity-80 @min-[44px]:block">{Math.round(s.length)}</span>

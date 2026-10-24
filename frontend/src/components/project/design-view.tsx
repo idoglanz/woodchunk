@@ -119,7 +119,7 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
         {a.parts.length ? (
           <div className={cn(ROW, "hidden px-2 pb-1 pt-1 text-[12px] font-medium text-ink-3 @2xl:grid")}>
             <span className="[grid-area:chip]">Label</span><span className="[grid-area:name] px-2">Part</span><span className="[grid-area:mat]">Material</span>
-            <span className={cn(NUMS, "[grid-area:nums]")}><span className="text-end">Qty</span><span className="text-end">Length</span><span className="text-end">Width</span><span /></span>
+            <span className={cn(NUMS, "[grid-area:nums]")}><span className="text-end">Qty</span><span className="text-end">Length</span><span className="text-end">Width</span></span>
           </div>
         ) : null}
         <div className="flex flex-col">
@@ -130,7 +130,7 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
         {!a.parts.length ? <p className="px-2 py-3 text-[14px] text-ink-2">No parts yet.</p> : null}
       </div>
 
-      <HardwareList title="Hardware" lines={a.hardware} items={items} byId={byId} multiplier={a.qty}
+      <HardwareList title={a.qty > 1 ? `Hardware · per ${a.name || "assembly"}, ×${a.qty} in total` : "Hardware"} lines={a.hardware} items={items} byId={byId}
         onEdit={(fn) => upd((x) => fn(x.hardware))} />
 
       {!readOnly ? (
@@ -146,9 +146,9 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
 // Part rows follow the width of the parts column, not the window: three lines when narrow,
 // two when there's room for the material beside the name, one line when wide.
 const ROW = "grid gap-x-2 gap-y-1.5 grid-cols-[40px_minmax(0,1fr)_32px] [grid-template-areas:'chip_name_del'_'mat_mat_mat'_'nums_nums_nums'] "
-  + "@lg:grid-cols-[40px_minmax(0,1fr)_minmax(0,1.3fr)_32px] @lg:[grid-template-areas:'chip_name_mat_del'_'._nums_nums_.'] "
+  + "@lg:grid-cols-[40px_minmax(0,1fr)_minmax(0,1.3fr)_32px] @lg:[grid-template-areas:'chip_name_mat_del'_'._nums_nums_nums'] "
   + "@2xl:grid-cols-[34px_minmax(0,0.75fr)_minmax(0,1.5fr)_auto_28px] @2xl:[grid-template-areas:'chip_name_mat_nums_del']";
-const NUMS = "grid grid-cols-[96px_1fr_1fr_36px] gap-2 @2xl:grid-cols-[88px_80px_80px_30px]";
+const NUMS = "grid grid-cols-[96px_1fr_1fr] gap-2 @2xl:grid-cols-[88px_92px_92px]";
 
 function PartRow({ a, p, label, items, byId, problem }: {
   a: Assembly; p: Part; label: string; items: CatalogItem[]; byId: Map<string, CatalogItem>; problem?: string;
@@ -180,7 +180,7 @@ function PartRow({ a, p, label, items, byId, problem }: {
         <InlineText value={p.name} placeholder="Part name" ariaLabel={`${label} name`} readOnly={readOnly} onCommit={(v) => upd((x) => { x.name = v; })} className="w-full text-[15px]" boxed />
       </div>
       <div className="flex justify-end [grid-area:del]">
-        {!readOnly ? <IconButton label={`Delete ${label}`} size="sm" className="text-ink-3 opacity-100 @2xl:opacity-0 @2xl:group-hover:opacity-100 @2xl:focus:opacity-100"
+        {!readOnly ? <IconButton label={`Delete ${label}`} size="sm" className="text-ink-3 opacity-100 @2xl:opacity-40 @2xl:group-hover:opacity-100 @2xl:focus:opacity-100"
           onClick={() => edit((d) => { const x = d.assemblies.find((y) => y.id === a.id); if (x) x.parts = x.parts.filter((y) => y.id !== p.id); })}><X size={16} /></IconButton> : null}
       </div>
       <div className="min-w-0 [grid-area:mat]">
@@ -193,17 +193,17 @@ function PartRow({ a, p, label, items, byId, problem }: {
           invalid={!!problem && problem.includes("length")} onChange={(mm) => upd((x) => { x.length_mm = mm ?? 0; })} />
         {isSheet ? (
           <LengthInput ariaLabel={`${label} width`} units={units} value={p.width_mm} placeholder="Width" allowEmpty
-            invalid={!!problem && problem.includes("width")} onChange={(mm) => upd((x) => { x.width_mm = mm; })} />
+            invalid={!!problem && problem.includes("width")} onChange={(mm) => upd((x) => { x.width_mm = mm; })}
+            start={item?.has_grain ? (
+              <Tip content={p.grain_locked ? "Grain runs along the length. Won't be rotated." : "Free to rotate on the sheet. Click to lock grain direction."}>
+                <button type="button" aria-pressed={p.grain_locked} aria-label={`${label} grain lock`} disabled={readOnly}
+                  onClick={() => upd((x) => { x.grain_locked = !x.grain_locked; })}
+                  className={cn("flex h-7 w-7 items-center justify-center rounded-md", p.grain_locked ? "bg-accent-soft text-ink" : "text-ink-3 hover:bg-surface-3 hover:text-ink-2")}>
+                  <GrainIcon />
+                </button>
+              </Tip>
+            ) : undefined} />
         ) : <span className="flex h-9 items-center justify-end pe-2.5 text-[14px] text-ink-3" aria-hidden="true">—</span>}
-        {isSheet && item?.has_grain ? (
-          <Tip content={p.grain_locked ? "Grain runs along the length. Won't be rotated." : "Free to rotate on the sheet. Click to lock grain direction."}>
-            <button type="button" aria-pressed={p.grain_locked} aria-label={`${label} grain lock`} disabled={readOnly}
-              onClick={() => upd((x) => { x.grain_locked = !x.grain_locked; })}
-              className={cn("flex h-9 w-9 items-center justify-center rounded-lg", p.grain_locked ? "bg-accent-soft text-ink" : "text-ink-3 hover:bg-surface-2")}>
-              <GrainIcon />
-            </button>
-          </Tip>
-        ) : <span />}
       </div>
     </div>
   );
@@ -211,7 +211,7 @@ function PartRow({ a, p, label, items, byId, problem }: {
 
 function GrainIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <path d="M2 5c3-1.6 5 1.6 8 0s4-1 6 0M2 9c3-1.6 5 1.6 8 0s4-1 6 0M2 13c3-1.6 5 1.6 8 0s4-1 6 0" />
     </svg>
   );
@@ -229,7 +229,7 @@ function ExtrasCard({ lines, items, byId }: { lines: HardwareLine[]; items: Cata
           <p className="text-[13px] text-ink-2">Glue, finish and anything bought once for the whole project.</p>
         </div>
       </div>
-      <HardwareList lines={lines} items={items} byId={byId} multiplier={1} onEdit={(fn) => edit((d) => fn(d.extras))} />
+      <HardwareList lines={lines} items={items} byId={byId} onEdit={(fn) => edit((d) => fn(d.extras))} />
       {!readOnly ? (
         <div className="border-t border-line px-3 py-2 sm:px-4">
           <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => edit((d) => { d.extras.push({ id: newId(), item_id: null, name: "", qty: 1, unit_price: null }); })}>Add item</Button>
@@ -239,8 +239,8 @@ function ExtrasCard({ lines, items, byId }: { lines: HardwareLine[]; items: Cata
   );
 }
 
-function HardwareList({ title, lines, items, byId, multiplier, onEdit }: {
-  title?: string; lines: HardwareLine[]; items: CatalogItem[]; byId: Map<string, CatalogItem>; multiplier: number;
+function HardwareList({ title, lines, items, byId, onEdit }: {
+  title?: string; lines: HardwareLine[]; items: CatalogItem[]; byId: Map<string, CatalogItem>;
   onEdit: (fn: (list: HardwareLine[]) => void) => void;
 }) {
   const readOnly = useEditor((s) => s.readOnly);
@@ -251,9 +251,8 @@ function HardwareList({ title, lines, items, byId, multiplier, onEdit }: {
       {title ? <p className="px-2 pb-1 pt-3 text-[12px] font-medium text-ink-3">{title}</p> : <div className="h-2" />}
       {lines.map((h) => {
         const item = h.item_id ? byId.get(h.item_id) : undefined;
-        const price = h.unit_price ?? item?.price ?? null;
         return (
-          <div key={h.id} className="group grid grid-cols-[minmax(0,1fr)_96px_32px] items-center gap-2 rounded-xl px-2 py-1 @lg:grid-cols-[minmax(0,1fr)_96px_110px_120px_32px]">
+          <div key={h.id} className="group grid grid-cols-[minmax(0,1fr)_96px_32px] items-center gap-2 rounded-xl px-2 py-1 @lg:grid-cols-[minmax(0,1fr)_96px_104px_32px]">
             <ItemPicker items={items} value={h.item_id} kinds={["hardware"]} ariaLabel="Hardware item" disabled={readOnly} allowFree
               placeholder={h.name || "Choose or type hardware"}
               onChange={(id, free) => upd(h.id, (x) => { if (id) { x.item_id = id; x.name = byId.get(id)?.name.en ?? x.name; } else if (free) { x.item_id = null; x.name = free; } })} />
@@ -265,10 +264,7 @@ function HardwareList({ title, lines, items, byId, multiplier, onEdit }: {
                 <NumberInput ariaLabel="Price each" value={h.unit_price} min={0} decimals={2} suffix="₪" onChange={(n) => upd(h.id, (x) => { x.unit_price = n; })} />
               )}
             </div>
-            <span className="tnum hidden h-9 items-center justify-end text-[13px] text-ink-2 @lg:flex">
-              {multiplier > 1 ? `×${multiplier} = ${(h.qty * multiplier).toLocaleString()}` : price == null ? "no price" : ""}
-            </span>
-            {!readOnly ? <IconButton label="Remove hardware" size="sm" className="text-ink-3 @2xl:opacity-0 @2xl:group-hover:opacity-100 @2xl:focus:opacity-100"
+            {!readOnly ? <IconButton label="Remove hardware" size="sm" className="text-ink-3 @2xl:opacity-40 @2xl:group-hover:opacity-100 @2xl:focus:opacity-100"
               onClick={() => onEdit((list) => { const i = list.findIndex((x) => x.id === h.id); if (i >= 0) list.splice(i, 1); })}><X size={16} /></IconButton> : <span />}
           </div>
         );

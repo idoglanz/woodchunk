@@ -62,9 +62,11 @@ function useCommitted(value: string, onCommit: (raw: string) => boolean) {
   };
 }
 
-export function LengthInput({ value, onChange, units, placeholder, className, ariaLabel, invalid, id, allowEmpty = false }: {
+export function LengthInput({ value, onChange, units, placeholder, className, ariaLabel, invalid, id, allowEmpty = false, start }: {
   value: number | null | undefined; onChange: (mm: number | null) => void; units: Units; placeholder?: string;
   className?: string; ariaLabel: string; invalid?: boolean; id?: string; allowEmpty?: boolean;
+  /** A small control inside the field's start edge (e.g. the grain toggle). */
+  start?: ReactNode;
 }) {
   const c = useCommitted(lengthInput(value, units), (raw) => {
     if (!raw.trim()) { if (allowEmpty) { onChange(null); return true; } onChange(0); return true; }
@@ -76,8 +78,9 @@ export function LengthInput({ value, onChange, units, placeholder, className, ar
   return (
     <div className={cn("relative", className)}>
       <input id={id} inputMode="decimal" aria-label={ariaLabel} placeholder={placeholder}
-        className={cn(inputBase, "tnum h-9 pe-9 ps-2.5 text-end text-[14px]", (invalid || c.bad) && "shadow-[0_0_0_1.5px_var(--kerf)]")}
+        className={cn(inputBase, "tnum h-9 pe-9 text-end text-[14px]", start ? "ps-9" : "ps-2.5", (invalid || c.bad) && "shadow-[0_0_0_1.5px_var(--kerf)]")}
         {...c.props} />
+      {start ? <span className="absolute start-1 top-1/2 flex -translate-y-1/2">{start}</span> : null}
       <span className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 text-[12px] text-ink-3">{units}</span>
     </div>
   );

@@ -168,6 +168,11 @@ h1, h2, h3 {
   border-radius: 6px;
 }
 
+/* For inputs whose surrounding box draws the focus ring instead (focus-within). */
+.ring-on-parent:focus-visible {
+  outline: none;
+}
+
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;

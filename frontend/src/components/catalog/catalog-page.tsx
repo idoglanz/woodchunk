@@ -82,7 +82,7 @@ export function CatalogPage() {
           <div className="relative min-w-[220px] flex-1">
             <Search size={16} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-ink-3" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search: 44 100, birch, screws…" aria-label="Search catalog"
-              className="h-10 w-full rounded-xl bg-surface ps-10 pe-3 text-[15px] shadow-[var(--shadow-card)] outline-none placeholder:text-ink-3 focus:shadow-[0_0_0_2px_var(--accent)] dark:border dark:border-line" />
+              className="ring-on-parent h-10 w-full rounded-xl bg-surface ps-10 pe-3 text-[15px] shadow-[var(--shadow-card)] outline-none placeholder:text-ink-3 focus:shadow-[0_0_0_2px_var(--accent)] dark:border dark:border-line" />
           </div>
           <Segmented label="Kind" value={kind} onChange={setKind} options={[
             { value: "all", label: "All" }, { value: "lumber", label: "Lumber" }, { value: "sheet", label: "Sheets" }, { value: "hardware", label: "Hardware" }]} />

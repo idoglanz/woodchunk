@@ -1,5 +1,6 @@
 "use client";
 
+import { Minus, Plus } from "lucide-react";
 import { forwardRef, useId, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 import { lengthInput, parseLength, type Units } from "@/lib/units";
@@ -46,6 +47,8 @@ function useCommitted(value: string, onCommit: (raw: string) => boolean) {
   const text = draft ?? value;
   return {
     text, bad,
+    /** Replace the text being edited, e.g. when a key steps the value. */
+    setText: (t: string) => { if (draft !== null) setDraft(t); },
     props: {
       value: text,
       onFocus: () => setDraft(value),
@@ -97,6 +100,48 @@ export function NumberInput({ value, onChange, min = 0, step, className, ariaLab
       <input id={id} inputMode="decimal" step={step} aria-label={ariaLabel}
         className={cn(inputBase, "tnum h-9 px-2.5 text-end text-[14px]", suffix && "pe-9", c.bad && "shadow-[0_0_0_1.5px_var(--kerf)]")} {...c.props} />
       {suffix ? <span className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 text-[12px] text-ink-3">{suffix}</span> : null}
+    </div>
+  );
+}
+
+/**
+ * Quantity with − / + buttons. Type a number (committed on blur or Enter) or use the arrow keys.
+ * The buttons are skipped by Tab so moving between fields stays quick.
+ */
+export function QtyInput({ value, onChange, min = 1, max = 9999, decimals = 0, ariaLabel, className, disabled }: {
+  value: number; onChange: (n: number) => void; min?: number; max?: number; decimals?: number; ariaLabel: string; className?: string; disabled?: boolean;
+}) {
+  const clamp = (n: number) => Math.min(max, Math.max(min, Math.round(n * 10 ** decimals) / 10 ** decimals));
+  const shown = String(Math.round(value * 10 ** decimals) / 10 ** decimals);
+  const c = useCommitted(shown, (raw) => {
+    const n = Number(raw.replace(",", "."));
+    if (!raw.trim() || !Number.isFinite(n)) return false;
+    if (clamp(n) !== value) onChange(clamp(n));
+    return true;
+  });
+  // Whole steps from a fractional value land on the next whole number (1.5 → 2 or 1).
+  const step = (dir: 1 | -1) => {
+    const typed = Number(c.text.replace(",", "."));
+    const from = c.text.trim() && Number.isFinite(typed) ? typed : value;
+    const n = clamp(dir > 0 ? Math.floor(from) + 1 : Math.ceil(from) - 1);
+    onChange(n);
+    c.setText(String(n));
+  };
+  const btn = "flex h-9 w-7 shrink-0 items-center justify-center rounded-lg text-ink-2 hover:text-ink disabled:opacity-30";
+  return (
+    <div className={cn("flex h-9 items-center rounded-lg bg-surface-2 transition-shadow duration-150 focus-within:shadow-[0_0_0_2px_var(--accent)]", c.bad && "shadow-[0_0_0_1.5px_var(--kerf)]", className)}>
+      <button type="button" tabIndex={-1} aria-label={`Decrease ${ariaLabel}`} disabled={disabled || value <= min} onClick={() => step(-1)} className={btn}>
+        <Minus size={14} strokeWidth={2.2} />
+      </button>
+      <input inputMode={decimals ? "decimal" : "numeric"} aria-label={ariaLabel} readOnly={disabled} {...c.props}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); if (!disabled) step(e.key === "ArrowUp" ? 1 : -1); return; }
+          c.props.onKeyDown(e);
+        }}
+        className="tnum h-9 w-full min-w-0 bg-transparent text-center text-[14px] font-medium outline-none" />
+      <button type="button" tabIndex={-1} aria-label={`Increase ${ariaLabel}`} disabled={disabled || value >= max} onClick={() => step(1)} className={btn}>
+        <Plus size={14} strokeWidth={2.2} />
+      </button>
     </div>
   );
 }

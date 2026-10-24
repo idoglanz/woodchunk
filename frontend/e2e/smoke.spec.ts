@@ -20,8 +20,11 @@ test("plan a build from scratch: build → buy", async ({ page }, info) => {
   await page.getByRole("button", { name: "A1 material" }).click();
   await page.getByLabel("Search catalog").fill("44 100 rough");
   await page.getByLabel("Search catalog").press("Enter");
-  await page.getByLabel("A1 quantity").fill("4");
-  await page.getByLabel("A1 quantity").press("Enter");
+  const qty = page.getByLabel("A1 quantity", { exact: true });
+  await qty.fill("3");
+  await qty.press("Enter");
+  await page.getByRole("button", { name: "Increase A1 quantity" }).click();
+  await expect(qty).toHaveValue("4");
   await page.getByLabel("A1 length").fill("75cm");
   await page.getByLabel("A1 length").press("Enter");
   await expect(page.getByText("Saved")).toBeVisible();
@@ -32,6 +35,11 @@ test("plan a build from scratch: build → buy", async ({ page }, info) => {
   const plan = page.getByRole(info.project.name === "phone" ? "region" : "complementary", { name: "Cutting plan" });
   await expect(plan.getByRole("heading", { name: "Lumber" })).toBeVisible();
   await expect(plan.getByText("Optimal").first()).toBeVisible();
+  if (info.project.name === "phone") await page.getByRole("button", { name: "Hide cutting plan" }).click();
+  await qty.press("ArrowDown");
+  await expect(qty).toHaveValue("3");
+  await page.getByRole("button", { name: "Increase A1 quantity" }).click();
+  await expect(qty).toHaveValue("4");
 
   await page.getByRole("tab", { name: "Buy" }).click();
   await expect(page.getByText("44 × 100 whitewood, rough").first()).toBeVisible();

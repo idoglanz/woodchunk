@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { useProjectCtx } from "@/components/project/context";
 import { ItemPicker, rememberMaterial } from "@/components/project/material-picker";
 import { Button, IconButton } from "@/components/ui/button";
-import { LengthInput, NumberInput } from "@/components/ui/field";
+import { LengthInput, NumberInput, QtyInput } from "@/components/ui/field";
 import { AsmChip, Card, EmptyState } from "@/components/ui/misc";
 import { Menu, MenuItem, MenuSeparator, Tip } from "@/components/ui/overlay";
 import { Stepper } from "@/components/ui/stepper";
@@ -147,8 +147,8 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
 // two when there's room for the material beside the name, one line when wide.
 const ROW = "grid gap-x-2 gap-y-1.5 grid-cols-[40px_minmax(0,1fr)_32px] [grid-template-areas:'chip_name_del'_'mat_mat_mat'_'nums_nums_nums'] "
   + "@lg:grid-cols-[40px_minmax(0,1fr)_minmax(0,1.3fr)_32px] @lg:[grid-template-areas:'chip_name_mat_del'_'._nums_nums_.'] "
-  + "@2xl:grid-cols-[34px_minmax(0,1fr)_minmax(0,1.5fr)_auto_28px] @2xl:[grid-template-areas:'chip_name_mat_nums_del']";
-const NUMS = "grid grid-cols-[60px_1fr_1fr_36px] gap-2 @2xl:grid-cols-[48px_84px_84px_30px]";
+  + "@2xl:grid-cols-[34px_minmax(0,0.75fr)_minmax(0,1.5fr)_auto_28px] @2xl:[grid-template-areas:'chip_name_mat_nums_del']";
+const NUMS = "grid grid-cols-[96px_1fr_1fr_36px] gap-2 @2xl:grid-cols-[88px_80px_80px_30px]";
 
 function PartRow({ a, p, label, items, byId, problem }: {
   a: Assembly; p: Part; label: string; items: CatalogItem[]; byId: Map<string, CatalogItem>; problem?: string;
@@ -159,10 +159,10 @@ function PartRow({ a, p, label, items, byId, problem }: {
   const active = useActivePart() === p.id;
   const item = p.item_id ? byId.get(p.item_id) : undefined;
   const isSheet = item?.kind === "sheet";
-  const upd = (fn: (x: Part) => void) => edit((d) => {
+  const upd = (fn: (x: Part) => void, key?: string) => edit((d) => {
     const x = d.assemblies.find((y) => y.id === a.id)?.parts.find((y) => y.id === p.id);
     if (x) fn(x);
-  });
+  }, key);
   const focus = usePartFocus.getState();
 
   return (
@@ -188,7 +188,7 @@ function PartRow({ a, p, label, items, byId, problem }: {
           onChange={(id) => { if (!id) return; rememberMaterial(id); upd((x) => { x.item_id = id; const it = byId.get(id); if (it?.kind !== "sheet") { x.width_mm = null; x.grain_locked = false; } }); }} />
       </div>
       <div className={cn(NUMS, "[grid-area:nums]")}>
-        <NumberInput ariaLabel={`${label} quantity`} value={p.qty} min={1} onChange={(n) => upd((x) => { x.qty = Math.max(1, Math.round(n ?? 1)); })} />
+        <QtyInput ariaLabel={`${label} quantity`} value={p.qty} disabled={readOnly} onChange={(n) => upd((x) => { x.qty = n; }, `qty-${p.id}`)} />
         <LengthInput ariaLabel={`${label} length`} units={units} value={p.length_mm} placeholder="Length"
           invalid={!!problem && problem.includes("length")} onChange={(mm) => upd((x) => { x.length_mm = mm ?? 0; })} />
         {isSheet ? (
@@ -253,11 +253,11 @@ function HardwareList({ title, lines, items, byId, multiplier, onEdit }: {
         const item = h.item_id ? byId.get(h.item_id) : undefined;
         const price = h.unit_price ?? item?.price ?? null;
         return (
-          <div key={h.id} className="group grid grid-cols-[minmax(0,1fr)_76px_32px] items-center gap-2 rounded-xl px-2 py-1 @lg:grid-cols-[minmax(0,1fr)_76px_110px_120px_32px]">
+          <div key={h.id} className="group grid grid-cols-[minmax(0,1fr)_96px_32px] items-center gap-2 rounded-xl px-2 py-1 @lg:grid-cols-[minmax(0,1fr)_96px_110px_120px_32px]">
             <ItemPicker items={items} value={h.item_id} kinds={["hardware"]} ariaLabel="Hardware item" disabled={readOnly} allowFree
               placeholder={h.name || "Choose or type hardware"}
               onChange={(id, free) => upd(h.id, (x) => { if (id) { x.item_id = id; x.name = byId.get(id)?.name.en ?? x.name; } else if (free) { x.item_id = null; x.name = free; } })} />
-            <NumberInput ariaLabel="Hardware quantity" value={h.qty} min={0} decimals={1} onChange={(n) => upd(h.id, (x) => { x.qty = n ?? 0; })} />
+            <QtyInput ariaLabel="Hardware quantity" value={h.qty} min={0} decimals={1} disabled={readOnly} onChange={(n) => upd(h.id, (x) => { x.qty = n; })} />
             <div className="hidden @lg:block">
               {item?.price != null ? (
                 <span className="tnum flex h-9 items-center justify-end text-[13px] text-ink-2">{money(item.price)}{item.pack_size > 1 ? ` / ${item.pack_size}` : ""}</span>

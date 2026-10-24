@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, Check, ChevronDown, Info } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { useProjectCtx } from "@/components/project/context";
 import { LumberBars } from "@/components/diagrams/lumber";
 import { SheetDiagram, cutText } from "@/components/diagrams/sheet";
@@ -184,28 +184,28 @@ function SheetLayoutBlock({ lay, index, total, hasGrain, wide, onPick }: {
   const active = useActivePart();
   const [hl, setHl] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
-  const preview = wide ? 6 : 4;
-  const shown = open ? lay.cuts : lay.cuts.slice(0, preview);
+  const listId = useId();
   return (
     <div className="flex flex-col gap-3">
       {total > 1 ? <p className="text-[13px] font-medium text-ink-2">Sheet {index + 1} of {total} · {pct(lay.used_pct)} used{lay.source !== "buy" ? " · from your workshop" : ""}</p> : null}
       <SheetDiagram layout={lay} hasGrain={hasGrain} highlight={hl} active={hl ? null : active} onPick={onPick} />
       {lay.cuts.length ? (
         <div className="flex flex-col gap-1">
-          <p className="text-[13px] font-semibold">Cut order <span className="font-normal text-ink-3">· {plural(lay.cuts.length, "cut")}, straight through</span></p>
-          <ol className={cn("grid gap-x-6", wide && "sm:grid-cols-2")}>
-            {shown.map((c) => (
-              <li key={c.n} onMouseEnter={() => setHl(c.n)} onMouseLeave={() => setHl(null)} onFocus={() => setHl(c.n)} onBlur={() => setHl(null)} tabIndex={0}
-                className={cn("flex cursor-default items-center gap-2.5 rounded-lg px-1.5 py-1 text-[14px]", hl === c.n && "bg-accent-soft")}>
-                <span className="tnum flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-surface">{c.n}</span>
-                {cutText(c)}
-              </li>
-            ))}
-          </ol>
-          {lay.cuts.length > preview ? (
-            <button type="button" onClick={() => setOpen((o) => !o)} className="inline-flex items-center gap-1 self-start px-1.5 py-1 text-[14px] font-medium text-info">
-              {open ? "Show fewer" : `Show all ${lay.cuts.length}`}<ChevronDown size={14} className={cn("transition-transform", open && "rotate-180")} />
-            </button>
+          <button type="button" aria-expanded={open} aria-controls={listId} onClick={() => setOpen((o) => !o)}
+            className="-mx-1.5 inline-flex items-center gap-1.5 self-start rounded-lg px-1.5 py-1 text-[13px] font-semibold hover:bg-surface-2">
+            <ChevronDown size={15} className={cn("text-ink-3 transition-transform", !open && "-rotate-90 rtl:rotate-90")} />
+            Cut order <span className="font-normal text-ink-3">· {plural(lay.cuts.length, "cut")}, straight through</span>
+          </button>
+          {open ? (
+            <ol id={listId} className={cn("grid gap-x-6", wide && "sm:grid-cols-2")}>
+              {lay.cuts.map((c) => (
+                <li key={c.n} onMouseEnter={() => setHl(c.n)} onMouseLeave={() => setHl(null)} onFocus={() => setHl(c.n)} onBlur={() => setHl(null)} tabIndex={0}
+                  className={cn("flex cursor-default items-center gap-2.5 rounded-lg px-1.5 py-1 text-[14px]", hl === c.n && "bg-accent-soft")}>
+                  <span className="tnum flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-surface">{c.n}</span>
+                  {cutText(c)}
+                </li>
+              ))}
+            </ol>
           ) : null}
         </div>
       ) : null}

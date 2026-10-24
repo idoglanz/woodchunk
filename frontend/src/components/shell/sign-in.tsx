@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Logo } from "@/components/shell/logo";
 import { Button } from "@/components/ui/button";
 import { Field, TextInput } from "@/components/ui/field";
-import { AUTH_MODE, useAuth } from "@/lib/auth";
+import { AUTH_MODE, DESCOPE_FLOW_ID, useAuth } from "@/lib/auth";
 
 export function SignIn() {
   const { ready, signedIn, devSignIn } = useAuth();
@@ -31,7 +31,7 @@ export function SignIn() {
         </div>
         <div className="w-full rounded-[20px] bg-surface p-6 shadow-[var(--shadow-card)] dark:border dark:border-line">
           {AUTH_MODE === "descope" ? (
-            <Descope flowId="sign-up-or-in" theme="light" />
+            <Descope flowId={DESCOPE_FLOW_ID} theme="light" />
           ) : (
             <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); if (email.includes("@")) devSignIn(email); }}>
               <Field label="Email" htmlFor="email" hint="Local development: any email signs you in.">

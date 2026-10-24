@@ -7,6 +7,8 @@ import { configureAuth } from "@/lib/api/client";
 
 export const DESCOPE_PROJECT_ID = process.env.NEXT_PUBLIC_DESCOPE_PROJECT_ID ?? "";
 export const AUTH_MODE: "descope" | "dev" = DESCOPE_PROJECT_ID ? "descope" : "dev";
+// The Descope project is shared with zizi-tripo; each app has its own branded flow.
+export const DESCOPE_FLOW_ID = process.env.NEXT_PUBLIC_DESCOPE_FLOW_ID || "sign-up-or-in";
 const DEV_KEY = "wc.devToken";
 
 type AuthState = {

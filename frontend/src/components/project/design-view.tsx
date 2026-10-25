@@ -1,8 +1,10 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Copy, LayoutTemplate, MoreHorizontal, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Box, Copy, LayoutTemplate, MoreHorizontal, Plus, Sparkles, Trash2, Unlink, X } from "lucide-react";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { cutSummary } from "@/components/frame/cut-list";
+import { TemplateDialog } from "@/components/frame/template-dialog";
 import { useProjectCtx } from "@/components/project/context";
 import { ItemPicker, rememberMaterial } from "@/components/project/material-picker";
 import { Button, IconButton } from "@/components/ui/button";
@@ -15,6 +17,7 @@ import { cn } from "@/lib/cn";
 import { newAssembly, newId, newPart, nextLetter, useEditor } from "@/lib/editor";
 import { partRowId, useActivePart, usePartFocus } from "@/lib/focus";
 import { money } from "@/lib/format";
+import { deriveParts } from "@/lib/frame/parts";
 import { useCatalog } from "@/lib/queries";
 
 function useItems() {
@@ -30,7 +33,9 @@ export function DesignView() {
   const edit = useEditor((s) => s.edit);
   const { openAI } = useProjectCtx();
   const { items, byId } = useItems();
+  const [drawing, setDrawing] = useState(false);
   if (!content) return null;
+  const frameDialog = drawing ? <TemplateDialog open={drawing} onOpenChange={setDrawing} /> : null;
 
   const addAssembly = () =>
     edit((d) => {
@@ -45,8 +50,10 @@ export function DesignView() {
           action={<div className="flex flex-wrap justify-center gap-2">
             {!readOnly ? <Button variant="primary" icon={<Sparkles size={16} />} onClick={openAI}>Describe it</Button> : null}
             {!readOnly ? <Button icon={<Plus size={16} />} onClick={addAssembly}>Add assembly</Button> : null}
+            {!readOnly ? <Button icon={<Box size={16} />} onClick={() => setDrawing(true)}>Draw a frame</Button> : null}
             <Link href="/templates" className="inline-flex h-11 items-center gap-2 rounded-xl px-4 text-[15px] font-medium text-ink-2 hover:text-ink"><LayoutTemplate size={16} />Templates</Link>
           </div>} />
+        {frameDialog}
       </Card>
     );
   }
@@ -58,10 +65,12 @@ export function DesignView() {
       ))}
       <ExtrasCard lines={content.extras} items={items} byId={byId} />
       {!readOnly ? (
-        <div>
+        <div className="flex flex-wrap gap-2">
           <Button icon={<Plus size={16} strokeWidth={2.4} />} onClick={addAssembly}>Add assembly</Button>
+          <Button variant="ghost" icon={<Box size={16} />} onClick={() => setDrawing(true)}>Draw a frame in 3D</Button>
         </div>
       ) : null}
+      {frameDialog}
     </div>
   );
 }
@@ -72,6 +81,9 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
   const { plan } = useProjectCtx();
   const unplaced = useMemo(() => new Map((plan?.unplaced ?? []).map((u) => [u.part_id, u.reason])), [plan]);
   const upd = (fn: (x: Assembly) => void, key?: string) => edit((d) => { const x = d.assemblies.find((y) => y.id === a.id); if (x) fn(x); }, key);
+  const { id: projectId } = useProjectCtx();
+  const [drawing, setDrawing] = useState(false);
+  const drawn = !!a.frame;
 
   const addPart = () => upd((x) => {
     const last = x.parts[x.parts.length - 1];
@@ -104,8 +116,16 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
                 const copy: Assembly = { ...structuredClone(src), id: newId(), letter: nextLetter(d.assemblies.map((y) => y.letter)), name: `${src.name} copy` };
                 copy.parts = copy.parts.map((p) => ({ ...p, id: newId() }));
                 copy.hardware = copy.hardware.map((h) => ({ ...h, id: newId() }));
+                deriveParts(copy, byId);
                 d.assemblies.splice(index + 1, 0, copy);
               })}>Duplicate</MenuItem>
+              {drawn ? (
+                <MenuItem icon={<Unlink size={15} />} onSelect={() => upd((x) => { x.frame = null; x.frame_warnings = []; x.parts = x.parts.map((pt) => ({ ...pt, id: newId(), members: [] })); })}>
+                  Keep parts, remove 3D frame
+                </MenuItem>
+              ) : (
+                <MenuItem icon={<Box size={15} />} onSelect={() => setDrawing(true)}>Design in 3D…</MenuItem>
+              )}
               <MenuItem icon={<ArrowUp size={15} />} disabled={index === 0} onSelect={() => move(-1)}>Move up</MenuItem>
               <MenuItem icon={<ArrowDown size={15} />} disabled={index === count - 1} onSelect={() => move(1)}>Move down</MenuItem>
               <MenuSeparator />
@@ -115,6 +135,8 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
         </div>
       </div>
 
+      {drawing ? <TemplateDialog open={drawing} onOpenChange={setDrawing} assemblyId={a.id} /> : null}
+      {drawn ? <DrawnParts a={a} byId={byId} projectId={projectId} /> : (
       <div className="px-2 sm:px-3">
         {a.parts.length ? (
           <div className={cn(ROW, "hidden px-2 pb-1 pt-1 text-[12px] font-medium text-ink-3 @2xl:grid")}>
@@ -129,17 +151,51 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
         </div>
         {!a.parts.length ? <p className="px-2 py-3 text-[14px] text-ink-2">No parts yet.</p> : null}
       </div>
+      )}
 
       <HardwareList title={a.qty > 1 ? `Hardware · per ${a.name || "assembly"}, ×${a.qty} in total` : "Hardware"} lines={a.hardware} items={items} byId={byId}
         onEdit={(fn) => upd((x) => fn(x.hardware))} />
 
       {!readOnly ? (
         <div className="flex flex-wrap gap-1 border-t border-line px-3 py-2 sm:px-4">
-          <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={addPart}>Add part</Button>
+          {!drawn ? <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={addPart}>Add part</Button> : null}
           <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => upd((x) => { x.hardware.push({ id: newId(), item_id: null, name: "", qty: 1, unit_price: null }); })}>Add hardware</Button>
         </div>
       ) : null}
     </Card>
+  );
+}
+
+/** Parts generated from the assembly's 3D frame: read-only here, edited in the 3D view. */
+function DrawnParts({ a, byId, projectId }: { a: Assembly; byId: Map<string, CatalogItem>; projectId: string }) {
+  const active = useActivePart();
+  const focus = usePartFocus.getState();
+  return (
+    <div className="flex flex-col gap-1 px-2 sm:px-3">
+      {a.frame_warnings.length ? <p className="px-2 text-[13px] text-warn">{a.frame_warnings[0]}{a.frame_warnings.length > 1 ? ` (+${a.frame_warnings.length - 1} more)` : ""}</p> : null}
+      {a.parts.map((p, i) => {
+        const item = p.item_id ? byId.get(p.item_id) : undefined;
+        return (
+          <div key={p.id} id={partRowId(p.id)} onPointerEnter={() => focus.setHovered(p.id)} onPointerLeave={() => focus.setHovered(null)}
+            className={cn("grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-2 rounded-xl px-2 py-1.5 transition-colors", active === p.id && "bg-surface-2/70")}>
+            <AsmChip letter={a.letter}>{a.letter}{i + 1}</AsmChip>
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-[15px]">{p.name || "Bar"}</span>
+              <span className="truncate text-[13px] text-ink-2">{item?.name.en ?? "No material"}</span>
+            </span>
+            <span className="flex flex-col items-end">
+              <span className="tnum text-[15px] font-semibold">{p.qty} × {p.length_mm} mm</span>
+              <span className="text-[13px] text-ink-2">{cutSummary(p.cuts)}</span>
+            </span>
+          </div>
+        );
+      })}
+      {!a.parts.length ? <p className="px-2 py-3 text-[14px] text-ink-2">No bars with a material yet.</p> : null}
+      <Link href={`/projects/${projectId}/frame/${a.id}`}
+        className="mx-2 mb-2 mt-1 inline-flex h-9 items-center gap-2 self-start rounded-xl bg-surface-2 px-3 text-[14px] font-medium hover:bg-surface-3">
+        <Box size={15} />Edit in 3D
+      </Link>
+    </div>
   );
 }
 

@@ -47,3 +47,40 @@ test("plan a build from scratch: build → buy", async ({ page }, info) => {
   await expect(page.getByText(/Bought on/)).toBeVisible();
   await expect(page.getByText("Nothing more to buy")).toBeVisible();
 });
+
+test("design a frame in 3D: template → cut list → parameters → Build", async ({ page }, info) => {
+  const email = `e2e-frame-${info.project.name}-${Date.now()}@test.dev`;
+  await page.goto("/sign-in");
+  await page.getByLabel("Email").fill(email);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "New project" }).first().click();
+  await page.getByRole("button", { name: "Blank" }).click();
+  await page.getByLabel("Name").fill("E2E frame");
+  await page.getByRole("button", { name: "Create" }).click();
+
+  await page.getByRole("button", { name: "Draw a frame" }).click();
+  await expect(page.getByRole("radio", { name: /Table/ })).toBeChecked();
+  await page.getByRole("button", { name: "Create frame" }).click();
+  await expect(page).toHaveURL(/\/frame\//);
+
+  // Outside dimensions 1200 × 600 × 750 in 40 mm tube: aprons stop at the legs' inner faces.
+  const cut = page.getByRole("complementary", { name: "Frame details" });
+  await expect(cut.getByText("2 × 1120 mm")).toBeVisible();
+  await expect(cut.getByText("4 × 750 mm")).toBeVisible();
+  await expect(cut.getByText("2 × 520 mm")).toBeVisible();
+  await expect(page.locator("canvas")).toBeVisible();
+
+  if (info.project.name === "desktop") {
+    const width = page.getByLabel("Width", { exact: true });
+    await width.fill("1500");
+    await width.press("Enter");
+    await expect(cut.getByText("2 × 1420 mm")).toBeVisible();
+  }
+  const wide = info.project.name === "desktop" ? "1420" : "1120";
+
+  await page.getByRole("link", { name: "Back to Build" }).click();
+  await expect(page.getByText(`2 × ${wide} mm`).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Edit in 3D" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add part" })).toHaveCount(0);
+  await expect(page.getByText("Saved")).toBeVisible();
+});

@@ -86,8 +86,19 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
     planFetching: plan.isFetching, aiOpen, openAI: () => setAIOpen(true), closeAI: () => setAIOpen(false),
   }), [id, me.data, readOnly, plan.data, plan.isFetching, aiOpen]);
 
+  // The 3D frame editor takes the whole page below the app bar.
+  const fullBleed = pathname.includes("/frame/");
+
   if (project.isError) {
     return <EmptyState title="Project not found" text="It may have been deleted, or you don't have access to it." action={<Link href="/" className="font-semibold text-info">Back to projects</Link>} />;
+  }
+
+  if (fullBleed) {
+    return (
+      <ProjectContext.Provider value={ctx}>
+        {ready ? children : <div className="p-6"><Skeleton className="h-[70dvh] w-full rounded-[16px]" /></div>}
+      </ProjectContext.Provider>
+    );
   }
 
   return (

@@ -95,8 +95,19 @@ test("design a frame in 3D: template → cut list → parameters → Build", asy
     await row.click();
     await page.keyboard.press("Delete");
     await expect(row).toHaveCount(0);
+
+    // Front view: flat, with every bar's length on the drawing; typing one resizes the frame (W).
+    await page.getByRole("tab", { name: "Front" }).click();
+    await expect(page.getByText(/Drawing on front face/)).toBeVisible();
+    await page.getByRole("button", { name: /^Apron length 1500 mm/ }).first().click();
+    const len = page.getByLabel("Apron length", { exact: true });
+    await len.fill("1300");
+    await len.press("Enter");
+    await expect(cut.getByText("2 × 1220 mm")).toBeVisible();
+    await page.getByRole("button", { name: "Back to the 3D view" }).click();
+    await expect(page.getByText(/Drawing on front face/)).toHaveCount(0);
   }
-  const wide = info.project.name === "desktop" ? "1420" : "1120";
+  const wide = info.project.name === "desktop" ? "1220" : "1120";
 
   await page.getByRole("link", { name: "Back to Build" }).click();
   await expect(page.getByText(`2 × ${wide} mm`).first()).toBeVisible();

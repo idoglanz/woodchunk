@@ -1,7 +1,8 @@
 /**
  * Where the pointer "is" while drawing, SketchUp-style: joints and bar midpoints first, then the
  * colored axes through the start point or a point along a bar (whichever is closer on screen),
- * else the grid on the drawing level. Pure: the canvas passes a projector, tests pass a stub.
+ * else the grid on the drawing plane, lined up with other joints when close. Pure: the canvas
+ * passes a projector, tests pass a stub.
  */
 
 import { add, dot, length, scale, sub, type Vec } from "./kernel";
@@ -19,7 +20,10 @@ export type Snap =
   | { kind: "mid"; at: Vec; member: string }
   | { kind: "on-bar"; at: Vec; member: string }
   | { kind: "axis"; at: Vec; axis: Axis }
-  | { kind: "plane"; at: Vec };
+  | { kind: "plane"; at: Vec; aligned: { axis: Axis; to: Vec }[] };
+
+/** The plane points land on when nothing else is near: axis 2 at z = 400 is the horizontal plane at 400 mm. */
+export type DrawPlane = { axis: Axis; at: number };
 
 export type SnapInput = {
   cursor: [number, number];
@@ -28,13 +32,16 @@ export type SnapInput = {
   members: { id: string; a: Vec; b: Vec }[];
   start?: Vec | null;
   lockAxis?: Axis | null;
-  planeZ: number;
+  plane: DrawPlane;
+  /** Axes a line may follow from the start point (2D views: only the two in the plane). */
+  axes?: Axis[];
   grid: number;
 };
 
 const NODE_PX = 12;
 const AXIS_PX = 16;
 const BAR_PX = 10;
+const ALIGN_PX = 8;
 const UNIT: [Vec, Vec, Vec] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
 
 const round = (v: number, step: number) => (Math.round(v / step) * step) || 0;
@@ -72,7 +79,7 @@ export function snapPoint(inp: SnapInput): Snap {
 
   // Axes through the start point, and points along bars: the closest on screen wins.
   if (inp.start) {
-    const axes: Axis[] = inp.lockAxis != null ? [inp.lockAxis] : [0, 1, 2];
+    const axes: Axis[] = inp.lockAxis != null ? [inp.lockAxis] : inp.axes ?? [0, 1, 2];
     for (const axis of axes) {
       const t = closestOnLine(proj.ray, inp.start, UNIT[axis]);
       if (t === null) continue;
@@ -94,16 +101,30 @@ export function snapPoint(inp: SnapInput): Snap {
   }
   if (best) return best.snap;
 
-  // The drawing level: a horizontal plane through the start point (or the floor).
+  // The drawing plane: intersect, round to the grid, then line up with joints that are close.
   const { origin, dir } = proj.ray;
-  if (Math.abs(dir[2]) > 1e-6) {
-    const t = (inp.planeZ - origin[2]) / dir[2];
+  const k = inp.plane.axis;
+  if (Math.abs(dir[k]) > 1e-6) {
+    const t = (inp.plane.at - origin[k]) / dir[k];
     if (t > 0) {
-      const p = add(origin, scale(dir, t));
-      return { kind: "plane", at: [round(p[0], grid), round(p[1], grid), inp.planeZ] };
+      const hit = add(origin, scale(dir, t));
+      const at = [0, 1, 2].map((i) => (i === k ? inp.plane.at : round(hit[i], grid))) as Vec;
+      const aligned: { axis: Axis; to: Vec }[] = [];
+      for (const axis of [0, 1, 2] as Axis[]) {
+        if (axis === k) continue;
+        let near: { d: number; to: Vec } | null = null;
+        for (const p of inp.nodes.values()) {
+          const q = [...at] as Vec;
+          q[axis] = p[axis];
+          const d = screenDist(proj, q, cursor);
+          if (d <= ALIGN_PX && (!near || d < near.d)) near = { d, to: p };
+        }
+        if (near) { at[axis] = near.to[axis]; aligned.push({ axis, to: near.to }); }
+      }
+      return { kind: "plane", at, aligned };
     }
   }
-  return { kind: "plane", at: inp.start ?? [0, 0, inp.planeZ] };
+  return { kind: "plane", at: inp.start ?? ([0, 1, 2].map((i) => (i === k ? inp.plane.at : 0)) as Vec), aligned: [] };
 }
 
 /** Where a typed length puts the end: along the current direction from the start. */

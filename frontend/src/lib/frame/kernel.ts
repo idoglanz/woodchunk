@@ -25,6 +25,8 @@ const VERTICAL_Z = 0.7;
 // A member this close to vertical takes its profile "up" from world Y (far from normal splays).
 const UPRIGHT_Z = 0.866;
 const STRAIGHT = 0.999; // two ends this opposed at a joint are one straight run
+// The through bar grows to cover butting bars only when they meet it about square (an L corner).
+const SQUARE_ON = 0.26;
 const MAX_COORD = 100_000; // 100 m: anything further out is a typo, not a frame
 
 // --- vectors -------------------------------------------------------------------------------------
@@ -279,7 +281,7 @@ export function solve(frame: Frame, profiles: Record<string, Profile>): FrameRes
       for (const [mm, e] of others) {
         if (dot(mm.into(e), dT) > STRAIGHT) { warnings.push(`${mm.label} and ${tm.label} overlap along the same line`); continue; }
         buttInto(mm, e, node, [tm], warnings);
-        reach = Math.max(reach, Math.max(...mm.outer().map((q) => dot(q, scale(dT, -1)))));
+        if (Math.abs(dot(mm.into(e), dT)) < SQUARE_ON) reach = Math.max(reach, Math.max(...mm.outer().map((q) => dot(q, scale(dT, -1)))));
       }
       tm.planes[te] = square(node, dT, reach);
     }

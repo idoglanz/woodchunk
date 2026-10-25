@@ -33,6 +33,9 @@ VERTICAL_Z = 0.7  # members steeper than this run through at butt joints by defa
 # normal splays (cos 30°) so a slightly splayed leg doesn't turn its section 90°.
 UPRIGHT_Z = 0.866
 STRAIGHT = 0.999  # two ends this opposed at a joint are one straight run
+# The through bar of a butt joint grows to cover the bars that butt into it only when they meet it
+# about square (an L corner); a diagonal brace just trims to its face.
+SQUARE_ON = 0.26  # |cos| of the angle between them: within about 15° of square
 MAX_COORD = 100_000.0  # 100 m: anything further out is a typo, not a frame
 
 
@@ -381,7 +384,8 @@ def solve(frame: Frame, profiles: dict[str, Profile]) -> FrameResult:
                     warnings.append(f"{mm.label} and {tm.label} overlap along the same line")
                     continue
                 _butt_into(mm, e, node, [tm], warnings)
-                reach = max(reach, max(dot(q, scale(d_t, -1)) for q in mm.outer()))
+                if abs(dot(mm.into(e), d_t)) < SQUARE_ON:
+                    reach = max(reach, max(dot(q, scale(d_t, -1)) for q in mm.outer()))
             tm.planes[te] = _square(node, d_t, reach)
 
     results = [_measure(mm, warnings) for mm in ms]

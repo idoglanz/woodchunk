@@ -1,11 +1,29 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import type { Vec } from "./kernel";
-import type { Axis } from "./snap";
+import type { Axis, DrawPlane } from "./snap";
 
 export type Selection = { kind: "member" | "node"; id: string } | null;
 export type View = "iso" | "front" | "top" | "side";
 export type Tool = "select" | "draw";
+/** 3D: orbit and look. Front/Side/Top: flat views you draw and drag in. */
+export type Mode = "3d" | "front" | "side" | "top";
+export type FlatMode = Exclude<Mode, "3d">;
+
+/** Each flat view looks along one axis (its normal) and draws in the other two. */
+export const FLAT: Record<FlatMode, { normal: Axis; inPlane: [Axis, Axis]; label: string; face: (min: number, max: number) => number; faceName: [string, string] }> = {
+  front: { normal: 1, inPlane: [0, 2], label: "y", face: (min) => min, faceName: ["front", "back"] },
+  side: { normal: 0, inPlane: [1, 2], label: "x", face: (_, max) => max, faceName: ["left", "right"] },
+  top: { normal: 2, inPlane: [0, 1], label: "z", face: (_, max) => max, faceName: ["bottom", "top"] },
+};
+
+/** The plane a flat view draws on: the chosen depth, else the face nearest the viewer. */
+export function flatPlane(mode: FlatMode, depth: number | null, nodes: Iterable<Vec>): DrawPlane {
+  const f = FLAT[mode];
+  if (depth !== null) return { axis: f.normal, at: depth };
+  const vals = [...nodes].map((p) => p[f.normal]);
+  return { axis: f.normal, at: vals.length ? f.face(Math.min(...vals), Math.max(...vals)) : 0 };
+}
 /** A drawing in progress: where the next bar starts (an existing joint, or a point). */
 export type DrawStart = { node?: string; at: Vec } | null;
 
@@ -16,6 +34,8 @@ type FrameUI = {
   ortho: boolean;
   view: { name: View | "fit"; n: number }; // bump n to re-run the same request
   tool: Tool;
+  mode: Mode;
+  depth: Record<FlatMode, number | null>; // drawing depth per flat view (null: the nearest face)
   drawStart: DrawStart;
   typed: string; // length typed while drawing ("750")
   lockAxis: Axis | null; // Shift held while drawing
@@ -27,7 +47,7 @@ type FrameUI = {
   setOrtho: (o: boolean) => void;
   look: (name: View | "fit") => void;
   setTool: (t: Tool) => void;
-  set: (p: Partial<Pick<FrameUI, "drawStart" | "typed" | "lockAxis" | "drawItem" | "drag" | "drawHover">>) => void;
+  set: (p: Partial<Pick<FrameUI, "drawStart" | "typed" | "lockAxis" | "drawItem" | "drag" | "drawHover" | "depth">>) => void;
 };
 
 export const useFrameUI = create<FrameUI>((set) => ({
@@ -38,8 +58,14 @@ export const useFrameUI = create<FrameUI>((set) => ({
   select: (selected) => set({ selected }),
   hover: (hovered) => set({ hovered }),
   setOrtho: (ortho) => set({ ortho }),
-  look: (name) => set((s) => ({ view: { name, n: s.view.n + 1 } })),
+  look: (name) => set((s) => ({
+    view: { name, n: s.view.n + 1 },
+    mode: name === "iso" ? "3d" : name === "fit" ? s.mode : name,
+    drawStart: null, typed: "", lockAxis: null,
+  })),
   tool: "select",
+  mode: "3d",
+  depth: { front: null, side: null, top: null },
   drawStart: null,
   typed: "",
   lockAxis: null,
@@ -53,7 +79,8 @@ export const useFrameUI = create<FrameUI>((set) => ({
 /** Back to a fresh editor: Select tool, nothing selected or pending, the next view fitted. */
 export function resetFrameUI() {
   useFrameUI.setState({
-    selected: null, hovered: [], ortho: false, view: { name: "fit", n: 0 }, tool: "select", drawStart: null, typed: "",
+    selected: null, hovered: [], ortho: false, view: { name: "fit", n: 0 }, tool: "select", mode: "3d",
+    depth: { front: null, side: null, top: null }, drawStart: null, typed: "",
     lockAxis: null, drawItem: null, drag: null, drawHover: null,
   });
   if (typeof document !== "undefined") document.body.style.cursor = "";

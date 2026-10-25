@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { CutList } from "@/components/frame/cut-list";
 import { Inspector } from "@/components/frame/inspector";
-import { DimensionLabels, dimensionAnchors, onCanvasOrPage } from "@/components/frame/edit-layers";
+import { barAnchors, DimensionLabels, dimensionAnchors, isTyping, onCanvasOrPage } from "@/components/frame/edit-layers";
+import { DepthChip } from "@/components/frame/depth-chip";
 import { useFrameEdit } from "@/components/frame/use-frame-edit";
-import { Viewport, type EditHandlers, type JointMarker } from "@/components/frame/viewport";
+import { MiniView, Viewport, type EditHandlers, type JointMarker } from "@/components/frame/viewport";
 import { useProjectCtx } from "@/components/project/context";
 import { IconButton } from "@/components/ui/button";
 import { EmptyState, Skeleton } from "@/components/ui/misc";
@@ -15,13 +16,13 @@ import { Segmented } from "@/components/ui/segmented";
 import type { Assembly, CatalogItem } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { newId, useEditor } from "@/lib/editor";
-import { addMember, commonItem, deleteMembers, moveNode, nodePositions } from "@/lib/frame/edit";
+import { addMember, commonItem, deleteMembers, moveNode, nodePositions, setMemberLength } from "@/lib/frame/edit";
 import { frameStl, saveBlob } from "@/lib/frame/export";
 import { evaluate as ev } from "@/lib/frame/expr";
 import { useMediaQuery } from "@/lib/focus";
 import { solveFrame } from "@/lib/frame/parts";
 import type { Frame } from "@/lib/frame/types";
-import { resetFrameUI, useFrameUI, type Tool, type View } from "@/lib/frame/ui";
+import { FLAT, flatPlane, resetFrameUI, useFrameUI, type Tool, type View } from "@/lib/frame/ui";
 import { useCatalog, useItemMap } from "@/lib/queries";
 
 const VIEWS: { value: View; label: string }[] = [
@@ -69,11 +70,26 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
   const selected = useFrameUI((s) => s.selected);
   const editFrame = useFrameEdit(asm.id, byId);
   const labels = useRef(new Map<string, HTMLElement>());
-  const anchors = useMemo(() => (readOnly ? [] : dimensionAnchors(shown)), [shown, readOnly]);
+  const mode = useFrameUI((s) => s.mode);
+  const depths = useFrameUI((s) => s.depth);
+  // Sizes always; in flat views also every bar's length (click to type a new one).
+  const anchors = useMemo(() => {
+    if (readOnly) return [];
+    // A flat view doesn't label the size that runs toward the viewer (Front: no depth).
+    const along: Record<string, number> = { W: 0, D: 1, H: 2 };
+    const sizes = dimensionAnchors(shown).filter((a) => mode === "3d" || along[a.short] !== FLAT[mode].normal);
+    const depthAt = mode === "3d" ? 0 : flatPlane(mode, depths[mode], nodePositions(shown).values()).at;
+    return [...sizes, ...(mode === "3d" ? [] : barAnchors(shown, FLAT[mode].normal, depthAt))];
+  }, [shown, readOnly, mode, depths]);
 
   const handlers: EditHandlers = useMemo(() => ({
     onMove: (node, at) => editFrame((f) => moveNode(f, node, at)),
     onParam: (name, mm) => editFrame((f) => { const p = f.params?.find((x) => x.name === name); if (p) p.mm = mm; }),
+    onLabel: (key, mm) => {
+      const [kind, id] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
+      if (kind === "param") editFrame((f) => { const p = f.params?.find((x) => x.name === id); if (p) p.mm = mm; });
+      else editFrame((f) => setMemberLength(f, id, mm));
+    },
     onAdd: (from, to) => {
       if (!from) return null;
       const current = useEditor.getState().content?.assemblies.find((a) => a.id === asm.id)?.frame as Frame | undefined;
@@ -104,12 +120,13 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
   useEffect(() => {
     if (readOnly) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey || !onCanvasOrPage(e.target)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
       const ui = useFrameUI.getState();
       if (ui.drag) return; // finish (or drop) the drag first
       if (e.key === "v" || e.key === "V") ui.setTool("select");
       else if (e.key === "l" || e.key === "L") ui.setTool("draw");
-      else if ((e.key === "Delete" || e.key === "Backspace") && ui.tool === "select") deleteSelected();
+      // Deleting is stricter: only from the page, the 3D view or the cut list, never a focused button.
+      else if ((e.key === "Delete" || e.key === "Backspace") && ui.tool === "select" && onCanvasOrPage(e.target)) deleteSelected();
       else if (e.key === "Escape" && ui.tool === "select") ui.select(null);
       else return;
       e.preventDefault();
@@ -153,8 +170,10 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
           </div>
         </div>
         <Viewport frame={shown} members={result.members} joints={joints} steel={steel} readOnly={readOnly} edit={handlers} anchors={tool === "select" ? anchors : []} labels={labels} />
-        {tool === "select" ? <div className="pointer-events-none absolute inset-0 overflow-hidden"><DimensionLabels anchors={anchors} labels={labels} onParam={handlers.onParam} /></div> : null}
+        {tool === "select" ? <div className="pointer-events-none absolute inset-0 overflow-hidden"><DimensionLabels anchors={anchors} labels={labels} onCommit={handlers.onLabel} /></div> : null}
         {tool === "draw" && !readOnly ? <DrawHint /> : null}
+        {mode !== "3d" && !readOnly ? <DepthChip mode={mode} frame={shown} /> : null}
+        {mode !== "3d" ? <MiniView members={result.members} steel={steel} /> : null}
       </div>
       <aside aria-label="Frame details"
         className="flex max-h-[54dvh] w-full shrink-0 flex-col overflow-y-auto border-t border-line bg-surface md:max-h-none md:w-[360px] md:border-s md:border-t-0">
@@ -178,10 +197,11 @@ function DrawHint() {
   const typed = useFrameUI((s) => s.typed);
   const lock = useFrameUI((s) => s.lockAxis);
   const hover = useFrameUI((s) => s.drawHover);
+  const flat = useFrameUI((s) => s.mode !== "3d");
   return (
-    <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex justify-center">
+    <div className={cn("pointer-events-none absolute inset-x-3 bottom-3 z-10 flex justify-center", flat && "pe-[13rem] sm:pe-[16rem]")}>
       <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-2xl bg-surface/95 px-4 py-2 text-[13px] text-ink-2 shadow-[var(--shadow-pop)] backdrop-blur">
-        {!start ? <span>Click a joint, a bar or the floor to start a bar.</span> : <>
+        {!start ? <span>Click a joint, a bar or the {flat ? "grid" : "floor"} to start a bar.</span> : <>
           <span>Click to place the next joint, or type a length</span>
           <span className="tnum min-w-16 rounded-md bg-surface-2 px-2 py-0.5 text-center font-semibold text-ink">{typed ? `${typed} mm` : hover?.len ? `${hover.len} mm` : "— mm"}</span>
           <span>then Enter.</span>

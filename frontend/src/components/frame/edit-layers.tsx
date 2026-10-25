@@ -4,11 +4,12 @@ import { Line, PivotControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Matrix4, Raycaster, Vector2, Vector3 } from "three";
+import { cn } from "@/lib/cn";
 import { nodePositions, snapTo, type Endpoint } from "@/lib/frame/edit";
 import type { MemberResult, Vec } from "@/lib/frame/kernel";
-import { snapPoint, typedEnd, type Projector, type Snap } from "@/lib/frame/snap";
+import { snapPoint, typedEnd, type DrawPlane, type Projector, type Snap } from "@/lib/frame/snap";
 import type { Frame } from "@/lib/frame/types";
-import { useFrameUI, type DrawStart } from "@/lib/frame/ui";
+import { FLAT, flatPlane, useFrameUI, type DrawStart } from "@/lib/frame/ui";
 
 /** Frames are Z-up; three.js is Y-up (the scene group is turned -90° about X). */
 export const toThree = ([x, y, z]: Vec): [number, number, number] => [x, z, -y];
@@ -20,6 +21,13 @@ const AXIS_COLORS = ["#e5484d", "#30a46c", "#3b82f6"];
  * Editor shortcuts act when focus is on the page, the 3D view or an element that opts in
  * (cut-list rows: pick a bar there, press Delete); never in fields, menus or other buttons.
  */
+/** Focus is somewhere you type or pick from a list: no single-key shortcuts there. */
+export function isTyping(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return true;
+  return !!target.closest('[role="menu"], [role="listbox"], [role="dialog"], [role="combobox"]');
+}
+
 export function onCanvasOrPage(target: EventTarget | null): boolean {
   if (!target || target === document.body || target instanceof HTMLCanvasElement) return true;
   return target instanceof HTMLElement && !!target.closest("[data-frame-shortcuts]");
@@ -32,7 +40,10 @@ export function NodeHandle({ frame, onMove }: { frame: Frame; onMove: (node: str
   const tool = useFrameUI((s) => s.tool);
   const drag = useFrameUI((s) => s.drag);
   const set = useFrameUI((s) => s.set);
+  const mode = useFrameUI((s) => s.mode);
   const id = selected?.kind === "node" && tool === "select" ? selected.id : null;
+  // Flat views: only the two in-plane arrows, plus a square to drag freely within the plane.
+  const active: [boolean, boolean, boolean] = mode === "3d" ? [true, true, true] : [0, 1, 2].map((i) => i !== FLAT[mode].normal) as [boolean, boolean, boolean];
   const base = useMemo(() => (id ? nodePositions(frame).get(id) : undefined), [frame, id]);
   const getState = useThree((s) => s.get);
   const frameReq = useRef<number | null>(null);
@@ -50,7 +61,8 @@ export function NodeHandle({ frame, onMove }: { frame: Frame; onMove: (node: str
   const at = drag?.node === id ? drag.at : base;
   return (
     <PivotControls matrix={new Matrix4().makeTranslation(...at)} autoTransform={false} fixed scale={90} lineWidth={3}
-      depthTest={false} disableRotations disableScaling disableSliders axisColors={AXIS_COLORS as [string, string, string]}
+      depthTest={false} disableRotations disableScaling disableSliders={mode === "3d"} activeAxes={active}
+      axisColors={AXIS_COLORS as [string, string, string]}
       onDrag={(l) => {
         const p = new Vector3().setFromMatrixPosition(l);
         // Only the dragged axis moves (in 5 mm steps); the others stay exactly where they were.
@@ -112,7 +124,13 @@ export function DrawLayer({ frame, members, onAdd }: {
         ray: { origin: fromThree(raycaster.ray.origin), dir: fromThree(raycaster.ray.direction) },
       };
       const s = useFrameUI.getState();
-      return snapPoint({ cursor, proj, nodes: nodes.current, members: segs.current, start: s.drawStart?.at ?? null, lockAxis: s.lockAxis, planeZ: s.drawStart?.at[2] ?? 0, grid: 10 });
+      const start = s.drawStart?.at ?? null;
+      // 3D: lines start on the floor (or the start point's level). Flat views: their drawing plane,
+      // at the start point's depth once a line is started, following only the two in-plane axes.
+      const plane: DrawPlane = s.mode === "3d" ? { axis: 2, at: start?.[2] ?? 0 }
+        : start ? { axis: FLAT[s.mode].normal, at: start[FLAT[s.mode].normal] } : flatPlane(s.mode, s.depth[s.mode], nodes.current.values());
+      const axes = s.mode === "3d" ? undefined : FLAT[s.mode].inPlane;
+      return snapPoint({ cursor, proj, nodes: nodes.current, members: segs.current, start, lockAxis: s.lockAxis, plane, axes, grid: 10 });
     };
     const show = (snap: Snap | null) => {
       hoverRef.current = snap;
@@ -139,14 +157,14 @@ export function DrawLayer({ frame, members, onAdd }: {
       if (moved < 5) place(locate(e));
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey || !onCanvasOrPage(e.target)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
       const s = useFrameUI.getState();
       if (e.key === "Escape") {
         if (s.drawStart) set({ drawStart: null, typed: "" });
         else useFrameUI.getState().setTool("select");
       } else if (e.key === "Enter" && s.drawStart && s.typed && hoverRef.current) {
         const end = typedEnd(s.drawStart.at, hoverRef.current.at, Number(s.typed.replace(",", ".")));
-        if (end) place({ kind: "plane", at: end });
+        if (end) place({ kind: "plane", at: end, aligned: [] });
       } else if (/^[\d.,]$/.test(e.key) && s.drawStart) {
         set({ typed: s.typed + e.key });
       } else if (e.key === "Backspace" && s.typed) {
@@ -179,6 +197,9 @@ export function DrawLayer({ frame, members, onAdd }: {
   return (
     <group>
       {start ? <Line points={[start.at, end]} color={color} lineWidth={2.5} depthTest={false} renderOrder={5} /> : null}
+      {hover.kind === "plane" ? hover.aligned.map((g) => (
+        <Line key={g.axis} points={[g.to, end]} color={AXIS_COLORS[g.axis]} lineWidth={1} dashed dashSize={20} gapSize={14} depthTest={false} renderOrder={4} />
+      )) : null}
       <mesh position={end} renderOrder={6}>
         <sphereGeometry args={[hover.kind === "plane" ? 8 : 14, 16, 12]} />
         <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.9} />
@@ -190,7 +211,15 @@ export function DrawLayer({ frame, members, onAdd }: {
 const DIM_LABELS: Record<string, string> = { W: "Width", D: "Depth", H: "Height" };
 
 
-export type DimAnchor = { name: string; label: string; mm: number; at: Vec };
+/** A label on the model: a frame size (W, D, H) or, in flat views, a bar's length. */
+export type DimAnchor = {
+  key: string; // "param:W" | "bar:<member id>"
+  short: string; // shown before the number ("W"), or "" for bar lengths
+  label: string; // for screen readers ("Width", "Bar 3 length")
+  mm: number;
+  at: Vec;
+  span?: [Vec, Vec]; // bar labels hide when the bar is too short on screen
+};
 
 /** Where the frame's main sizes are written on the model: beside its bounding box. */
 export function dimensionAnchors(frame: Frame): DimAnchor[] {
@@ -204,18 +233,50 @@ export function dimensionAnchors(frame: Frame): DimAnchor[] {
     D: [max[0] + off, (min[1] + max[1]) / 2, min[2]],
     H: [min[0] - off, min[1], (min[2] + max[2]) / 2],
   };
-  return (frame.params ?? []).filter((p) => p.name in DIM_LABELS).map((p) => ({ name: p.name, label: DIM_LABELS[p.name], mm: p.mm, at: at[p.name] }));
+  return (frame.params ?? []).filter((p) => p.name in DIM_LABELS)
+    .map((p) => ({ key: `param:${p.name}`, short: p.name, label: p.label || DIM_LABELS[p.name], mm: p.mm, at: at[p.name] }));
+}
+
+/**
+ * In a flat view: every bar that isn't pointing at the viewer gets its length (joint to joint).
+ * Bars that line up in this view (a front and a back rail) get one label: the one nearest `depth`.
+ */
+export function barAnchors(frame: Frame, normal: number, depth: number): DimAnchor[] {
+  const pos = nodePositions(frame);
+  const out: DimAnchor[] = [];
+  const seen = new Set<string>();
+  const near = frame.members.map((m, i) => ({ m, i, a: pos.get(m.a), b: pos.get(m.b) }))
+    .filter((x): x is { m: typeof x.m; i: number; a: Vec; b: Vec } => !!x.a && !!x.b)
+    .sort((p, q) => Math.abs((p.a[normal] + p.b[normal]) / 2 - depth) - Math.abs((q.a[normal] + q.b[normal]) / 2 - depth));
+  near.forEach(({ m, i, a, b }) => {
+    const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    const len = Math.hypot(...d);
+    if (len < 1 || Math.abs(d[normal]) / len > 0.99) return;
+    const flat = [a, b].map((p) => [0, 1, 2].filter((k) => k !== normal).map((k) => Math.round(p[k])).join(",")).sort().join("|");
+    if (seen.has(flat)) return;
+    seen.add(flat);
+    out.push({ key: `bar:${m.id}`, short: "", label: `${m.name || `Bar ${i + 1}`} length`, mm: Math.round(len * 10) / 10,
+      at: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2], span: [a, b] });
+  });
+  return out;
 }
 
 /** Moves DOM labels (outside the canvas) to their 3D anchors on every rendered frame. */
 export function LabelProjector({ anchors, labels }: { anchors: DimAnchor[]; labels: RefObject<Map<string, HTMLElement>> }) {
   const v = useMemo(() => new Vector3(), []);
+  const w = useMemo(() => new Vector3(), []);
   useFrame(({ camera, size }) => {
     for (const a of anchors) {
-      const el = labels.current?.get(a.name);
+      const el = labels.current?.get(a.key);
       if (!el) continue;
       v.set(...toThree(a.at)).project(camera);
-      const visible = v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1;
+      let visible = v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1;
+      if (visible && a.span) {
+        v.set(...toThree(a.span[0])).project(camera);
+        w.set(...toThree(a.span[1])).project(camera);
+        visible = Math.hypot((v.x - w.x) * size.width / 2, (v.y - w.y) * size.height / 2) > 70;
+        v.set(...toThree(a.at)).project(camera);
+      }
       el.style.visibility = visible ? "visible" : "hidden";
       el.style.transform = `translate(-50%, -50%) translate(${((v.x + 1) / 2) * size.width}px, ${((1 - v.y) / 2) * size.height}px)`;
     }
@@ -223,29 +284,29 @@ export function LabelProjector({ anchors, labels }: { anchors: DimAnchor[]; labe
   return null;
 }
 
-/** The size labels themselves (rendered over the canvas); click one to type a new value. */
-export function DimensionLabels({ anchors, labels, onParam }: {
-  anchors: DimAnchor[]; labels: RefObject<Map<string, HTMLElement>>; onParam: (name: string, mm: number) => void;
+/** The labels themselves (rendered over the canvas); click one to type a new value. */
+export function DimensionLabels({ anchors, labels, onCommit }: {
+  anchors: DimAnchor[]; labels: RefObject<Map<string, HTMLElement>>; onCommit: (key: string, mm: number) => void;
 }) {
   return (
     <>
       {anchors.map((a) => (
-        <div key={a.name} ref={(el) => { if (el) labels.current?.set(a.name, el); else labels.current?.delete(a.name); }}
+        <div key={a.key} ref={(el) => { if (el) labels.current?.set(a.key, el); else labels.current?.delete(a.key); }}
           className="pointer-events-auto absolute start-0 top-0 z-[5]" style={{ visibility: "hidden" }}>
-          <DimLabel name={a.name} label={a.label} mm={a.mm} onCommit={(mm) => onParam(a.name, mm)} />
+          <DimLabel a={a} onCommit={(mm) => onCommit(a.key, mm)} />
         </div>
       ))}
     </>
   );
 }
 
-function DimLabel({ name, label, mm, onCommit }: { name: string; label: string; mm: number; onCommit: (mm: number) => void }) {
+function DimLabel({ a, onCommit }: { a: DimAnchor; onCommit: (mm: number) => void }) {
   const [editing, setEditing] = useState(false);
   if (editing) {
     return (
-      <input autoFocus defaultValue={String(mm)} aria-label={label} inputMode="decimal"
+      <input autoFocus defaultValue={String(a.mm)} aria-label={a.label} inputMode="decimal"
         className="ring-on-parent tnum w-20 rounded-lg bg-surface px-2 py-1 text-center text-[13px] font-semibold shadow-[0_0_0_2px_var(--accent)] outline-none"
-        onBlur={(e) => { const v = Number(e.target.value.replace(",", ".")); if (v > 0 && v !== mm) onCommit(v); setEditing(false); }}
+        onBlur={(e) => { const v = Number(e.target.value.replace(",", ".")); if (v > 0 && v !== a.mm) onCommit(v); setEditing(false); }}
         onKeyDown={(e) => {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           if (e.key === "Escape") setEditing(false);
@@ -254,9 +315,10 @@ function DimLabel({ name, label, mm, onCommit }: { name: string; label: string; 
     );
   }
   return (
-    <button type="button" onClick={() => setEditing(true)} aria-label={`${label} ${mm} mm, click to change`}
-      className="tnum whitespace-nowrap rounded-full bg-surface/90 px-2.5 py-1 text-[12px] font-semibold text-ink shadow-[var(--shadow-card)] backdrop-blur hover:bg-accent-soft">
-      <span className="text-ink-3">{name}</span> {mm}
+    <button type="button" onClick={() => setEditing(true)} aria-label={`${a.label} ${a.mm} mm, click to change`}
+      className={cn("tnum whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold text-ink backdrop-blur hover:bg-accent-soft",
+        a.short ? "bg-surface/90 shadow-[var(--shadow-card)]" : "bg-surface/75 px-2 py-0.5 text-[11px] text-ink-2 shadow-[0_0_0_1px_var(--line)]")}>
+      {a.short ? <span className="text-ink-3">{a.short} </span> : null}{a.mm}
     </button>
   );
 }

@@ -50,7 +50,8 @@ function DrawPanel({ frame, byId }: { frame: Frame; byId: Map<string, CatalogIte
       </Field>
       <ul className="flex flex-col gap-1 text-[13px] text-ink-2">
         <li>Snaps to joints, the middle of a bar, along a bar (a T-joint) and the X / Y / Z directions.</li>
-        <li>Drag to turn the view while drawing; a click places a point.</li>
+        <li>A click places a point; dragging moves the view (turns it in 3D, pans in Front / Side / Top).</li>
+        <li>Front, Side and Top are the easiest to draw in: everything stays on one flat plane.</li>
       </ul>
     </>
   );

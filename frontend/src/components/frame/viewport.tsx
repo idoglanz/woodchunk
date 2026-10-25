@@ -1,6 +1,6 @@
 "use client";
 
-import { CameraControls, GizmoHelper, GizmoViewport, Grid, OrthographicCamera, PerspectiveCamera } from "@react-three/drei";
+import { CameraControls, CameraControlsImpl, GizmoHelper, GizmoViewport, Grid, OrthographicCamera, PerspectiveCamera } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { memo, useEffect, useMemo, useRef, type RefObject } from "react";
 import { Box3, DoubleSide, EdgesGeometry, Sphere, Vector3 } from "three";
@@ -9,38 +9,102 @@ import type { Endpoint } from "@/lib/frame/edit";
 import type { MemberResult, Vec } from "@/lib/frame/kernel";
 import { memberGeometry } from "@/lib/frame/mesh";
 import type { Frame } from "@/lib/frame/types";
-import { useCssVars, useFrameUI, type DrawStart, type View } from "@/lib/frame/ui";
+import { flatPlane, useCssVars, useFrameUI, type DrawStart, type View } from "@/lib/frame/ui";
+import { nodePositions } from "@/lib/frame/edit";
 
 /** Frames are Z-up in millimetres; three.js is Y-up. Everything is drawn inside a group turned -90° about X. */
 export type EditHandlers = {
   onMove: (node: string, at: Vec) => void;
   onAdd: (from: DrawStart, to: Endpoint) => { node: string; at: Vec } | null;
   onParam: (name: string, mm: number) => void;
+  onLabel: (key: string, mm: number) => void;
 };
 
 const COLORS = ["--wood-3d", "--steel-3d", "--edge-3d", "--view-3d", "--accent", "--grid-3d"] as const;
 
 export type JointMarker = { id: string; at: Vec; size: number };
 
+/**
+ * A small 3D look at the frame for the corner of a flat view (click to go back to 3D). Static:
+ * it renders only when the frame changes.
+ */
+export function MiniView({ members, steel }: { members: MemberResult[]; steel: Set<string> }) {
+  const c = useCssVars(COLORS);
+  const look = useFrameUI((s) => s.look);
+  const cam = useMemo(() => {
+    const b = new Box3();
+    for (const m of members) { b.expandByPoint(new Vector3(...toThree(m.a))); b.expandByPoint(new Vector3(...toThree(m.b))); }
+    if (b.isEmpty()) return null;
+    const sphere = b.getBoundingSphere(new Sphere());
+    const dir = new Vector3(...toThree([0.9, -1.3, 0.85])).normalize();
+    const eye = sphere.center.clone().add(dir.multiplyScalar((sphere.radius * 1.15) / Math.sin((30 * Math.PI) / 360)));
+    return { eye: eye.toArray() as [number, number, number], target: sphere.center.toArray() as [number, number, number] };
+  }, [members]);
+  if (!cam) return null;
+  return (
+    <button type="button" onClick={() => look("iso")} aria-label="Back to the 3D view" title="Back to 3D"
+      className="absolute bottom-3 end-3 z-10 h-36 w-48 overflow-hidden rounded-[14px] border border-line shadow-[var(--shadow-pop)] sm:h-44 sm:w-60">
+      <Canvas frameloop="demand" dpr={[1, 1.5]} style={{ background: c["--view-3d"], pointerEvents: "none" }}
+        camera={{ fov: 30, near: 10, far: 200000, position: cam.eye }} onCreated={({ camera }) => camera.lookAt(...cam.target)}>
+        <hemisphereLight args={["#ffffff", "#8a8a8a", 1.6]} />
+        <directionalLight position={[2000, 4000, 3000]} intensity={1.4} />
+        <LookAt target={cam.target} eye={cam.eye} />
+        <group rotation={[-Math.PI / 2, 0, 0]}>
+          {members.map((m) => (
+            <Member key={m.id} m={m} color={steel.has(m.item_id ?? "") ? c["--steel-3d"] : c["--wood-3d"]} edge={c["--edge-3d"]} accent={c["--accent"]} />
+          ))}
+        </group>
+      </Canvas>
+      <span className="absolute start-2 top-2 rounded-full bg-surface/90 px-2 py-0.5 text-[11px] font-semibold text-ink-2">3D</span>
+    </button>
+  );
+}
+
+function LookAt({ eye, target }: { eye: [number, number, number]; target: [number, number, number] }) {
+  const camera = useThree((s) => s.camera);
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => { camera.position.set(...eye); camera.lookAt(...target); invalidate(); }, [camera, eye, target, invalidate]);
+  return null;
+}
+
 export function Viewport({ frame, members, joints, steel, readOnly, edit, anchors, labels }: {
   frame: Frame; members: MemberResult[]; joints: JointMarker[]; steel: Set<string>; readOnly?: boolean; edit: EditHandlers;
   anchors: DimAnchor[]; labels: RefObject<Map<string, HTMLElement>>;
 }) {
   const c = useCssVars(COLORS);
-  const ortho = useFrameUI((s) => s.ortho);
+  const mode = useFrameUI((s) => s.mode);
+  const depth = useFrameUI((s) => (s.mode === "3d" ? null : s.depth[s.mode]));
+  const flat = mode !== "3d";
+  // The grid flat views draw on, at the drawing depth (three.js coordinates: Y up, -Z = frame Y).
+  const sheet = useMemo(() => {
+    if (mode === "3d") return null;
+    const at = flatPlane(mode, depth, nodePositions(frame).values()).at;
+    return mode === "top" ? { position: [0, at, 0] as const, rotation: [0, 0, 0] as const }
+      : mode === "front" ? { position: [0, 0, -at] as const, rotation: [Math.PI / 2, 0, 0] as const }
+      : { position: [at, 0, 0] as const, rotation: [0, 0, Math.PI / 2] as const };
+  }, [mode, depth, frame]);
+  // Flat views are always orthographic (true lengths, no perspective).
+  const ortho = useFrameUI((s) => s.ortho) || flat;
   const select = useFrameUI((s) => s.select);
   return (
     <Canvas frameloop="demand" dpr={[1, 2]} onPointerMissed={() => { if (useFrameUI.getState().tool === "select") select(null); }} style={{ background: c["--view-3d"] }}
       gl={{ antialias: true }}>
       {ortho ? <OrthographicCamera makeDefault position={[3000, 2500, 3000]} near={-100000} far={100000} zoom={0.3} />
         : <PerspectiveCamera makeDefault position={[3000, 2500, 3000]} fov={35} near={10} far={200000} />}
-      <Controls key={ortho ? "o" : "p"} members={members} />
+      <Controls key={ortho ? "o" : "p"} members={members} flat={flat} ortho={ortho} />
       <hemisphereLight args={["#ffffff", "#8a8a8a", 1.6]} />
       <directionalLight position={[2000, 4000, 3000]} intensity={1.4} />
       <directionalLight position={[-3000, 1500, -2000]} intensity={0.5} />
-      <Grid args={[20000, 20000]} cellSize={100} sectionSize={1000} cellThickness={0.6} sectionThickness={1}
-        cellColor={c["--grid-3d"]} sectionColor={c["--edge-3d"]} fadeDistance={14000} fadeStrength={1.5} infiniteGrid
-        position={[0, -0.5, 0]} />
+      {sheet ? (
+        // Not "infinite": drei's infinite grid assumes a horizontal floor.
+        <Grid args={[40000, 40000]} cellSize={100} sectionSize={1000} cellThickness={0.6} sectionThickness={1}
+          cellColor={c["--grid-3d"]} sectionColor={c["--edge-3d"]} fadeDistance={100000} fadeStrength={0}
+          position={[sheet.position[0], sheet.position[1], sheet.position[2]]} rotation={[sheet.rotation[0], sheet.rotation[1], sheet.rotation[2]]} />
+      ) : (
+        <Grid args={[20000, 20000]} cellSize={100} sectionSize={1000} cellThickness={0.6} sectionThickness={1}
+          cellColor={c["--grid-3d"]} sectionColor={c["--edge-3d"]} fadeDistance={14000} fadeStrength={1.5} infiniteGrid
+          position={[0, -0.5, 0]} />
+      )}
       <group rotation={[-Math.PI / 2, 0, 0]}>
         {members.map((m) => (
           <Member key={m.id} m={m} color={steel.has(m.item_id ?? "") ? c["--steel-3d"] : c["--wood-3d"]} edge={c["--edge-3d"]} accent={c["--accent"]} />
@@ -116,7 +180,7 @@ function Joint({ j, accent, edge }: { j: JointMarker; accent: string; edge: stri
 }
 
 /** Camera controls plus the standard views and "fit" requested through the UI store. */
-function Controls({ members }: { members: MemberResult[] }) {
+function Controls({ members, flat, ortho }: { members: MemberResult[]; flat: boolean; ortho: boolean }) {
   const ref = useRef<CameraControls>(null);
   const view = useFrameUI((s) => s.view);
   const box = useMemo(() => {
@@ -157,6 +221,18 @@ function Controls({ members }: { members: MemberResult[] }) {
     // Re-run on explicit requests, when the frame first appears, on resize and camera swaps; not on every edit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, hasMembers, width, height, camera]);
+
+  // Flat views don't rotate: drag pans, the wheel zooms (fingers: one pans, two zoom).
+  useEffect(() => {
+    const cc = ref.current;
+    if (!cc) return;
+    const A = CameraControlsImpl.ACTION;
+    cc.mouseButtons.left = flat ? A.TRUCK : A.ROTATE;
+    cc.mouseButtons.right = A.TRUCK;
+    cc.mouseButtons.wheel = ortho ? A.ZOOM : A.DOLLY;
+    cc.touches.one = flat ? A.TOUCH_TRUCK : A.TOUCH_ROTATE;
+    cc.touches.two = ortho ? A.TOUCH_ZOOM_TRUCK : A.TOUCH_DOLLY_TRUCK;
+  }, [flat, ortho, camera]);
 
   return <CameraControls ref={ref} makeDefault minDistance={100} maxDistance={60000} dollyToCursor smoothTime={0.2} />;
 }

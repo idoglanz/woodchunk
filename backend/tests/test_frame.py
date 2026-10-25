@@ -8,7 +8,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from app.models.frame import Frame, FrameJoint
+from app.models.frame import Frame, FrameJoint, FrameMember
 from app.services.frame.expr import ExprError, evaluate
 from app.services.frame.kernel import Profile, solve, stable_id
 
@@ -159,3 +159,12 @@ def test_bad_expressions_are_contained():
     res = solve(frame, {"p": Profile("rect", 40, 40)})
     assert [m.id for m in res.members] == ["ac"]  # the bar on the bad joint is left out, not measured from 0
     assert any("Rail is left out" in w for w in res.warnings)
+
+
+def test_a_diagonal_brace_does_not_lengthen_the_legs():
+    """A brace drawn corner to corner trims to the legs' faces; the legs keep their length."""
+    _, frame, profiles = load("table-butt.json")
+    frame.members.append(FrameMember(id="brace", a="b1", b="t2", item_id="leg"))
+    by_id = {m.id: m for m in solve(frame, profiles).members}
+    assert by_id["l1"].lp == 750 and by_id["l2"].lp == 750
+    assert 1100 < by_id["brace"].lp < 1450 and any(e.miter or e.bevel for e in by_id["brace"].ends)

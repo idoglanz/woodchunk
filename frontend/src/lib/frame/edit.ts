@@ -4,7 +4,7 @@
  */
 
 import { evaluate } from "./expr";
-import { length, sub, type Vec } from "./kernel";
+import { add, length, scale, sub, type Vec } from "./kernel";
 import type { Frame, FrameMember } from "./types";
 
 const SAME_POINT_MM = 0.5;
@@ -88,6 +88,23 @@ export function deleteMembers(frame: Frame, ids: string[]): void {
   const used = new Set(frame.members.flatMap((m) => [m.a, m.b]));
   frame.nodes = frame.nodes.filter((n) => used.has(n.id));
   frame.joints = (frame.joints ?? []).filter((j) => used.has(j.node) && !(j.through && gone.has(j.through)));
+}
+
+/**
+ * Set a bar's length (joint to joint) by moving one end along the bar: the end with fewer other
+ * bars on it (the far end on a tie). Coordinates tied to a size (W, H…) change that size.
+ */
+export function setMemberLength(frame: Frame, memberId: string, mm: number): void {
+  const m = frame.members.find((x) => x.id === memberId);
+  const pos = nodePositions(frame);
+  const a = m && pos.get(m.a), b = m && pos.get(m.b);
+  if (!m || !a || !b || !(mm >= 1)) return;
+  const degree = (n: string) => frame.members.filter((x) => x.a === n || x.b === n).length;
+  const [fixed, moving, from] = degree(m.a) < degree(m.b) ? [b, m.a, a] : [a, m.b, b];
+  const d = sub(from, fixed);
+  const len = length(d);
+  if (len < 1e-9) return;
+  moveNode(frame, moving, add(fixed, scale(d, mm / len)));
 }
 
 /** The material new bars get: the one most used in the frame. */

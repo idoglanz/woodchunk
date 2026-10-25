@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addMember, commonItem, deleteMembers, moveNode, nodePositions } from "./edit";
+import { addMember, commonItem, deleteMembers, moveNode, nodePositions, setMemberLength } from "./edit";
 import { Profile, solve, type Vec } from "./kernel";
 import { snapPoint, typedEnd, type Projector } from "./snap";
 import { TEMPLATES } from "./templates";
@@ -42,6 +42,21 @@ describe("moving joints", () => {
   });
 });
 
+describe("bar lengths", () => {
+  it("typing a rail's length moves its free end; a corner tied to W resizes the frame", () => {
+    const f = table();
+    const rail = f.members.find((m) => m.name === "Apron" && nodePositions(f).get(m.a)![1] === 0 && nodePositions(f).get(m.b)![1] === 0)!;
+    setMemberLength(f, rail.id, 1500);
+    expect(f.params!.find((p) => p.name === "W")!.mm).toBe(1500);
+  });
+
+  it("moves a dangling end along the bar", () => {
+    const f: Frame = { nodes: [{ id: "a", x: 0, y: 0, z: 0 }, { id: "b", x: 300, y: 400, z: 0 }], members: [{ id: "ab", a: "a", b: "b" }] };
+    setMemberLength(f, "ab", 1000);
+    expect(nodePositions(f).get("b")).toEqual([600, 800, 0]);
+  });
+});
+
 describe("adding and deleting bars", () => {
   it("reuses the joint already at a point and refuses zero-length or duplicate bars", () => {
     const f = table();
@@ -75,7 +90,7 @@ describe("snapping", () => {
   });
   const nodes = new Map<string, Vec>([["a", [0, 0, 0]], ["b", [1000, 0, 0]]]);
   const members = [{ id: "ab", a: [0, 0, 0] as Vec, b: [1000, 0, 0] as Vec }];
-  const base = { nodes, members, planeZ: 0, grid: 10 };
+  const base = { nodes, members, plane: { axis: 2 as const, at: 0 }, grid: 10 };
 
   it("prefers joints, then midpoints", () => {
     expect(snapPoint({ ...base, cursor: [98, 3], proj: top(98, 3) })).toMatchObject({ kind: "node", node: "b" });
@@ -93,6 +108,25 @@ describe("snapping", () => {
 
   it("falls back to the grid on the drawing level", () => {
     expect(snapPoint({ ...base, cursor: [33.3, -71.7], proj: top(33.3, -71.7) })).toMatchObject({ kind: "plane", at: [330, 720, 0] });
+  });
+
+  it("lines up with joints that are close on screen", () => {
+    // 5 px right of the joint at x = 1000 (but far from it in y): x snaps to 1000.
+    const s = snapPoint({ ...base, cursor: [100.5, -60], proj: top(100.5, -60) });
+    expect(s).toMatchObject({ kind: "plane", at: [1000, 600, 0] });
+    expect(s.kind === "plane" && s.aligned.map((g) => g.axis)).toEqual([0]);
+  });
+
+  it("draws on any plane and follows only the allowed axes", () => {
+    // Looking along -Y at a front plane (y = 0): screen x = X, screen y = -Z.
+    const front = (cx: number, cy: number): Projector => ({
+      toScreen: ([x, , z]) => [x / 10, -z / 10],
+      ray: { origin: [cx * 10, -10000, -cy * 10], dir: [0, 1, 0] },
+    });
+    const empty = { nodes: new Map<string, Vec>(), members: [], grid: 10 };
+    expect(snapPoint({ ...empty, cursor: [20, -45], proj: front(20, -45), plane: { axis: 1, at: 0 } })).toMatchObject({ kind: "plane", at: [200, 0, 450] });
+    const s = snapPoint({ ...empty, start: [0, 0, 0], axes: [0, 2], cursor: [1, -60], proj: front(1, -60), plane: { axis: 1, at: 0 } });
+    expect(s).toMatchObject({ kind: "axis", axis: 2, at: [0, 0, 600] });
   });
 
   it("a typed length goes along the current direction", () => {

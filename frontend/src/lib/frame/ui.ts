@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import type { Vec } from "./kernel";
-import type { Axis, DrawPlane } from "./snap";
+import type { Axis, DragSnap, DrawPlane } from "./snap";
 
 export type Selection = { kind: "member" | "node"; id: string } | null;
 export type View = "iso" | "front" | "top" | "side";
@@ -42,7 +42,7 @@ type FrameUI = {
   typed: string; // length typed while drawing ("750")
   lockAxis: Axis | null; // Shift held while drawing
   drawItem: string | null; // material for new bars (null: the frame's most used)
-  drag: { node: string; at: Vec } | null; // a joint being dragged (previewed, not saved yet)
+  drag: { node: string; at: Vec; snap?: DragSnap } | null; // a joint being dragged (previewed, not saved yet)
   drawHover: { kind: string; len: number } | null; // what the draw tool points at, for the hint
   select: (s: Selection) => void;
   /** Open something from the current selection, so "back" returns to it. */

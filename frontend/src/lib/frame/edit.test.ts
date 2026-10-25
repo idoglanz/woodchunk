@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { addMember, commonItem, deleteMembers, moveNode, nodePositions, setMemberLength } from "./edit";
+import { addMember, commonItem, deleteMembers, mergeNode, moveNode, neighbours, nodePositions, setMemberLength } from "./edit";
 import { Profile, solve, type Vec } from "./kernel";
-import { snapPoint, typedEnd, type Projector } from "./snap";
+import { snapDrag, snapPoint, typedEnd, type Projector } from "./snap";
 import { TEMPLATES } from "./templates";
 import type { Frame } from "./types";
 
@@ -129,9 +129,71 @@ describe("snapping", () => {
     expect(s).toMatchObject({ kind: "axis", axis: 2, at: [0, 0, 600] });
   });
 
+  it("finds where an axis from the start meets a bar", () => {
+    // A post at x = 1000 from y = -200 to 800; start at the origin, pointer near (1000, 0) but a bit off.
+    const post = { nodes: new Map<string, Vec>([["p", [1000, -200, 0]], ["q", [1000, 800, 0]]]), members: [{ id: "post", a: [1000, -200, 0] as Vec, b: [1000, 800, 0] as Vec }], plane: base.plane, grid: 10 };
+    const s = snapPoint({ ...post, start: [0, 0, 0], cursor: [101, 1.2], proj: top(101, 1.2) });
+    expect(s).toMatchObject({ kind: "meet", member: "post", axis: 0, at: [1000, 0, 0] });
+  });
+
+  it("finds the foot of a square line from the start to a bar", () => {
+    // A diagonal brace from (0, 0) to (1000, 1000); from (1000, 200) the square line lands at (600, 600).
+    const brace = { nodes: new Map<string, Vec>([["p", [0, 0, 0]], ["q", [1000, 1000, 0]]]), members: [{ id: "brace", a: [0, 0, 0] as Vec, b: [1000, 1000, 0] as Vec }], plane: base.plane, grid: 10 };
+    const s = snapPoint({ ...brace, start: [1000, 200, 0], cursor: [60.5, -60.5], proj: top(60.5, -60.5) });
+    expect(s).toMatchObject({ kind: "square", member: "brace" });
+    expect(s.at.map((v) => Math.round(v * 1000) / 1000)).toEqual([600, 600, 0]);
+  });
+
   it("a typed length goes along the current direction", () => {
     expect(typedEnd([0, 0, 0], [0, 50, 0], 750)).toEqual([0, 750, 0]);
     expect(typedEnd([0, 0, 0], [0, 0, 0], 750)).toBeNull();
+  });
+});
+
+describe("dragging joints", () => {
+  // Looking straight down (as in "snapping"): 1 px = 10 mm.
+  const toScreen = ([x, y]: Vec): [number, number] => [x / 10, -y / 10];
+  const others = new Map<string, Vec>([["c", [1000, 0, 0]], ["d", [1000, 800, 0]]]);
+  const bars = [{ id: "cd", a: [1000, 0, 0] as Vec, b: [1000, 800, 0] as Vec }];
+  const drag = (raw: Vec, free: (0 | 1 | 2)[] = [0]) => snapDrag({ raw, base: [0, 300, 0], free, toScreen, nodes: others, members: bars, step: 5 });
+
+  it("lands on a bar it can reach along the arrow (a T-joint)", () => {
+    expect(drag([993, 300, 0])).toMatchObject({ kind: "on-bar", member: "cd", at: [1000, 300, 0] });
+  });
+
+  it("lands on a joint only if the arrow passes through it", () => {
+    expect(snapDrag({ raw: [993, 250, 0], base: [0, 250, 0], free: [0, 1], toScreen, nodes: others, members: bars, step: 5 })).toMatchObject({ kind: "on-bar", at: [1000, 250, 0] });
+    expect(snapDrag({ raw: [995, 4, 0], base: [0, 0, 0], free: [0, 1], toScreen, nodes: others, members: bars, step: 5 })).toMatchObject({ kind: "node", node: "c" });
+    expect(drag([1003, 300, 0])).not.toMatchObject({ kind: "node" });
+  });
+
+  it("snaps to the middle of a bar", () => {
+    expect(snapDrag({ raw: [996, 398, 0], base: [0, 0, 0], free: [0, 1], toScreen, nodes: others, members: bars, step: 5 })).toMatchObject({ kind: "mid", at: [1000, 400, 0] });
+  });
+
+  it("otherwise moves in steps and lines up with joints nearby", () => {
+    expect(drag([502, 300, 0])).toEqual({ kind: "free", at: [500, 300, 0], aligned: [] });
+    const s = snapDrag({ raw: [400, 796, 0], base: [0, 0, 0], free: [0, 1], toScreen, nodes: others, members: [], step: 5 });
+    expect(s).toMatchObject({ kind: "free", at: [400, 800, 0] });
+  });
+});
+
+describe("joining joints", () => {
+  it("a joint dropped on another becomes it", () => {
+    const f: Frame = { params: [], nodes: [{ id: "a", x: 0, y: 0, z: 0 }, { id: "b", x: 500, y: 0, z: 0 }, { id: "c", x: 500, y: 0, z: 0 }, { id: "d", x: 500, y: 0, z: 500 }],
+      members: [{ id: "ab", a: "a", b: "b" }, { id: "cd", a: "c", b: "d" }], joints: [{ node: "b", kind: "miter" }] } as Frame;
+    mergeNode(f, "b", "c");
+    expect(f.nodes.map((x) => x.id)).toEqual(["a", "c", "d"]);
+    expect(f.members.find((m) => m.id === "ab")).toMatchObject({ a: "a", b: "c" });
+    expect(f.joints).toEqual([]);
+    expect(neighbours(f, "c")).toEqual(new Set(["a", "d"]));
+  });
+
+  it("drops a bar that would end where it starts, or repeat another", () => {
+    const f: Frame = { params: [], nodes: [{ id: "a", x: 0, y: 0, z: 0 }, { id: "b", x: 500, y: 0, z: 0 }, { id: "c", x: 0, y: 0, z: 0 }],
+      members: [{ id: "ab", a: "a", b: "b" }, { id: "cb", a: "c", b: "b" }, { id: "ac", a: "a", b: "c" }] } as Frame;
+    mergeNode(f, "c", "a");
+    expect(f.members.map((m) => m.id)).toEqual(["ab"]);
   });
 });
 

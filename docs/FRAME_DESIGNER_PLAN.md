@@ -1,6 +1,6 @@
 # Frame designer (weldments): research and plan
 
-Status: **approved, building**. Research done 2026-10-24.
+Status: **F0–F4 built** (kernel, data, 3D viewer, direct editing, angles through plan/shop sheet/exports). Next: F5 AI. Research done 2026-10-24.
 
 ## 1. What and why
 

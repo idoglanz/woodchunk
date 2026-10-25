@@ -1,5 +1,7 @@
 """End-to-end API flows against a real MongoDB test database, with a fake AI client."""
 
+import pytest
+
 from app.services.ai import client as ai_client
 from app.services.ai.catalog_ai import ExtractedItem, Extraction, Translation, Translations
 from app.services.ai.project_chat import ChatAnswer
@@ -306,3 +308,42 @@ async def test_drawn_assembly_parts_come_from_its_frame(client):
     body["assemblies"][0]["frame"]["params"][0]["mm"] = 1200
     p = (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).json()
     assert sorted(pt["length_mm"] for pt in p["assemblies"][0]["parts"])[-1] == 1120
+
+
+async def test_mitered_frame_through_plan_and_exports(client):
+    tube = await find_item(client, "30 30 2 square tube", "lumber")
+    frame = {
+        "defaults": {"corner": "miter", "lines": "outside"},
+        "nodes": [{"id": "a", "x": 0, "y": 0}, {"id": "b", "x": 800, "y": 0},
+                  {"id": "c", "x": 800, "y": 500}, {"id": "d", "x": 0, "y": 500}],
+        "members": [{"id": f"m{i}", "a": a, "b": b, "item_id": tube["id"], "name": "Side"}
+                    for i, (a, b) in enumerate([("a", "b"), ("b", "c"), ("c", "d"), ("d", "a")])],
+    }
+    p = await new_project(client, assemblies=[{"name": "Frame", "qty": 1, "frame": frame}])
+    parts = {pt["length_mm"]: pt for pt in p["assemblies"][0]["parts"]}
+    assert set(parts) == {800, 500}
+    assert parts[800]["cuts"] == [{"miter": 45, "bevel": 0}] * 2 and parts[800]["short_mm"] == 740
+
+    plan = (await client.get(f"/api/projects/{p['id']}/plan", headers=auth(USER))).json()
+    segs = [s for lp in plan["lumber"] for pat in lp["patterns"] for s in pat["segments"] if s["kind"] == "part"]
+    assert sorted({s["length"] for s in segs}) == [500, 800]  # the part itself, not its footprint
+    assert all(s["cuts"] == [{"miter": 45, "bevel": 0}] * 2 for s in segs)
+    assert not any("miter" in w for w in plan["warnings"])
+
+    # A saw that only turns to 40° can't make these cuts.
+    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    body["settings"]["max_miter_deg"] = 40
+    p = (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).json()
+    plan = (await client.get(f"/api/projects/{p['id']}/plan", headers=auth(USER))).json()
+    assert any("45° miter (your saw: 40°)" in w for w in plan["warnings"])
+
+    csv = (await client.get(f"/api/projects/{p['id']}/export/cutlist.csv", headers=auth(USER))).text
+    assert "Ends" in csv.splitlines()[0] and "45° / 45° · long point" in csv
+
+
+def test_angle_allowance():
+    from app.models.project import EndCutSpec
+    from app.services.planner import angle_allowance
+    assert angle_allowance([], 3) == (0, 0)
+    a, b = angle_allowance([EndCutSpec(miter=45), EndCutSpec()], 3)
+    assert b == 0 and a == pytest.approx(3 * (2**0.5 - 1), abs=0.01)  # kerf / cos 45° - kerf

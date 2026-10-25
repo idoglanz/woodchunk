@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Literal
 
 from app.models.common import Model
+from app.models.project import EndCutSpec
 
 
 class BuyLine(Model):
@@ -22,6 +23,7 @@ class Segment(Model):
     name: str = ""
     part_id: str = ""
     assembly: str = ""  # letter
+    cuts: list[EndCutSpec] = []  # angled ends (bars from frames), start end first
 
 
 class BoardPattern(Model):

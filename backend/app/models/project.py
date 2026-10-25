@@ -35,6 +35,9 @@ class CuttingSettings(Model):
     min_offcut_sheet_mm: float = Field(default=150.0, ge=0)  # narrowest sheet leftover worth keeping
     max_stock_length_mm: float | None = Field(default=None, gt=0)  # longest board you can carry
     use_inventory: bool = True
+    # The saw's range, for warnings on angled cuts from frames.
+    max_miter_deg: float = Field(default=50.0, ge=0, le=90)
+    max_bevel_deg: float = Field(default=45.0, ge=0, le=90)
 
 
 class EndCutSpec(Model):

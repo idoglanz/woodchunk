@@ -1401,6 +1401,16 @@ export interface components {
              * @default true
              */
             use_inventory: boolean;
+            /**
+             * Max Miter Deg
+             * @default 50
+             */
+            max_miter_deg: number;
+            /**
+             * Max Bevel Deg
+             * @default 45
+             */
+            max_bevel_deg: number;
         };
         /**
          * CuttingSettings
@@ -1450,6 +1460,16 @@ export interface components {
              * @default true
              */
             use_inventory: boolean;
+            /**
+             * Max Miter Deg
+             * @default 50
+             */
+            max_miter_deg: number;
+            /**
+             * Max Bevel Deg
+             * @default 45
+             */
+            max_bevel_deg: number;
         };
         /** DiffLine */
         DiffLine: {
@@ -2203,7 +2223,9 @@ export interface components {
              *       "allow_rotation": true,
              *       "min_offcut_mm": 300,
              *       "min_offcut_sheet_mm": 150,
-             *       "use_inventory": true
+             *       "use_inventory": true,
+             *       "max_miter_deg": 50,
+             *       "max_bevel_deg": 45
              *     }
              */
             cutting: components["schemas"]["CuttingSettings-Input"];
@@ -2237,7 +2259,9 @@ export interface components {
              *       "allow_rotation": true,
              *       "min_offcut_mm": 300,
              *       "min_offcut_sheet_mm": 150,
-             *       "use_inventory": true
+             *       "use_inventory": true,
+             *       "max_miter_deg": 50,
+             *       "max_bevel_deg": 45
              *     }
              */
             cutting: components["schemas"]["CuttingSettings-Output"];
@@ -2324,7 +2348,9 @@ export interface components {
              *       "allow_rotation": true,
              *       "min_offcut_mm": 300,
              *       "min_offcut_sheet_mm": 150,
-             *       "use_inventory": true
+             *       "use_inventory": true,
+             *       "max_miter_deg": 50,
+             *       "max_bevel_deg": 45
              *     }
              */
             settings: components["schemas"]["CuttingSettings-Output"];
@@ -2459,7 +2485,9 @@ export interface components {
              *       "allow_rotation": true,
              *       "min_offcut_mm": 300,
              *       "min_offcut_sheet_mm": 150,
-             *       "use_inventory": true
+             *       "use_inventory": true,
+             *       "max_miter_deg": 50,
+             *       "max_bevel_deg": 45
              *     }
              */
             settings: components["schemas"]["CuttingSettings-Input"];
@@ -2602,6 +2630,11 @@ export interface components {
              * @default
              */
             assembly: string;
+            /**
+             * Cuts
+             * @default []
+             */
+            cuts: components["schemas"]["EndCutSpec-Output"][];
         };
         /** SheetLayoutOut */
         SheetLayoutOut: {
@@ -2944,6 +2977,8 @@ export interface components {
              *         "end_trim_mm": 0,
              *         "kerf_lumber_mm": 3,
              *         "kerf_sheet_mm": 3,
+             *         "max_bevel_deg": 45,
+             *         "max_miter_deg": 50,
              *         "min_offcut_mm": 300,
              *         "min_offcut_sheet_mm": 150,
              *         "use_inventory": true

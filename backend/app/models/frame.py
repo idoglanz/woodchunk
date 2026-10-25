@@ -20,9 +20,9 @@ class FrameParam(Model):
 
 class FrameNode(Model):
     id: str = Field(default_factory=new_id)
-    x: float | str = 0
-    y: float | str = 0
-    z: float | str = 0
+    x: float | str = 0.0
+    y: float | str = 0.0
+    z: float | str = 0.0
 
 
 class FrameMember(Model):

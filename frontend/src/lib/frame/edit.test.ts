@@ -100,3 +100,15 @@ describe("snapping", () => {
     expect(typedEnd([0, 0, 0], [0, 0, 0], 750)).toBeNull();
   });
 });
+
+describe("export", () => {
+  it("writes a binary STL with every member's triangles", async () => {
+    const { frameStl } = await import("./export");
+    const res = solve(table(), profiles);
+    const blob = frameStl(res.members);
+    const buf = new DataView(await blob.arrayBuffer());
+    const triangles = buf.getUint32(80, true);
+    expect(triangles).toBeGreaterThan(res.members.length * 12);
+    expect(blob.size).toBe(84 + 50 * triangles);
+  });
+});

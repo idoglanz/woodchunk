@@ -34,7 +34,7 @@ from app.models.plan import (
     Totals,
     Unplaced,
 )
-from app.models.project import HardwareLine, Project
+from app.models.project import EndCutSpec, HardwareLine, Project
 from app.services.optimizer.linear import LinearResult, LinearSettings, Piece, StockOption, optimize_linear
 from app.services.optimizer.sheet import Panel, SheetOption, SheetResult, SheetSettings, optimize_sheets
 
@@ -109,6 +109,19 @@ def _lumber_options(inp: PlanInputs, item: CatalogItem) -> tuple[list[StockOptio
     return opts, known
 
 
+def angle_allowance(cuts: list[EndCutSpec], kerf: float) -> tuple[float, float]:
+    """Extra bar each end of a piece uses: an angled cut removes kerf / cos(angle) along the bar."""
+    out = []
+    for i in range(2):
+        e = cuts[i] if i < len(cuts) else None
+        if not e or (not e.miter and not e.bevel):
+            out.append(0.0)
+            continue
+        cos = max(0.1, math.cos(math.radians(e.miter)) * math.cos(math.radians(e.bevel)))
+        out.append(round(kerf * (1 / cos - 1), 2))
+    return out[0], out[1]
+
+
 def _plan_lumber(inp: PlanInputs, item: CatalogItem, pieces: list[Piece], meta: dict[str, dict]):
     s = inp.project.settings
     opts, prices_known = _lumber_options(inp, item)
@@ -127,8 +140,9 @@ def _plan_lumber(inp: PlanInputs, item: CatalogItem, pieces: list[Piece], meta: 
         segs = []
         for c in b.cuts:
             m = meta[c.piece.part_id]
-            segs.append(Segment(kind="part", start=c.start, length=c.piece.length, label=c.piece.label,
-                                name=m["name"], part_id=c.piece.part_id, assembly=m["assembly"]))
+            # The piece's footprint includes its angle allowance; draw the part itself inside it.
+            segs.append(Segment(kind="part", start=c.start + m["allow"][0], length=m["lp"], label=c.piece.label,
+                                name=m["name"], part_id=c.piece.part_id, assembly=m["assembly"], cuts=m["cuts"]))
         last_end = (b.cuts[-1].start + b.cuts[-1].piece.length) if b.cuts else s.end_trim_mm
         if b.leftover > 0:
             segs.append(Segment(kind="offcut" if b.is_offcut else "waste", start=last_end + s.kerf_lumber_mm,
@@ -146,11 +160,12 @@ def _plan_lumber(inp: PlanInputs, item: CatalogItem, pieces: list[Piece], meta: 
     ]
     cost = sum((ln.unit_price or 0) * ln.qty for ln in buy_lines if ln.source == "buy")
     stock_len = res.stock_length
+    allowance = sum(sum(meta[c.piece.part_id]["allow"]) for b in res.boards for c in b.cuts)
     plan = LumberPlan(
         item_id=item.id, name=item.display_name(inp.lang),
         supplier_name=inp.suppliers[item.supplier_id].name if item.supplier_id in inp.suppliers else "",
         kerf=s.kerf_lumber_mm, cost=round(cost, 2),
-        waste_pct=round(100 * res.waste / stock_len, 1) if stock_len else 0.0,
+        waste_pct=round(100 * (res.waste + allowance) / stock_len, 1) if stock_len else 0.0,
         optimal=res.optimal, longest_stock=max((o.length for o in opts), default=0.0),
         buy=buy_lines, patterns=patterns,
     )
@@ -161,7 +176,7 @@ def _plan_lumber(inp: PlanInputs, item: CatalogItem, pieces: list[Piece], meta: 
             reason = (f"No {item.display_name(inp.lang)} boards within your {fmt_len(s.max_stock_length_mm)} "
                       "carry limit." if s.max_stock_length_mm else "This material has no stock lengths.")
         else:
-            reason = (f"{pc.label} is {pc.length:g} mm but the longest usable board is {longest:g} mm"
+            reason = (f"{pc.label} is {meta[pc.part_id]['lp']:g} mm but the longest usable board is {longest:g} mm"
                       + (f" (carry limit {fmt_len(s.max_stock_length_mm)})." if s.max_stock_length_mm else "."))
         unplaced.append(Unplaced(part_id=pc.part_id, label=pc.label, name=meta[pc.part_id]["name"],
                                  item_id=item.id, reason=reason))
@@ -343,7 +358,9 @@ async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
     for a in p.assemblies:
         for pt in a.parts:
             label = labels[pt.id]
-            meta[pt.id] = {"name": inp.t(pt.name) or label, "assembly": a.letter}
+            allow = angle_allowance(pt.cuts, p.settings.kerf_lumber_mm)
+            meta[pt.id] = {"name": inp.t(pt.name) or label, "assembly": a.letter, "lp": pt.length_mm,
+                           "cuts": pt.cuts, "allow": allow}
             n = pt.qty * a.qty
             part_count += n
             item = inp.items.get(pt.item_id) if pt.item_id else None
@@ -359,8 +376,16 @@ async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
                 continue
             if item.kind == ItemKind.lumber:
                 for i in range(n):
-                    lumber_pieces[item.id].append(Piece(key=f"{pt.id}#{i}", label=label, length=pt.length_mm,
-                                                        part_id=pt.id))
+                    lumber_pieces[item.id].append(Piece(key=f"{pt.id}#{i}", label=label,
+                                                        length=pt.length_mm + sum(allow), part_id=pt.id))
+                too_far = [e for e in pt.cuts if e.miter > p.settings.max_miter_deg + 0.05
+                           or e.bevel > p.settings.max_bevel_deg + 0.05]
+                if too_far:
+                    e = too_far[0]
+                    over = (f"a {e.miter:g}° miter (your saw: {p.settings.max_miter_deg:g}°)"
+                            if e.miter > p.settings.max_miter_deg + 0.05
+                            else f"a {e.bevel:g}° bevel (your saw: {p.settings.max_bevel_deg:g}°)")
+                    warnings.append(f"{label} needs {over}. Cut it by hand or change the joint.")
             elif item.kind == ItemKind.sheet:
                 if not pt.width_mm:
                     unplaced.append(Unplaced(part_id=pt.id, label=label, name=meta[pt.id]["name"],

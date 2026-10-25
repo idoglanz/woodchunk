@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Box, Maximize, MousePointer2, PenLine, Redo2, Trash2, Undo2 } from "lucide-react";
+import { ArrowLeft, Box, Download, Maximize, MousePointer2, PenLine, Redo2, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { CutList } from "@/components/frame/cut-list";
@@ -16,6 +16,7 @@ import type { Assembly, CatalogItem } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { newId, useEditor } from "@/lib/editor";
 import { addMember, commonItem, deleteMembers, moveNode, nodePositions } from "@/lib/frame/edit";
+import { frameStl, saveBlob } from "@/lib/frame/export";
 import { evaluate as ev } from "@/lib/frame/expr";
 import { useMediaQuery } from "@/lib/focus";
 import { solveFrame } from "@/lib/frame/parts";
@@ -134,6 +135,8 @@ function Loaded({ asm, frame, byId, readOnly, projectId }: {
             <IconButton label={ortho ? "Perspective" : "Orthographic"} size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]"
               onClick={() => useFrameUI.getState().setOrtho(!ortho)} aria-pressed={ortho}><Box size={16} /></IconButton>
             <IconButton label="Fit to frame" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={() => look("fit")}><Maximize size={16} /></IconButton>
+            <IconButton label="Download 3D model (STL)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!result.members.length}
+              onClick={() => saveBlob(frameStl(result.members), `${asm.name || "frame"}.stl`)}><Download size={16} /></IconButton>
             {!readOnly ? <>
               <IconButton label="Undo (⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.past.length} onClick={ed.undo}><Undo2 size={16} /></IconButton>
               <IconButton label="Redo (⇧⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.future.length} onClick={ed.redo}><Redo2 size={16} /></IconButton>

@@ -12,7 +12,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { download } from "@/lib/api/client";
 import { useEditor } from "@/lib/editor";
 import { money } from "@/lib/format";
-import { dirOf, t, type Lang } from "@/lib/i18n";
+import { dirOf, endsText, t, type Lang } from "@/lib/i18n";
 import { usePlan, useCatalog } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 import { fmtMeters } from "@/lib/units";
@@ -26,6 +26,8 @@ export function ShopSheetView() {
   const plan = usePlan(id, version, lang, true, tr.dataUpdatedAt);
   const catalog = useCatalog({});
   const items = new Map((catalog.data ?? []).map((i) => [i.id, i]));
+  // Bars from 3D frames have angled ends: show an Ends column only when there are any.
+  const angled = !!content?.assemblies.some((a) => a.parts.some((pt) => pt.cuts.some((e) => e.miter || e.bevel)));
   const tx = (s: string) => (lang === "en" ? s : tr.data?.[s] ?? s);
   const p = plan.data;
 
@@ -68,11 +70,12 @@ export function ShopSheetView() {
                   <th className="py-1.5 text-end font-medium">{t(lang, "qty")}</th>
                   <th className="py-1.5 text-end font-medium">{t(lang, "length")}</th>
                   <th className="py-1.5 text-end font-medium">{t(lang, "width")}</th>
+                  {angled ? <th className="py-1.5 ps-4 text-start font-medium">{t(lang, "ends")}</th> : null}
                 </tr>
               </thead>
               {content.assemblies.map((a) => (
                 <tbody key={a.id} className="avoid-break">
-                  <tr><td colSpan={6} className="pb-1 pt-4 text-[13px] font-semibold"><span className="inline-flex items-center gap-2"><AsmChip letter={a.letter} />{tx(a.name)} ×{a.qty}</span></td></tr>
+                  <tr><td colSpan={angled ? 7 : 6} className="pb-1 pt-4 text-[13px] font-semibold"><span className="inline-flex items-center gap-2"><AsmChip letter={a.letter} />{tx(a.name)} ×{a.qty}</span></td></tr>
                   {a.parts.map((pt, i) => {
                     const it = pt.item_id ? items.get(pt.item_id) : undefined;
                     return (
@@ -83,6 +86,7 @@ export function ShopSheetView() {
                         <td className="tnum py-1.5 text-end">{pt.qty * a.qty}</td>
                         <td className="tnum py-1.5 text-end">{pt.length_mm}</td>
                         <td className="tnum py-1.5 text-end">{pt.width_mm ?? ""}</td>
+                        {angled ? <td className="py-1.5 ps-4 text-[13px]">{endsText(lang, pt.cuts, pt.face_up)}{pt.short_mm != null && pt.short_mm !== pt.length_mm ? <span className="tnum text-ink-3"> · {t(lang, "shortPoint")} {pt.short_mm}</span> : null}</td> : null}
                       </tr>
                     );
                   })}

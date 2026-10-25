@@ -50,7 +50,9 @@ export function LumberBars({ plan, labels = true, print = false, active, onPick 
               style={{ width: `${(pat.stock_length / max) * 100}%` }}
               role="img" aria-label={`${fmtMeters(pat.stock_length)} board: ${pat.segments.filter((s) => s.kind === "part").map((s) => `${s.label} ${s.length} mm`).join(", ")}`}>
               {pat.segments.map((s, j) => {
-                const title = s.kind === "part" ? `${s.label} ${s.name} · ${s.length} mm` : s.kind === "offcut" ? `Offcut ${Math.round(s.length)} mm → workshop` : `Waste ${Math.round(s.length)} mm`;
+                const angled = (s.cuts ?? []).map((e) => !!(e.miter || e.bevel));
+                const ends = angled.some(Boolean) ? ` · ends ${s.cuts.map((e) => (e.miter || e.bevel ? `${e.miter}°${e.bevel ? ` + ${e.bevel}° bevel` : ""}` : "square")).join(" / ")}` : "";
+                const title = s.kind === "part" ? `${s.label} ${s.name} · ${s.length} mm${ends}` : s.kind === "offcut" ? `Offcut ${Math.round(s.length)} mm → workshop` : `Waste ${Math.round(s.length)} mm`;
                 if (s.kind === "waste") return <div key={j} title={title} className="hatch min-w-[2px] bg-surface-2" style={{ flex: `${s.length} 1 0` }} />;
                 if (s.kind === "offcut") {
                   return (
@@ -59,11 +61,14 @@ export function LumberBars({ plan, labels = true, print = false, active, onPick 
                     </div>
                   );
                 }
-                return (
-                  <div key={j} title={title} data-part={s.part_id} onClick={onPick ? () => onPick(s.part_id) : undefined}
+                const slanted = angled.some(Boolean) && !print;
+                const piece = (
+                  <div key={slanted ? undefined : j} title={title} data-part={s.part_id} onClick={onPick ? () => onPick(s.part_id) : undefined}
                     className={cn("@container flex min-w-[2px] flex-col justify-center overflow-hidden px-2 transition-opacity duration-150",
                       onPick && "cursor-pointer", dim && s.part_id !== active && "opacity-35")}
-                    style={{ flex: `${s.length} 1 0`, ...(print ? { background: "#fff", color: "#000" } : asmColors(s.assembly)),
+                    style={{ flex: slanted ? "1 1 0" : `${s.length} 1 0`, ...(print ? { background: "#fff", color: "#000" } : asmColors(s.assembly)),
+                      // Angled ends (bars from a 3D frame) drawn as a slant, like the piece itself.
+                      ...(slanted ? { clipPath: `polygon(${angled[0] ? 9 : 0}px 0, calc(100% - ${angled[1] ? 9 : 0}px) 0, 100% 100%, 0 100%)` } : {}),
                       ...(s.part_id === active && !print ? { boxShadow: "inset 0 0 0 2.5px var(--ink)" } : {}) }}>
                     {labels ? <>
                       <span className="hidden truncate text-[12px] font-bold leading-tight @min-[30px]:block">{s.label}</span>
@@ -71,6 +76,10 @@ export function LumberBars({ plan, labels = true, print = false, active, onPick 
                     </> : null}
                   </div>
                 );
+                // The triangle a miter cuts away is waste: show it hatched behind the slant.
+                return slanted
+                  ? <div key={j} className="hatch flex min-w-[2px] bg-surface-2" style={{ flex: `${s.length} 1 0` }}>{piece}</div>
+                  : piece;
               })}
             </div>
           </div>

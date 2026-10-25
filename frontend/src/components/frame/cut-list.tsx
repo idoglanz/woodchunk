@@ -6,6 +6,7 @@ import { SectionGlyph } from "@/components/project/section-glyph";
 import { AsmChip, Callout } from "@/components/ui/misc";
 import type { Assembly, CatalogItem } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
+import { useEditor } from "@/lib/editor";
 import type { EndCut, FrameResult } from "@/lib/frame/kernel";
 import { useFrameUI } from "@/lib/frame/ui";
 import { fmtMeters } from "@/lib/units";
@@ -23,6 +24,8 @@ export function CutList({ asm, result, byId }: { asm: Assembly; result: FrameRes
   const selected = useFrameUI((s) => s.selected);
   const hover = useFrameUI((s) => s.hover);
   const select = useFrameUI((s) => s.select);
+  const settings = useEditor((s) => s.content?.settings);
+  const beyondSaw = (ends: readonly EndCut[]) => !!settings && ends.some((e) => e.miter > settings.max_miter_deg + 0.05 || e.bevel > settings.max_bevel_deg + 0.05);
 
   const totals = useMemo(() => {
     const byItem = new Map<string, { item?: CatalogItem; mm: number }>();
@@ -67,7 +70,7 @@ export function CutList({ asm, result, byId }: { asm: Assembly; result: FrameRes
                   </span>
                 </span>
                 <span className="flex flex-col items-end text-[13px]">
-                  <span className="font-medium">{cutSummary(g.ends)}</span>
+                  <span className={cn("font-medium", beyondSaw(g.ends) && "text-kerf")} title={beyondSaw(g.ends) ? "Beyond your saw's range (cutting settings)" : undefined}>{cutSummary(g.ends)}</span>
                   {g.sp !== g.lp ? <span className="tnum text-ink-3">short {g.sp}</span> : null}
                   {g.face_up === "side" ? <span className="text-ink-3">on its side</span> : null}
                 </span>

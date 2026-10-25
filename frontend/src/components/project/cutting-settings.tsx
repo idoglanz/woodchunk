@@ -54,6 +54,14 @@ export function CuttingSettingsForm({ value, onChange, units }: { value: Cutting
         <Field label="Keep lumber offcuts from" htmlFor="minoff">
           <LengthInput id="minoff" ariaLabel="Minimum lumber offcut" units={units} value={value.min_offcut_mm} onChange={(mm) => onChange((s) => { s.min_offcut_mm = mm ?? 0; })} />
         </Field>
+        <Field label="Saw turns up to (miter)" htmlFor="max-miter" hint="Angled cuts beyond this get a warning.">
+          <NumberInput id="max-miter" ariaLabel="Largest miter angle" value={value.max_miter_deg} min={0} decimals={1} suffix="°"
+            onChange={(n) => { if (n != null && n <= 90) onChange((s) => { s.max_miter_deg = n; }); }} />
+        </Field>
+        <Field label="Blade tilts up to (bevel)" htmlFor="max-bevel">
+          <NumberInput id="max-bevel" ariaLabel="Largest bevel angle" value={value.max_bevel_deg} min={0} decimals={1} suffix="°"
+            onChange={(n) => { if (n != null && n <= 90) onChange((s) => { s.max_bevel_deg = n; }); }} />
+        </Field>
       </div>
       <div className="flex flex-col gap-4 border-t border-line pt-4">
         <Switch label="Rotate sheet parts" description="Parts without a grain lock may turn 90°." checked={value.allow_rotation}

@@ -17,6 +17,7 @@ from app.models.inventory import InventoryEntry, StockKind, StockStatus
 from app.models.plan import PlanOut, ShoppingOut
 from app.models.project import (
     Member,
+    Part,
     Project,
     ProjectContent,
     ProjectCreate,
@@ -279,9 +280,28 @@ async def ensure_translations(project_id: str, lang: Lang = "he", user: User = D
 
 
 EXPORT_HEAD = {
-    "en": ["Label", "Part", "Assembly", "Material", "Qty", "Length (mm)", "Width (mm)", "Board / sheet"],
-    "he": ["תווית", "חלק", "מכלול", "חומר", "כמות", "אורך (מ״מ)", "רוחב (מ״מ)", "קרש / לוח"],
+    "en": ["Label", "Part", "Assembly", "Material", "Qty", "Length (mm)", "Width (mm)", "Ends", "Board / sheet"],
+    "he": ["תווית", "חלק", "מכלול", "חומר", "כמות", "אורך (מ״מ)", "רוחב (מ״מ)", "קצוות", "קרש / לוח"],
 }
+
+
+def ends_text(pt: Part, lang: str) -> str:
+    """Saw settings for a frame bar's two ends: "45° / square", "11.4° miter + 5° bevel", "on its side"."""
+    if not pt.cuts or all(not e.miter and not e.bevel for e in pt.cuts):
+        return ""
+    he = lang == "he"
+
+    def one(e) -> str:
+        if not e.miter and not e.bevel:
+            return "ישר" if he else "square"
+        s = f"{e.miter:g}°"
+        if e.bevel:
+            s += f" + {'שיפוע' if he else 'bevel'} {e.bevel:g}°"
+        return s
+    text = " / ".join(one(e) for e in pt.cuts)
+    if pt.face_up == "side":
+        text += " (על הצד)" if he else " (on its side)"
+    return text + (" · אורך לפי הנקודה הארוכה" if he else " · long point")
 
 
 def _csv(rows: list[list]) -> str:
@@ -315,7 +335,8 @@ async def export_cutlist(project_id: str, lang: Lang = "en", user: User = Depend
             item = items.get(pt.item_id or "")
             rows.append([labels[pt.id], tr.get(pt.name, pt.name), f"{a.letter} {tr.get(a.name, a.name)} ×{a.qty}",
                          item.display_name(lang) if item else "", pt.qty * a.qty, f"{pt.length_mm:g}",
-                         f"{pt.width_mm:g}" if pt.width_mm else "", ", ".join(sorted(set(where.get(pt.id, []))))])
+                         f"{pt.width_mm:g}" if pt.width_mm else "", ends_text(pt, lang),
+                         ", ".join(sorted(set(where.get(pt.id, []))))])
     name = "".join(ch for ch in p.name if ch.isalnum() or ch in " -_").strip() or "project"
     return Response(_csv(rows), media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": f'attachment; filename="{name} cut list.csv"'})

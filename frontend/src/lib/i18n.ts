@@ -9,6 +9,7 @@ const WORDS = {
     part: "Part", qty: "Qty", length: "Length", width: "Width", material: "Material", assembly: "Assembly",
     pickedUp: "picked up", grain: "Grain", fromWorkshop: "From your workshop", alreadyBought: "Already bought", each: "each",
     printed: "Printed", supplier: "Supplier", keep: "keep", cuts: "Cuts", piece: "piece",
+    ends: "Ends", square: "square", bevel: "bevel", onSide: "on its side", shortPoint: "short",
   },
   he: {
     shoppingList: "רשימת קניות", shopSheet: "דף עבודה", total: "סה״כ", subtotal: "ביניים", lumber: "עץ", sheets: "לוחות",
@@ -17,6 +18,7 @@ const WORDS = {
     qty: "כמות", length: "אורך", width: "רוחב", material: "חומר", assembly: "מכלול", pickedUp: "נאספו", grain: "כיוון סיבים",
     fromWorkshop: "מהמחסן שלך", alreadyBought: "כבר נקנה", each: "יחידה", printed: "הודפס", supplier: "ספק", keep: "לשמור",
     cuts: "חיתוכים", piece: "חתיכה",
+    ends: "קצוות", square: "ישר", bevel: "שיפוע", onSide: "על הצד", shortPoint: "קצר",
   },
 } as const;
 
@@ -24,6 +26,14 @@ export type WordKey = keyof (typeof WORDS)["en"];
 
 export function t(lang: Lang, key: WordKey): string {
   return WORDS[lang][key];
+}
+
+/** Saw settings for a bar's two ends, or "" when both are square. */
+export function endsText(lang: Lang, cuts: readonly { miter: number; bevel: number }[], faceUp?: string): string {
+  if (!cuts.some((e) => e.miter || e.bevel)) return "";
+  const one = (e: { miter: number; bevel: number }) =>
+    !e.miter && !e.bevel ? t(lang, "square") : `${e.miter}°${e.bevel ? ` + ${t(lang, "bevel")} ${e.bevel}°` : ""}`;
+  return cuts.map(one).join(" / ") + (faceUp === "side" ? ` (${t(lang, "onSide")})` : "");
 }
 
 export function dirOf(lang: Lang): "rtl" | "ltr" {

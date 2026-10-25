@@ -1,65 +1,59 @@
-# 🪵 Woodchunk - Cut List Calculator
+# Woodchunk
 
-A Streamlit-based application for woodworking project management and cut list calculation. This tool helps woodworkers organize their projects, manage wood types, and generate efficient cut lists.
+Describe what you're building and Woodchunk tells you exactly what to buy, from whom, for how much, and how to cut every board and sheet with the least waste.
 
-## Features
+- **Design**: projects hold assemblies (a table, two sawhorses ×2…) made of parts cut from catalog materials, plus hardware.
+- **Plan**: optimal lumber cutting (CP-SAT, proven cheapest when it says *Optimal*), guillotine sheet layouts with a numbered cut order, saw-width (kerf) settings for sheets and lumber, carry limit, trims, grain lock, and reuse of your workshop offcuts.
+- **Buy**: a shopping list grouped by supplier that you tick off on your phone, in English or Hebrew, plus CSV and copy-as-text.
+- **Shop sheet**: a printable cut list and diagrams (English or Hebrew, RTL).
+- **AI (Gemini)**: describe a build or a change in English or Hebrew and apply the suggested edits; import supplier price lists from a URL, PDF, photo, CSV/XLSX or pasted text; tidy the catalog; translate exports.
+- **Also**: one shared catalog with price history and a review queue, templates, a workshop inventory, sharing by invite link, light and dark themes.
 
-- 📋 Project Management: Create and manage multiple woodworking projects
-- 🗂️ Wood Type Catalog: Maintain a catalog of different wood types and their properties
-- 🔨 Assembly Builder: Design assemblies with multiple pieces
-- ✂️ Cut List Generation: Automatically generate optimized cut lists for your projects
-- 📊 Project Statistics: View detailed statistics about your projects
+Design guide: [`docs/DESIGN.md`](docs/DESIGN.md) · Product plan: [`docs/REBUILD_PLAN.md`](docs/REBUILD_PLAN.md)
 
-## Prerequisites
+## Stack
 
-- Python 3.8 or higher
-- pip (Python package installer)
+| | |
+|---|---|
+| Frontend | Next.js 16 (App Router, client-rendered), React 19, Tailwind 4, TanStack Query, Radix primitives, types generated from the API's OpenAPI schema |
+| Backend | FastAPI, Pydantic 2, PyMongo async, OR-Tools (CP-SAT), google-genai |
+| Data | MongoDB |
+| Auth | Descope (production) or a local dev sign-in |
+| AI | Gemini free tier with a model fallback chain (one model call per user action) |
 
-## Installation
+## Run it locally
 
-1. Clone the repository:
+Prerequisites: Docker, [uv](https://docs.astral.sh/uv/), Node 22.
+
 ```bash
-git clone https://github.com/yourusername/woodchunk.git
-cd woodchunk
+make install
+make mongo                      # MongoDB on :27018
+cp backend/.env.example backend/.env   # add GOOGLE_API_KEY for AI features
+cp frontend/.env.example frontend/.env.local
+make api                        # http://localhost:8000/docs
+make web                        # http://localhost:3000
 ```
 
-2. Install the required dependencies:
+With `AUTH_MODE=dev` any email signs you in. On first start the API seeds the original Woodchunk catalog (49 lumber items, sheets, hardware) and six public templates. Emails in `ADMIN_EMAILS` become admins and, in dev, get the original projects.
+
+## Tests
+
 ```bash
-pip install -r requirements.txt
+make test   # optimizer property tests (vs. brute force) + API flows on a real Mongo
+make e2e    # Playwright smoke test, desktop and phone (needs api + web running)
+make lint
 ```
 
-## Running the Application
+After changing backend models, run `make types` to regenerate the frontend API types.
 
-To start the application, run:
-```bash
-streamlit run app.py
-```
+## Deploy (Railway)
 
-The application will open in your default web browser at `http://localhost:8501`.
+Three services, as in zizi-tripo:
 
-## Project Structure
+1. **MongoDB**: add Railway's MongoDB service.
+2. **backend** (root `backend/`, Dockerfile): set `MONGODB_URI`, `ENVIRONMENT=production`, `AUTH_MODE=descope`, `DESCOPE_PROJECT_ID`, `ADMIN_EMAILS`, `FRONTEND_URL`, `GOOGLE_API_KEY`.
+3. **frontend** (root `frontend/`, Dockerfile): build args `NEXT_PUBLIC_API_URL` (the backend URL) and `NEXT_PUBLIC_DESCOPE_PROJECT_ID`, plus `NEXT_PUBLIC_DESCOPE_FLOW_ID` for Woodchunk's own sign-in flow (the Descope project is shared with zizi-tripo).
 
-- `app.py`: Main application file containing the Streamlit interface
-- `catalog.py`: Wood type catalog management
-- `project_manager.py`: Project management functionality
-- `components/`: UI components and views
-- `models/`: Data models and schemas
-- `projects/`: Project data storage
-- `sample_catalog.json`: Sample wood type catalog
+Each service's settings live in `backend/railway.json` and `frontend/railway.json` (Dockerfile build, health check, restart on failure). Railway reads that path from the repo root, so set each service's config file to `/backend/railway.json` or `/frontend/railway.json`. The API refuses to start with `ENVIRONMENT=production` unless `AUTH_MODE=descope` is set, so dev sign-in can't reach a public server. Add the frontend's domain to the Descope project's approved domains.
 
-## Usage
-
-1. **Wood Type Catalog**: Start by managing your wood types in the catalog
-2. **Create a Project**: Use the new project dialog to start a new woodworking project
-3. **Add Assemblies**: Build your project by adding assemblies and pieces
-4. **Generate Cut List**: View and export the optimized cut list for your project
-
-## Dependencies
-
-- streamlit==1.43.0: Web application framework
-- pydantic==2.6.3: Data validation using Python type annotations
-- pandas==2.3: Data manipulation and analysis
-
-## Contributing
-
-Feel free to submit issues and enhancement requests!
+For Descope, use a `sign-up-or-in` flow and add `email` to the session token claims. To copy the original projects to your real account after your first sign-in, run `uv run python -m scripts.import_legacy you@example.com` against the production database.

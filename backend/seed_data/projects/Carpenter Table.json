@@ -1,0 +1,251 @@
+{
+  "name": "Carpenter Table",
+  "assemblies": [
+    {
+      "name": "SawHorse",
+      "pieces": [
+        {
+          "lumber_index": 7,
+          "length": 0.8,
+          "quantity": 2
+        },
+        {
+          "lumber_index": 7,
+          "length": 0.56,
+          "quantity": 2
+        }
+      ],
+      "units": 6
+    },
+    {
+      "name": "Table",
+      "pieces": [
+        {
+          "lumber_index": 0,
+          "length": 2.44,
+          "quantity": 4
+        },
+        {
+          "lumber_index": 2,
+          "length": 2.5,
+          "quantity": 2
+        },
+        {
+          "lumber_index": 2,
+          "length": 0.81,
+          "quantity": 4
+        }
+      ],
+      "units": 1
+    },
+    {
+      "name": "Window Net",
+      "pieces": [
+        {
+          "lumber_index": 0,
+          "length": 1.8,
+          "quantity": 2
+        },
+        {
+          "lumber_index": 0,
+          "length": 1.7,
+          "quantity": 4
+        },
+        {
+          "lumber_index": 0,
+          "length": 1.45,
+          "quantity": 2
+        },
+        {
+          "lumber_index": 0,
+          "length": 0.95,
+          "quantity": 3
+        }
+      ],
+      "units": 1
+    }
+  ],
+  "description": "",
+  "woodboards": [
+    {
+      "base_board": {
+        "width": 120.0,
+        "length": 240.0,
+        "thickness": 8.0,
+        "wood_type": "birch",
+        "price_per_board": 0.0
+      },
+      "pieces": [
+        {
+          "id": "c9f96b7f-22f8-46db-a172-8f8800967de1",
+          "width": 50.0,
+          "length": 60.0,
+          "bottom_left": null,
+          "label": "Sample Piece",
+          "quantity": 3
+        },
+        {
+          "id": "a90099e4-1695-484d-8dcd-dbdd65660531",
+          "width": 30.0,
+          "length": 40.0,
+          "bottom_left": null,
+          "label": "test",
+          "quantity": 7
+        }
+      ],
+      "result_boards": [
+        {
+          "width": 120.0,
+          "length": 240.0,
+          "thickness": 8.0,
+          "wood_type": "birch",
+          "price_per_board": 0.0,
+          "pieces": [
+            {
+              "id": "f1e348ee-4685-4b25-bb87-a29223b2ee3e",
+              "width": 50.0,
+              "length": 60.0,
+              "bottom_left": [
+                0.0,
+                0.0
+              ],
+              "label": "Sample Piece",
+              "quantity": 1
+            },
+            {
+              "id": "6ebb8a82-7e08-4155-99ab-32a3ae02b8fe",
+              "width": 50.0,
+              "length": 60.0,
+              "bottom_left": [
+                0.0,
+                60.0
+              ],
+              "label": "Sample Piece",
+              "quantity": 1
+            },
+            {
+              "id": "a4426dbb-7f8e-46e2-8207-c15db70405d0",
+              "width": 50.0,
+              "length": 60.0,
+              "bottom_left": [
+                50.0,
+                0.0
+              ],
+              "label": "Sample Piece",
+              "quantity": 1
+            },
+            {
+              "id": "59e1dae1-1122-459a-bde2-d7099ebb6221",
+              "width": 30.0,
+              "length": 40.0,
+              "bottom_left": [
+                50.0,
+                60.0
+              ],
+              "label": "test",
+              "quantity": 1
+            },
+            {
+              "id": "41033e56-fe8f-4396-b05d-5949d33345d6",
+              "width": 30.0,
+              "length": 40.0,
+              "bottom_left": [
+                80.0,
+                60.0
+              ],
+              "label": "test",
+              "quantity": 1
+            },
+            {
+              "id": "6e3914bf-5480-44af-ad25-2253aff6d525",
+              "width": 30.0,
+              "length": 40.0,
+              "bottom_left": [
+                100.0,
+                0.0
+              ],
+              "label": "test",
+              "quantity": 1
+            },
+            {
+              "id": "a2a44be5-3e85-426b-8087-d1d388c06ff6",
+              "width": 30.0,
+              "length": 40.0,
+              "bottom_left": [
+                110.0,
+                40.0
+              ],
+              "label": "test",
+              "quantity": 1
+            },
+            {
+              "id": "cad76050-edf2-4be1-a310-9bf924e8137d",
+              "width": 30.0,
+              "length": 40.0,
+              "bottom_left": [
+                130.0,
+                0.0
+              ],
+              "label": "test",
+              "quantity": 1
+            },
+            {
+              "id": "9b11e117-3b38-4dde-9a35-78b2bca44c62",
+              "width": 30.0,
+              "length": 40.0,
+              "bottom_left": [
+                110.0,
+                80.0
+              ],
+              "label": "test",
+              "quantity": 1
+            },
+            {
+              "id": "41f3d968-16e2-4300-b04e-00b3ab1ab75d",
+              "width": 30.0,
+              "length": 40.0,
+              "bottom_left": [
+                140.0,
+                40.0
+              ],
+              "label": "test",
+              "quantity": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "hardware_list": [
+    {
+      "name": "\u05d1\u05d5\u05e8\u05d2 \u05e2\u05e5 150 \u05de\u05f4\u05de",
+      "quantity": 60,
+      "cost": null
+    },
+    {
+      "name": "\u05d1\u05d5\u05e8\u05d2 \u05e2\u05e5 50 \u05de\u05f4\u05de",
+      "quantity": 200,
+      "cost": null
+    },
+    {
+      "name": "\u05d1\u05d5\u05e8\u05d2 \u05e2\u05e5 50 \u05de\u05f4\u05de",
+      "quantity": 200,
+      "cost": null
+    },
+    {
+      "name": "\u05e6\u05d9\u05e8\u05d9\u05dd",
+      "quantity": 6,
+      "cost": null
+    },
+    {
+      "name": "\u05d1\u05d5\u05e8\u05d2 \u05e2\u05d9\u05df",
+      "quantity": 15,
+      "cost": null
+    },
+    {
+      "name": "\u05e9\u05e8\u05e9\u05e8\u05ea \u05d1\u05e8\u05d6\u05dc 2 \u05de\u05f3",
+      "quantity": 1,
+      "cost": null
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "description": "1000 x 600 flat frame of 40 x 40 x 2 tube with a cross member from the middle of one long side to the other (its nodes sit on the long members' spans, so they are T-joints). Long sides run through: 1000. Short sides and the cross member stop at the long sides' inner faces: 600 - 2 x 40 = 520, three identical pieces.",
+  "profiles": { "tube": { "shape": "rect_tube", "w": 40, "h": 40, "t": 2 } },
+  "frame": {
+    "defaults": { "corner": "butt", "lines": "outside" },
+    "nodes": [
+      { "id": "c1", "x": 0, "y": 0, "z": 0 }, { "id": "c2", "x": 1000, "y": 0, "z": 0 },
+      { "id": "c3", "x": 1000, "y": 600, "z": 0 }, { "id": "c4", "x": 0, "y": 600, "z": 0 },
+      { "id": "ma", "x": 500, "y": 0, "z": 0 }, { "id": "mb", "x": 500, "y": 600, "z": 0 }
+    ],
+    "members": [
+      { "id": "long1", "a": "c1", "b": "c2", "item_id": "tube" },
+      { "id": "short1", "a": "c2", "b": "c3", "item_id": "tube" },
+      { "id": "long2", "a": "c3", "b": "c4", "item_id": "tube" },
+      { "id": "short2", "a": "c4", "b": "c1", "item_id": "tube" },
+      { "id": "cross", "a": "ma", "b": "mb", "item_id": "tube" }
+    ]
+  },
+  "expect": {
+    "warnings": 0,
+    "groups": [
+      { "item_id": "tube", "qty": 2, "lp": 1000, "sp": 1000, "ends": [[0, 0], [0, 0]] },
+      { "item_id": "tube", "qty": 3, "lp": 520, "sp": 520, "ends": [[0, 0], [0, 0]] }
+    ]
+  }
+}

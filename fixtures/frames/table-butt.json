@@ -1,0 +1,30 @@
+{
+  "description": "Table 1200 x 600 x 750 (parameters), 70 x 70 legs, 22 x 95 aprons on edge, butt joints, outside dimensions. Legs run through (vertical wins), aprons stop at the legs' inner faces: 1200 - 2 x 70 = 1060 and 600 - 2 x 70 = 460.",
+  "profiles": { "leg": { "shape": "rect", "w": 70, "h": 70 }, "apron": { "shape": "rect", "w": 95, "h": 22 } },
+  "frame": {
+    "params": [{ "name": "W", "mm": 1200 }, { "name": "D", "mm": 600 }, { "name": "H", "mm": 750 }],
+    "defaults": { "corner": "butt", "lines": "outside" },
+    "nodes": [
+      { "id": "b1", "x": 0, "y": 0, "z": 0 }, { "id": "b2", "x": "W", "y": 0, "z": 0 },
+      { "id": "b3", "x": "W", "y": "D", "z": 0 }, { "id": "b4", "x": 0, "y": "D", "z": 0 },
+      { "id": "t1", "x": 0, "y": 0, "z": "H" }, { "id": "t2", "x": "W", "y": 0, "z": "H" },
+      { "id": "t3", "x": "W", "y": "D", "z": "H" }, { "id": "t4", "x": 0, "y": "D", "z": "H" }
+    ],
+    "members": [
+      { "id": "l1", "a": "b1", "b": "t1", "item_id": "leg" }, { "id": "l2", "a": "b2", "b": "t2", "item_id": "leg" },
+      { "id": "l3", "a": "b3", "b": "t3", "item_id": "leg" }, { "id": "l4", "a": "b4", "b": "t4", "item_id": "leg" },
+      { "id": "a1", "a": "t1", "b": "t2", "item_id": "apron", "roll_deg": 90 },
+      { "id": "a2", "a": "t2", "b": "t3", "item_id": "apron", "roll_deg": 90 },
+      { "id": "a3", "a": "t3", "b": "t4", "item_id": "apron", "roll_deg": 90 },
+      { "id": "a4", "a": "t4", "b": "t1", "item_id": "apron", "roll_deg": 90 }
+    ]
+  },
+  "expect": {
+    "warnings": 0,
+    "groups": [
+      { "item_id": "apron", "qty": 2, "lp": 1060, "sp": 1060, "ends": [[0, 0], [0, 0]] },
+      { "item_id": "apron", "qty": 2, "lp": 460, "sp": 460, "ends": [[0, 0], [0, 0]] },
+      { "item_id": "leg", "qty": 4, "lp": 750, "sp": 750, "ends": [[0, 0], [0, 0]] }
+    ]
+  }
+}

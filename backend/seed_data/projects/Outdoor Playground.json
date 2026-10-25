@@ -1,0 +1,17 @@
+{
+  "name": "Outdoor Playground",
+  "assemblies": [
+    {
+      "name": "Base",
+      "pieces": [
+        {
+          "lumber_index": 2,
+          "length": 0.0,
+          "quantity": 3
+        }
+      ],
+      "units": 2
+    }
+  ],
+  "description": ""
+}

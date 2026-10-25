@@ -1,0 +1,30 @@
+{
+  "angle-frame-miter.json": {
+    "angle|angle:30x30x3|400|340|-0.707,0.707,0,0.707,0.707,0": "48e338052430de27"
+  },
+  "box-corner-miter.json": {
+    "tube|rect_tube:40x40x2|500|460|-1,0,0,0.707,-0.707,0": "27c6bd25d086eccb",
+    "tube|rect_tube:40x40x2|460|460|-1,0,0,1,0,0": "d52ed5e435d8b9c2"
+  },
+  "picture-frame-miter.json": {
+    "moulding|rect:40x20x0|1000|920|-0.707,-0.707,0,0.707,-0.707,0": "8857a376947c3290",
+    "moulding|rect:40x20x0|600|520|-0.707,-0.707,0,0.707,-0.707,0": "a022a8f5ff1d21cf"
+  },
+  "splayed-leg.json": {
+    "leg|rect:50x50x0|690.5|683.3|-1,0,0,0.99,-0.141,0": "81ed5fa98db98b13",
+    "rail|rect:100x40x0|500|500|-1,0,0,1,0,0": "02f1128e73ed2068"
+  },
+  "split-run-tee.json": {
+    "tube|rect_tube:40x40x2|500|500|-1,0,0,1,0,0": "6c6f623403b03dda",
+    "tube|rect_tube:40x40x2|320|320|-1,0,0,1,0,0": "98c7dac8a0a09846"
+  },
+  "t-junction.json": {
+    "tube|rect_tube:40x40x2|1000|1000|-1,0,0,1,0,0": "839d552687837eac",
+    "tube|rect_tube:40x40x2|520|520|-1,0,0,1,0,0": "324ed600f653598e"
+  },
+  "table-butt.json": {
+    "apron|rect:95x22x0|1060|1060|-1,0,0,1,0,0": "50c17a19171b1bab",
+    "apron|rect:95x22x0|460|460|-1,0,0,1,0,0": "ce4066db2c328c1d",
+    "leg|rect:70x70x0|750|750|-1,0,0,1,0,0": "16f4d6139e5fbced"
+  }
+}

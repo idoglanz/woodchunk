@@ -1,0 +1,7705 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "Woodchunk API",
+  "description": "Projects, catalog, cut optimization and AI assistance for woodworking builds.",
+  "version": "2.0.0"
+ },
+ "paths": {
+  "/api/me": {
+   "get": {
+    "tags": [
+     "me"
+    ],
+    "summary": "Me",
+    "operationId": "me_api_me_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/User"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   },
+   "put": {
+    "tags": [
+     "me"
+    ],
+    "summary": "Update Me",
+    "operationId": "update_me_api_me_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PrefsUpdate"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/User"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/catalog": {
+   "get": {
+    "tags": [
+     "catalog"
+    ],
+    "summary": "List Catalog",
+    "operationId": "list_catalog_api_catalog_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "q",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "Q"
+      }
+     },
+     {
+      "name": "kind",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "$ref": "#/components/schemas/ItemKind"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Kind"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "$ref": "#/components/schemas/ItemStatus"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "supplier_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Supplier Id"
+      }
+     },
+     {
+      "name": "ids",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "description": "Comma-separated item ids: exactly these, whatever their status",
+       "default": "",
+       "title": "Ids"
+      },
+      "description": "Comma-separated item ids: exactly these, whatever their status"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CatalogItemOut"
+         },
+         "title": "Response List Catalog Api Catalog Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "catalog"
+    ],
+    "summary": "Create Item",
+    "operationId": "create_item_api_catalog_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CatalogItemIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CatalogItemOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/catalog/{item_id}": {
+   "get": {
+    "tags": [
+     "catalog"
+    ],
+    "summary": "Get Item",
+    "operationId": "get_item_api_catalog__item_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Item Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CatalogItemOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "catalog"
+    ],
+    "summary": "Update Item",
+    "operationId": "update_item_api_catalog__item_id__put",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Item Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CatalogItemIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CatalogItemOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/catalog/{item_id}/status": {
+   "post": {
+    "tags": [
+     "catalog"
+    ],
+    "summary": "Set Item Status",
+    "operationId": "set_item_status_api_catalog__item_id__status_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "item_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Item Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/app__routers__catalog__StatusIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CatalogItemOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/suppliers": {
+   "get": {
+    "tags": [
+     "catalog"
+    ],
+    "summary": "List Suppliers",
+    "operationId": "list_suppliers_api_suppliers_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/Supplier"
+         },
+         "type": "array",
+         "title": "Response List Suppliers Api Suppliers Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   },
+   "post": {
+    "tags": [
+     "catalog"
+    ],
+    "summary": "Create Supplier",
+    "operationId": "create_supplier_api_suppliers_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SupplierIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Supplier"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/suppliers/{supplier_id}": {
+   "put": {
+    "tags": [
+     "catalog"
+    ],
+    "summary": "Update Supplier",
+    "operationId": "update_supplier_api_suppliers__supplier_id__put",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "supplier_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Supplier Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SupplierIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Supplier"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects": {
+   "get": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "List Projects",
+    "operationId": "list_projects_api_projects_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "archived",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Archived"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ProjectSummary"
+         },
+         "title": "Response List Projects Api Projects Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Create Project",
+    "operationId": "create_project_api_projects_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProjectCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}": {
+   "get": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Get Project",
+    "operationId": "get_project_api_projects__project_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Save Project",
+    "operationId": "save_project_api_projects__project_id__put",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProjectUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Delete Project",
+    "operationId": "delete_project_api_projects__project_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/duplicate": {
+   "post": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Duplicate Project",
+    "operationId": "duplicate_project_api_projects__project_id__duplicate_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/archive": {
+   "post": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Archive Project",
+    "operationId": "archive_project_api_projects__project_id__archive_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ArchiveIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/plan": {
+   "get": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Get Plan",
+    "operationId": "get_plan_api_projects__project_id__plan_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "lang",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "enum": [
+        "en",
+        "he"
+       ],
+       "type": "string",
+       "default": "en",
+       "title": "Lang"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PlanOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/shopping": {
+   "get": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Get Shopping",
+    "operationId": "get_shopping_api_projects__project_id__shopping_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "lang",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "enum": [
+        "en",
+        "he"
+       ],
+       "type": "string",
+       "default": "en",
+       "title": "Lang"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ShoppingOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/shopping/checked": {
+   "put": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Check Line",
+    "operationId": "check_line_api_projects__project_id__shopping_checked_put",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CheckIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/status": {
+   "post": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Set Status",
+    "operationId": "set_status_api_projects__project_id__status_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/app__routers__projects__StatusIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/translations": {
+   "post": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Ensure Translations",
+    "operationId": "ensure_translations_api_projects__project_id__translations_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "lang",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "enum": [
+        "en",
+        "he"
+       ],
+       "type": "string",
+       "default": "he",
+       "title": "Lang"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Ensure Translations Api Projects  Project Id  Translations Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/export/cutlist.csv": {
+   "get": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Export Cutlist",
+    "operationId": "export_cutlist_api_projects__project_id__export_cutlist_csv_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "lang",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "enum": [
+        "en",
+        "he"
+       ],
+       "type": "string",
+       "default": "en",
+       "title": "Lang"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/export/shopping.csv": {
+   "get": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Export Shopping",
+    "operationId": "export_shopping_api_projects__project_id__export_shopping_csv_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "lang",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "enum": [
+        "en",
+        "he"
+       ],
+       "type": "string",
+       "default": "en",
+       "title": "Lang"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/invites": {
+   "post": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Create Invite",
+    "operationId": "create_invite_api_projects__project_id__invites_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/InviteIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/InviteOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/invites/{token}": {
+   "get": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Get Invite",
+    "operationId": "get_invite_api_invites__token__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "token",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/InviteOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/invites/{token}/accept": {
+   "post": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Accept Invite",
+    "operationId": "accept_invite_api_invites__token__accept_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "token",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/members/{member_id}": {
+   "delete": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Remove Member",
+    "operationId": "remove_member_api_projects__project_id__members__member_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "member_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Member Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/templates": {
+   "get": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "List Templates",
+    "operationId": "list_templates_api_templates_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/TemplateSummary"
+         },
+         "type": "array",
+         "title": "Response List Templates Api Templates Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/projects/{project_id}/template": {
+   "post": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Save As Template",
+    "operationId": "save_as_template_api_projects__project_id__template_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TemplateIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TemplateSummary"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/templates/{template_id}": {
+   "delete": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Delete Template",
+    "operationId": "delete_template_api_templates__template_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "template_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Template Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/workshop/inventory": {
+   "get": {
+    "tags": [
+     "workshop"
+    ],
+    "summary": "List Inventory",
+    "operationId": "list_inventory_api_workshop_inventory_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "include_used",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Include Used"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/InventoryOut"
+         },
+         "title": "Response List Inventory Api Workshop Inventory Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "workshop"
+    ],
+    "summary": "Add Inventory",
+    "operationId": "add_inventory_api_workshop_inventory_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/InventoryIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/InventoryOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/workshop/inventory/{entry_id}": {
+   "patch": {
+    "tags": [
+     "workshop"
+    ],
+    "summary": "Patch Inventory",
+    "operationId": "patch_inventory_api_workshop_inventory__entry_id__patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "entry_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Entry Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/InventoryPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/InventoryOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "workshop"
+    ],
+    "summary": "Delete Inventory",
+    "operationId": "delete_inventory_api_workshop_inventory__entry_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "entry_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Entry Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/ai/status": {
+   "get": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Ai Status",
+    "operationId": "ai_status_api_ai_status_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AIStatus"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/ai/projects/{project_id}/conversation": {
+   "get": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Get Conversation",
+    "operationId": "get_conversation_api_ai_projects__project_id__conversation_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Conversation"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Clear Conversation",
+    "operationId": "clear_conversation_api_ai_projects__project_id__conversation_delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/ai/projects/{project_id}/chat": {
+   "post": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Chat",
+    "operationId": "chat_api_ai_projects__project_id__chat_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ChatIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Conversation"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/ai/projects/{project_id}/import": {
+   "post": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Import Cutlist",
+    "operationId": "import_cutlist_api_ai_projects__project_id__import_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_import_cutlist_api_ai_projects__project_id__import_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Conversation"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/ai/proposals/{proposal_id}/apply": {
+   "post": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Apply Proposal",
+    "operationId": "apply_proposal_api_ai_proposals__proposal_id__apply_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "proposal_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Proposal Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/ai/proposals/{proposal_id}/discard": {
+   "post": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Discard Proposal",
+    "operationId": "discard_proposal_api_ai_proposals__proposal_id__discard_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "proposal_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Proposal Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/ai/catalog/import": {
+   "post": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Catalog Import",
+    "operationId": "catalog_import_api_ai_catalog_import_post",
+    "requestBody": {
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_catalog_import_api_ai_catalog_import_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CatalogImport"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/ai/catalog/imports": {
+   "get": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "List Imports",
+    "operationId": "list_imports_api_ai_catalog_imports_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/CatalogImport"
+         },
+         "type": "array",
+         "title": "Response List Imports Api Ai Catalog Imports Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/ai/catalog/imports/{import_id}": {
+   "get": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Get Import",
+    "operationId": "get_import_api_ai_catalog_imports__import_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "import_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Import Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CatalogImport"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Discard Import",
+    "operationId": "discard_import_api_ai_catalog_imports__import_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "import_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Import Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/ai/catalog/imports/{import_id}/apply": {
+   "post": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Apply Import",
+    "operationId": "apply_import_api_ai_catalog_imports__import_id__apply_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "import_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Import Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ApplyImportIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ApplyImportOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/ai/catalog/organize": {
+   "post": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Catalog Organize",
+    "operationId": "catalog_organize_api_ai_catalog_organize_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OrganizeIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CatalogImport"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/admin/stats": {
+   "get": {
+    "tags": [
+     "admin"
+    ],
+    "summary": "Stats",
+    "operationId": "stats_api_admin_stats_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Stats"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/admin/users": {
+   "get": {
+    "tags": [
+     "admin"
+    ],
+    "summary": "Users",
+    "operationId": "users_api_admin_users_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/User"
+         },
+         "type": "array",
+         "title": "Response Users Api Admin Users Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/admin/users/{user_id}/role": {
+   "put": {
+    "tags": [
+     "admin"
+    ],
+    "summary": "Set Role",
+    "operationId": "set_role_api_admin_users__user_id__role_put",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "User Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RoleIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/User"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/admin/archived": {
+   "get": {
+    "tags": [
+     "admin"
+    ],
+    "summary": "Archived",
+    "operationId": "archived_api_admin_archived_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ProjectSummary"
+         },
+         "type": "array",
+         "title": "Response Archived Api Admin Archived Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/admin/projects/{project_id}/restore": {
+   "post": {
+    "tags": [
+     "admin"
+    ],
+    "summary": "Restore",
+    "operationId": "restore_api_admin_projects__project_id__restore_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/health": {
+   "get": {
+    "tags": [
+     "meta"
+    ],
+    "summary": "Health",
+    "operationId": "health_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "AIOp": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "enum": [
+       "add_assembly",
+       "update_assembly",
+       "remove_assembly",
+       "add_part",
+       "update_part",
+       "remove_part",
+       "add_hardware",
+       "update_hardware",
+       "remove_hardware"
+      ],
+      "title": "Action"
+     },
+     "assembly": {
+      "type": "string",
+      "title": "Assembly",
+      "description": "Existing assembly letter (\"A\"), \"EXTRAS\" for project-level hardware, or a new key like \"NEW1\" for an assembly added in this same answer."
+     },
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name",
+      "description": "Assembly, part or hardware name (English)."
+     },
+     "qty": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Qty",
+      "description": "Assembly quantity, part quantity per assembly, or hardware quantity."
+     },
+     "target": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Target",
+      "description": "For update/remove: the part label (\"B2\") or hardware name."
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id",
+      "description": "Catalog item id, copied exactly from the catalog list."
+     },
+     "length_mm": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Length Mm",
+      "description": "Part length in mm (along the grain for sheet parts)."
+     },
+     "width_mm": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width Mm",
+      "description": "Sheet parts only: width in mm."
+     },
+     "grain_locked": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Grain Locked",
+      "description": "Sheet parts only: true when the grain must run along the length."
+     },
+     "unit_price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit Price",
+      "description": "Hardware not in the catalog: price per unit if known."
+     }
+    },
+    "type": "object",
+    "required": [
+     "action",
+     "assembly",
+     "name",
+     "qty",
+     "target",
+     "item_id",
+     "length_mm",
+     "width_mm",
+     "grain_locked",
+     "unit_price"
+    ],
+    "title": "AIOp",
+    "description": "One edit. Flat on purpose: it is also the schema the model fills in."
+   },
+   "AIStatus": {
+    "properties": {
+     "enabled": {
+      "type": "boolean",
+      "title": "Enabled"
+     },
+     "calls_today": {
+      "type": "integer",
+      "title": "Calls Today"
+     }
+    },
+    "type": "object",
+    "required": [
+     "enabled",
+     "calls_today"
+    ],
+    "title": "AIStatus"
+   },
+   "ApplyImportIn": {
+    "properties": {
+     "selected": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Selected"
+     }
+    },
+    "type": "object",
+    "required": [
+     "selected"
+    ],
+    "title": "ApplyImportIn"
+   },
+   "ApplyImportOut": {
+    "properties": {
+     "created": {
+      "type": "integer",
+      "title": "Created"
+     },
+     "updated": {
+      "type": "integer",
+      "title": "Updated"
+     },
+     "suggested": {
+      "type": "boolean",
+      "title": "Suggested"
+     }
+    },
+    "type": "object",
+    "required": [
+     "created",
+     "updated",
+     "suggested"
+    ],
+    "title": "ApplyImportOut"
+   },
+   "ArchiveIn": {
+    "properties": {
+     "archived": {
+      "type": "boolean",
+      "title": "Archived"
+     }
+    },
+    "type": "object",
+    "required": [
+     "archived"
+    ],
+    "title": "ArchiveIn"
+   },
+   "Assembly-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "letter": {
+      "type": "string",
+      "title": "Letter",
+      "default": ""
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     },
+     "qty": {
+      "type": "integer",
+      "maximum": 10000.0,
+      "minimum": 1.0,
+      "title": "Qty",
+      "default": 1
+     },
+     "parts": {
+      "items": {
+       "$ref": "#/components/schemas/Part-Input"
+      },
+      "type": "array",
+      "maxItems": 1000,
+      "title": "Parts",
+      "default": []
+     },
+     "hardware": {
+      "items": {
+       "$ref": "#/components/schemas/HardwareLine-Input"
+      },
+      "type": "array",
+      "maxItems": 300,
+      "title": "Hardware",
+      "default": []
+     },
+     "notes": {
+      "type": "string",
+      "maxLength": 5000,
+      "title": "Notes",
+      "default": ""
+     },
+     "frame": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Frame-Input"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "frame_warnings": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Frame Warnings",
+      "default": []
+     }
+    },
+    "type": "object",
+    "title": "Assembly"
+   },
+   "Assembly-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "letter": {
+      "type": "string",
+      "title": "Letter",
+      "default": ""
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     },
+     "qty": {
+      "type": "integer",
+      "maximum": 10000.0,
+      "minimum": 1.0,
+      "title": "Qty",
+      "default": 1
+     },
+     "parts": {
+      "items": {
+       "$ref": "#/components/schemas/Part-Output"
+      },
+      "type": "array",
+      "maxItems": 1000,
+      "title": "Parts",
+      "default": []
+     },
+     "hardware": {
+      "items": {
+       "$ref": "#/components/schemas/HardwareLine-Output"
+      },
+      "type": "array",
+      "maxItems": 300,
+      "title": "Hardware",
+      "default": []
+     },
+     "notes": {
+      "type": "string",
+      "maxLength": 5000,
+      "title": "Notes",
+      "default": ""
+     },
+     "frame": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Frame-Output"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "frame_warnings": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Frame Warnings",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "letter",
+     "name",
+     "qty",
+     "parts",
+     "hardware",
+     "notes",
+     "frame",
+     "frame_warnings"
+    ],
+    "title": "Assembly"
+   },
+   "BoardPattern": {
+    "properties": {
+     "stock_length": {
+      "type": "number",
+      "title": "Stock Length"
+     },
+     "source": {
+      "type": "string",
+      "enum": [
+       "buy",
+       "inventory",
+       "purchased"
+      ],
+      "title": "Source"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     },
+     "segments": {
+      "items": {
+       "$ref": "#/components/schemas/Segment"
+      },
+      "type": "array",
+      "title": "Segments"
+     },
+     "leftover": {
+      "type": "number",
+      "title": "Leftover"
+     },
+     "leftover_kept": {
+      "type": "boolean",
+      "title": "Leftover Kept"
+     }
+    },
+    "type": "object",
+    "required": [
+     "stock_length",
+     "source",
+     "count",
+     "segments",
+     "leftover",
+     "leftover_kept"
+    ],
+    "title": "BoardPattern"
+   },
+   "Body_catalog_import_api_ai_catalog_import_post": {
+    "properties": {
+     "url": {
+      "type": "string",
+      "title": "Url",
+      "default": ""
+     },
+     "text": {
+      "type": "string",
+      "title": "Text",
+      "default": ""
+     },
+     "supplier_id": {
+      "type": "string",
+      "title": "Supplier Id",
+      "default": ""
+     },
+     "file": {
+      "anyOf": [
+       {
+        "type": "string",
+        "contentMediaType": "application/octet-stream"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "title": "Body_catalog_import_api_ai_catalog_import_post"
+   },
+   "Body_import_cutlist_api_ai_projects__project_id__import_post": {
+    "properties": {
+     "file": {
+      "anyOf": [
+       {
+        "type": "string",
+        "contentMediaType": "application/octet-stream"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "File"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "title": "Body_import_cutlist_api_ai_projects__project_id__import_post"
+   },
+   "BuyLine": {
+    "properties": {
+     "length_mm": {
+      "type": "number",
+      "title": "Length Mm"
+     },
+     "width_mm": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width Mm"
+     },
+     "qty": {
+      "type": "integer",
+      "title": "Qty"
+     },
+     "unit_price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit Price"
+     },
+     "source": {
+      "type": "string",
+      "enum": [
+       "buy",
+       "inventory",
+       "purchased"
+      ],
+      "title": "Source"
+     }
+    },
+    "type": "object",
+    "required": [
+     "length_mm",
+     "width_mm",
+     "qty",
+     "unit_price",
+     "source"
+    ],
+    "title": "BuyLine"
+   },
+   "CatalogImport": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "created_by": {
+      "type": "string",
+      "title": "Created By"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "import",
+       "organize"
+      ],
+      "title": "Kind",
+      "default": "import"
+     },
+     "source": {
+      "type": "string",
+      "title": "Source",
+      "default": ""
+     },
+     "supplier_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Supplier Id"
+     },
+     "supplier_name": {
+      "type": "string",
+      "title": "Supplier Name",
+      "default": ""
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "review",
+       "applying",
+       "applied",
+       "discarded"
+      ],
+      "title": "Status",
+      "default": "review"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/ImportProposalItem"
+      },
+      "type": "array",
+      "title": "Items",
+      "default": []
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "created_by",
+     "kind",
+     "source",
+     "supplier_id",
+     "supplier_name",
+     "status",
+     "items",
+     "note",
+     "created_at"
+    ],
+    "title": "CatalogImport"
+   },
+   "CatalogItemBase": {
+    "properties": {
+     "kind": {
+      "$ref": "#/components/schemas/ItemKind"
+     },
+     "supplier_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Supplier Id"
+     },
+     "name": {
+      "$ref": "#/components/schemas/Localized-Output"
+     },
+     "sku": {
+      "type": "string",
+      "title": "Sku",
+      "default": ""
+     },
+     "url": {
+      "type": "string",
+      "title": "Url",
+      "default": ""
+     },
+     "image": {
+      "type": "string",
+      "title": "Image",
+      "default": ""
+     },
+     "category": {
+      "type": "string",
+      "title": "Category",
+      "default": ""
+     },
+     "tags": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Tags",
+      "default": []
+     },
+     "material": {
+      "type": "string",
+      "title": "Material",
+      "default": ""
+     },
+     "treatment": {
+      "type": "string",
+      "title": "Treatment",
+      "default": ""
+     },
+     "thickness_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Thickness Mm"
+     },
+     "width_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width Mm"
+     },
+     "price_per_m": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per M"
+     },
+     "lumber_stock": {
+      "items": {
+       "$ref": "#/components/schemas/LumberStock-Output"
+      },
+      "type": "array",
+      "title": "Lumber Stock",
+      "default": []
+     },
+     "sheet_stock": {
+      "items": {
+       "$ref": "#/components/schemas/SheetStock-Output"
+      },
+      "type": "array",
+      "title": "Sheet Stock",
+      "default": []
+     },
+     "has_grain": {
+      "type": "boolean",
+      "title": "Has Grain",
+      "default": true
+     },
+     "profile": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ProfileSpec-Output"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "kg_per_m": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kg Per M"
+     },
+     "unit": {
+      "type": "string",
+      "title": "Unit",
+      "default": "each"
+     },
+     "pack_size": {
+      "type": "integer",
+      "minimum": 1.0,
+      "title": "Pack Size",
+      "default": 1
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind",
+     "supplier_id",
+     "name",
+     "sku",
+     "url",
+     "image",
+     "category",
+     "tags",
+     "material",
+     "treatment",
+     "thickness_mm",
+     "width_mm",
+     "price_per_m",
+     "lumber_stock",
+     "sheet_stock",
+     "has_grain",
+     "profile",
+     "kg_per_m",
+     "unit",
+     "pack_size",
+     "price"
+    ],
+    "title": "CatalogItemBase"
+   },
+   "CatalogItemIn": {
+    "properties": {
+     "kind": {
+      "$ref": "#/components/schemas/ItemKind"
+     },
+     "supplier_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Supplier Id"
+     },
+     "name": {
+      "$ref": "#/components/schemas/Localized-Input"
+     },
+     "sku": {
+      "type": "string",
+      "title": "Sku",
+      "default": ""
+     },
+     "url": {
+      "type": "string",
+      "title": "Url",
+      "default": ""
+     },
+     "image": {
+      "type": "string",
+      "title": "Image",
+      "default": ""
+     },
+     "category": {
+      "type": "string",
+      "title": "Category",
+      "default": ""
+     },
+     "tags": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Tags",
+      "default": []
+     },
+     "material": {
+      "type": "string",
+      "title": "Material",
+      "default": ""
+     },
+     "treatment": {
+      "type": "string",
+      "title": "Treatment",
+      "default": ""
+     },
+     "thickness_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Thickness Mm"
+     },
+     "width_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width Mm"
+     },
+     "price_per_m": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per M"
+     },
+     "lumber_stock": {
+      "items": {
+       "$ref": "#/components/schemas/LumberStock-Input"
+      },
+      "type": "array",
+      "title": "Lumber Stock",
+      "default": []
+     },
+     "sheet_stock": {
+      "items": {
+       "$ref": "#/components/schemas/SheetStock-Input"
+      },
+      "type": "array",
+      "title": "Sheet Stock",
+      "default": []
+     },
+     "has_grain": {
+      "type": "boolean",
+      "title": "Has Grain",
+      "default": true
+     },
+     "profile": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ProfileSpec-Input"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "kg_per_m": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kg Per M"
+     },
+     "unit": {
+      "type": "string",
+      "title": "Unit",
+      "default": "each"
+     },
+     "pack_size": {
+      "type": "integer",
+      "minimum": 1.0,
+      "title": "Pack Size",
+      "default": 1
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind",
+     "name"
+    ],
+    "title": "CatalogItemIn"
+   },
+   "CatalogItemOut": {
+    "properties": {
+     "kind": {
+      "$ref": "#/components/schemas/ItemKind"
+     },
+     "supplier_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Supplier Id"
+     },
+     "name": {
+      "$ref": "#/components/schemas/Localized-Output"
+     },
+     "sku": {
+      "type": "string",
+      "title": "Sku",
+      "default": ""
+     },
+     "url": {
+      "type": "string",
+      "title": "Url",
+      "default": ""
+     },
+     "image": {
+      "type": "string",
+      "title": "Image",
+      "default": ""
+     },
+     "category": {
+      "type": "string",
+      "title": "Category",
+      "default": ""
+     },
+     "tags": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Tags",
+      "default": []
+     },
+     "material": {
+      "type": "string",
+      "title": "Material",
+      "default": ""
+     },
+     "treatment": {
+      "type": "string",
+      "title": "Treatment",
+      "default": ""
+     },
+     "thickness_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Thickness Mm"
+     },
+     "width_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width Mm"
+     },
+     "price_per_m": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Per M"
+     },
+     "lumber_stock": {
+      "items": {
+       "$ref": "#/components/schemas/LumberStock-Output"
+      },
+      "type": "array",
+      "title": "Lumber Stock",
+      "default": []
+     },
+     "sheet_stock": {
+      "items": {
+       "$ref": "#/components/schemas/SheetStock-Output"
+      },
+      "type": "array",
+      "title": "Sheet Stock",
+      "default": []
+     },
+     "has_grain": {
+      "type": "boolean",
+      "title": "Has Grain",
+      "default": true
+     },
+     "profile": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ProfileSpec-Output"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "kg_per_m": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kg Per M"
+     },
+     "unit": {
+      "type": "string",
+      "title": "Unit",
+      "default": "each"
+     },
+     "pack_size": {
+      "type": "integer",
+      "minimum": 1.0,
+      "title": "Pack Size",
+      "default": 1
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     },
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "status": {
+      "$ref": "#/components/schemas/ItemStatus",
+      "default": "active"
+     },
+     "price_updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price Updated At"
+     },
+     "price_history": {
+      "items": {
+       "$ref": "#/components/schemas/PricePoint"
+      },
+      "type": "array",
+      "title": "Price History",
+      "default": []
+     },
+     "source_url": {
+      "type": "string",
+      "title": "Source Url",
+      "default": ""
+     },
+     "created_by": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created By"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     },
+     "search": {
+      "type": "string",
+      "title": "Search",
+      "default": ""
+     },
+     "supplier_name": {
+      "type": "string",
+      "title": "Supplier Name",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind",
+     "supplier_id",
+     "name",
+     "sku",
+     "url",
+     "image",
+     "category",
+     "tags",
+     "material",
+     "treatment",
+     "thickness_mm",
+     "width_mm",
+     "price_per_m",
+     "lumber_stock",
+     "sheet_stock",
+     "has_grain",
+     "profile",
+     "kg_per_m",
+     "unit",
+     "pack_size",
+     "price",
+     "id",
+     "status",
+     "price_updated_at",
+     "price_history",
+     "source_url",
+     "created_by",
+     "created_at",
+     "updated_at",
+     "search",
+     "supplier_name"
+    ],
+    "title": "CatalogItemOut"
+   },
+   "ChatIn": {
+    "properties": {
+     "message": {
+      "type": "string",
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "message"
+    ],
+    "title": "ChatIn"
+   },
+   "ChatMessage": {
+    "properties": {
+     "role": {
+      "type": "string",
+      "title": "Role"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "At"
+     },
+     "proposal_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Proposal Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "role",
+     "text",
+     "at",
+     "proposal_id"
+    ],
+    "title": "ChatMessage"
+   },
+   "CheckIn": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "checked": {
+      "type": "boolean",
+      "title": "Checked"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "checked"
+    ],
+    "title": "CheckIn"
+   },
+   "Conversation": {
+    "properties": {
+     "messages": {
+      "items": {
+       "$ref": "#/components/schemas/ChatMessage"
+      },
+      "type": "array",
+      "title": "Messages"
+     },
+     "proposals": {
+      "items": {
+       "$ref": "#/components/schemas/Proposal"
+      },
+      "type": "array",
+      "title": "Proposals"
+     }
+    },
+    "type": "object",
+    "required": [
+     "messages",
+     "proposals"
+    ],
+    "title": "Conversation"
+   },
+   "CutStep": {
+    "properties": {
+     "n": {
+      "type": "integer",
+      "title": "N"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "rip",
+       "crosscut"
+      ],
+      "title": "Kind"
+     },
+     "offset": {
+      "type": "number",
+      "title": "Offset"
+     },
+     "piece_w": {
+      "type": "number",
+      "title": "Piece W"
+     },
+     "piece_h": {
+      "type": "number",
+      "title": "Piece H"
+     },
+     "x1": {
+      "type": "number",
+      "title": "X1"
+     },
+     "y1": {
+      "type": "number",
+      "title": "Y1"
+     },
+     "x2": {
+      "type": "number",
+      "title": "X2"
+     },
+     "y2": {
+      "type": "number",
+      "title": "Y2"
+     }
+    },
+    "type": "object",
+    "required": [
+     "n",
+     "kind",
+     "offset",
+     "piece_w",
+     "piece_h",
+     "x1",
+     "y1",
+     "x2",
+     "y2"
+    ],
+    "title": "CutStep"
+   },
+   "CuttingSettings-Input": {
+    "properties": {
+     "kerf_sheet_mm": {
+      "type": "number",
+      "maximum": 10.0,
+      "minimum": 0.0,
+      "title": "Kerf Sheet Mm",
+      "default": 3.0
+     },
+     "kerf_lumber_mm": {
+      "type": "number",
+      "maximum": 10.0,
+      "minimum": 0.0,
+      "title": "Kerf Lumber Mm",
+      "default": 3.0
+     },
+     "end_trim_mm": {
+      "type": "number",
+      "maximum": 200.0,
+      "minimum": 0.0,
+      "title": "End Trim Mm",
+      "default": 0.0
+     },
+     "edge_trim_mm": {
+      "type": "number",
+      "maximum": 100.0,
+      "minimum": 0.0,
+      "title": "Edge Trim Mm",
+      "default": 0.0
+     },
+     "allow_rotation": {
+      "type": "boolean",
+      "title": "Allow Rotation",
+      "default": true
+     },
+     "min_offcut_mm": {
+      "type": "number",
+      "minimum": 0.0,
+      "title": "Min Offcut Mm",
+      "default": 300.0
+     },
+     "min_offcut_sheet_mm": {
+      "type": "number",
+      "minimum": 0.0,
+      "title": "Min Offcut Sheet Mm",
+      "default": 150.0
+     },
+     "max_stock_length_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Stock Length Mm"
+     },
+     "use_inventory": {
+      "type": "boolean",
+      "title": "Use Inventory",
+      "default": true
+     },
+     "max_miter_deg": {
+      "type": "number",
+      "maximum": 90.0,
+      "minimum": 0.0,
+      "title": "Max Miter Deg",
+      "default": 50.0
+     },
+     "max_bevel_deg": {
+      "type": "number",
+      "maximum": 90.0,
+      "minimum": 0.0,
+      "title": "Max Bevel Deg",
+      "default": 45.0
+     }
+    },
+    "type": "object",
+    "title": "CuttingSettings",
+    "description": "How the shop cuts. Saw widths are separate because sheets are usually cut with a\ntrack/table saw and lumber with a miter or circular saw."
+   },
+   "CuttingSettings-Output": {
+    "properties": {
+     "kerf_sheet_mm": {
+      "type": "number",
+      "maximum": 10.0,
+      "minimum": 0.0,
+      "title": "Kerf Sheet Mm",
+      "default": 3.0
+     },
+     "kerf_lumber_mm": {
+      "type": "number",
+      "maximum": 10.0,
+      "minimum": 0.0,
+      "title": "Kerf Lumber Mm",
+      "default": 3.0
+     },
+     "end_trim_mm": {
+      "type": "number",
+      "maximum": 200.0,
+      "minimum": 0.0,
+      "title": "End Trim Mm",
+      "default": 0.0
+     },
+     "edge_trim_mm": {
+      "type": "number",
+      "maximum": 100.0,
+      "minimum": 0.0,
+      "title": "Edge Trim Mm",
+      "default": 0.0
+     },
+     "allow_rotation": {
+      "type": "boolean",
+      "title": "Allow Rotation",
+      "default": true
+     },
+     "min_offcut_mm": {
+      "type": "number",
+      "minimum": 0.0,
+      "title": "Min Offcut Mm",
+      "default": 300.0
+     },
+     "min_offcut_sheet_mm": {
+      "type": "number",
+      "minimum": 0.0,
+      "title": "Min Offcut Sheet Mm",
+      "default": 150.0
+     },
+     "max_stock_length_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Stock Length Mm"
+     },
+     "use_inventory": {
+      "type": "boolean",
+      "title": "Use Inventory",
+      "default": true
+     },
+     "max_miter_deg": {
+      "type": "number",
+      "maximum": 90.0,
+      "minimum": 0.0,
+      "title": "Max Miter Deg",
+      "default": 50.0
+     },
+     "max_bevel_deg": {
+      "type": "number",
+      "maximum": 90.0,
+      "minimum": 0.0,
+      "title": "Max Bevel Deg",
+      "default": 45.0
+     }
+    },
+    "type": "object",
+    "required": [
+     "kerf_sheet_mm",
+     "kerf_lumber_mm",
+     "end_trim_mm",
+     "edge_trim_mm",
+     "allow_rotation",
+     "min_offcut_mm",
+     "min_offcut_sheet_mm",
+     "max_stock_length_mm",
+     "use_inventory",
+     "max_miter_deg",
+     "max_bevel_deg"
+    ],
+    "title": "CuttingSettings",
+    "description": "How the shop cuts. Saw widths are separate because sheets are usually cut with a\ntrack/table saw and lumber with a miter or circular saw."
+   },
+   "DiffLine": {
+    "properties": {
+     "kind": {
+      "type": "string",
+      "enum": [
+       "add",
+       "change",
+       "remove",
+       "note"
+      ],
+      "title": "Kind"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind",
+     "text"
+    ],
+    "title": "DiffLine"
+   },
+   "EndCutSpec-Input": {
+    "properties": {
+     "miter": {
+      "type": "number",
+      "maximum": 90.0,
+      "minimum": 0.0,
+      "title": "Miter",
+      "default": 0
+     },
+     "bevel": {
+      "type": "number",
+      "maximum": 90.0,
+      "minimum": 0.0,
+      "title": "Bevel",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "title": "EndCutSpec",
+    "description": "Saw settings for one end of a bar: miter = table rotation, bevel = blade tilt (0 = square)."
+   },
+   "EndCutSpec-Output": {
+    "properties": {
+     "miter": {
+      "type": "number",
+      "maximum": 90.0,
+      "minimum": 0.0,
+      "title": "Miter",
+      "default": 0
+     },
+     "bevel": {
+      "type": "number",
+      "maximum": 90.0,
+      "minimum": 0.0,
+      "title": "Bevel",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "miter",
+     "bevel"
+    ],
+    "title": "EndCutSpec",
+    "description": "Saw settings for one end of a bar: miter = table rotation, bevel = blade tilt (0 = square)."
+   },
+   "Frame-Input": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version",
+      "default": 1
+     },
+     "params": {
+      "items": {
+       "$ref": "#/components/schemas/FrameParam-Input"
+      },
+      "type": "array",
+      "maxItems": 50,
+      "title": "Params",
+      "default": []
+     },
+     "defaults": {
+      "$ref": "#/components/schemas/FrameDefaults-Input",
+      "default": {
+       "corner": "butt",
+       "lines": "outside"
+      }
+     },
+     "nodes": {
+      "items": {
+       "$ref": "#/components/schemas/FrameNode-Input"
+      },
+      "type": "array",
+      "maxItems": 2000,
+      "title": "Nodes",
+      "default": []
+     },
+     "members": {
+      "items": {
+       "$ref": "#/components/schemas/FrameMember-Input"
+      },
+      "type": "array",
+      "maxItems": 2000,
+      "title": "Members",
+      "default": []
+     },
+     "joints": {
+      "items": {
+       "$ref": "#/components/schemas/FrameJoint-Input"
+      },
+      "type": "array",
+      "maxItems": 2000,
+      "title": "Joints",
+      "default": []
+     }
+    },
+    "type": "object",
+    "title": "Frame"
+   },
+   "Frame-Output": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version",
+      "default": 1
+     },
+     "params": {
+      "items": {
+       "$ref": "#/components/schemas/FrameParam-Output"
+      },
+      "type": "array",
+      "maxItems": 50,
+      "title": "Params",
+      "default": []
+     },
+     "defaults": {
+      "$ref": "#/components/schemas/FrameDefaults-Output",
+      "default": {
+       "corner": "butt",
+       "lines": "outside"
+      }
+     },
+     "nodes": {
+      "items": {
+       "$ref": "#/components/schemas/FrameNode-Output"
+      },
+      "type": "array",
+      "maxItems": 2000,
+      "title": "Nodes",
+      "default": []
+     },
+     "members": {
+      "items": {
+       "$ref": "#/components/schemas/FrameMember-Output"
+      },
+      "type": "array",
+      "maxItems": 2000,
+      "title": "Members",
+      "default": []
+     },
+     "joints": {
+      "items": {
+       "$ref": "#/components/schemas/FrameJoint-Output"
+      },
+      "type": "array",
+      "maxItems": 2000,
+      "title": "Joints",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "version",
+     "params",
+     "defaults",
+     "nodes",
+     "members",
+     "joints"
+    ],
+    "title": "Frame"
+   },
+   "FrameDefaults-Input": {
+    "properties": {
+     "corner": {
+      "type": "string",
+      "enum": [
+       "miter",
+       "butt"
+      ],
+      "title": "Corner",
+      "default": "butt"
+     },
+     "lines": {
+      "type": "string",
+      "enum": [
+       "outside",
+       "centerline"
+      ],
+      "title": "Lines",
+      "default": "outside"
+     }
+    },
+    "type": "object",
+    "title": "FrameDefaults"
+   },
+   "FrameDefaults-Output": {
+    "properties": {
+     "corner": {
+      "type": "string",
+      "enum": [
+       "miter",
+       "butt"
+      ],
+      "title": "Corner",
+      "default": "butt"
+     },
+     "lines": {
+      "type": "string",
+      "enum": [
+       "outside",
+       "centerline"
+      ],
+      "title": "Lines",
+      "default": "outside"
+     }
+    },
+    "type": "object",
+    "required": [
+     "corner",
+     "lines"
+    ],
+    "title": "FrameDefaults"
+   },
+   "FrameJoint-Input": {
+    "properties": {
+     "node": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "Node"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "miter",
+       "butt"
+      ],
+      "title": "Kind"
+     },
+     "through": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 64
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Through"
+     }
+    },
+    "type": "object",
+    "required": [
+     "node",
+     "kind"
+    ],
+    "title": "FrameJoint",
+    "description": "An override for how the members meeting at a node are cut."
+   },
+   "FrameJoint-Output": {
+    "properties": {
+     "node": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "Node"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "miter",
+       "butt"
+      ],
+      "title": "Kind"
+     },
+     "through": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 64
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Through"
+     }
+    },
+    "type": "object",
+    "required": [
+     "node",
+     "kind",
+     "through"
+    ],
+    "title": "FrameJoint",
+    "description": "An override for how the members meeting at a node are cut."
+   },
+   "FrameMember-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "a": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "A"
+     },
+     "b": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "B"
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 64
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "roll_deg": {
+      "type": "number",
+      "maximum": 360.0,
+      "minimum": -360.0,
+      "title": "Roll Deg",
+      "default": 0
+     },
+     "anchor": {
+      "type": "string",
+      "enum": [
+       "auto",
+       "c",
+       "t",
+       "b",
+       "l",
+       "r",
+       "tl",
+       "tr",
+       "bl",
+       "br"
+      ],
+      "title": "Anchor",
+      "default": "auto"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 60,
+      "title": "Name",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "a",
+     "b"
+    ],
+    "title": "FrameMember"
+   },
+   "FrameMember-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "a": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "A"
+     },
+     "b": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "B"
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 64
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "roll_deg": {
+      "type": "number",
+      "maximum": 360.0,
+      "minimum": -360.0,
+      "title": "Roll Deg",
+      "default": 0
+     },
+     "anchor": {
+      "type": "string",
+      "enum": [
+       "auto",
+       "c",
+       "t",
+       "b",
+       "l",
+       "r",
+       "tl",
+       "tr",
+       "bl",
+       "br"
+      ],
+      "title": "Anchor",
+      "default": "auto"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 60,
+      "title": "Name",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "a",
+     "b",
+     "item_id",
+     "roll_deg",
+     "anchor",
+     "name"
+    ],
+    "title": "FrameMember"
+   },
+   "FrameNode-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "x": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "X",
+      "default": 0.0
+     },
+     "y": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Y",
+      "default": 0.0
+     },
+     "z": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Z",
+      "default": 0.0
+     }
+    },
+    "type": "object",
+    "title": "FrameNode"
+   },
+   "FrameNode-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "x": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "X",
+      "default": 0.0
+     },
+     "y": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Y",
+      "default": 0.0
+     },
+     "z": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Z",
+      "default": 0.0
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "x",
+     "y",
+     "z"
+    ],
+    "title": "FrameNode"
+   },
+   "FrameParam-Input": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 32,
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "title": "Name"
+     },
+     "mm": {
+      "type": "number",
+      "maximum": 100000.0,
+      "minimum": -100000.0,
+      "title": "Mm"
+     },
+     "label": {
+      "type": "string",
+      "maxLength": 60,
+      "title": "Label",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "mm"
+    ],
+    "title": "FrameParam"
+   },
+   "FrameParam-Output": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 32,
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "title": "Name"
+     },
+     "mm": {
+      "type": "number",
+      "maximum": 100000.0,
+      "minimum": -100000.0,
+      "title": "Mm"
+     },
+     "label": {
+      "type": "string",
+      "maxLength": 60,
+      "title": "Label",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "mm",
+     "label"
+    ],
+    "title": "FrameParam"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "HardwareLine-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     },
+     "qty": {
+      "type": "number",
+      "minimum": 0.0,
+      "title": "Qty",
+      "default": 1
+     },
+     "unit_price": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit Price"
+     }
+    },
+    "type": "object",
+    "title": "HardwareLine"
+   },
+   "HardwareLine-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     },
+     "qty": {
+      "type": "number",
+      "minimum": 0.0,
+      "title": "Qty",
+      "default": 1
+     },
+     "unit_price": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit Price"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "item_id",
+     "name",
+     "qty",
+     "unit_price"
+    ],
+    "title": "HardwareLine"
+   },
+   "HardwareTotal": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "qty": {
+      "type": "number",
+      "title": "Qty"
+     },
+     "packs": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Packs"
+     },
+     "pack_size": {
+      "type": "integer",
+      "title": "Pack Size"
+     },
+     "unit": {
+      "type": "string",
+      "title": "Unit"
+     },
+     "unit_price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit Price"
+     },
+     "total": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total"
+     },
+     "assemblies": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Assemblies"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "item_id",
+     "name",
+     "qty",
+     "packs",
+     "pack_size",
+     "unit",
+     "unit_price",
+     "total",
+     "assemblies"
+    ],
+    "title": "HardwareTotal"
+   },
+   "ImportProposalItem": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "enum": [
+       "new",
+       "update",
+       "same"
+      ],
+      "title": "Action"
+     },
+     "match_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Match Id"
+     },
+     "item": {
+      "$ref": "#/components/schemas/CatalogItemBase"
+     },
+     "changes": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Changes",
+      "default": []
+     },
+     "selected": {
+      "type": "boolean",
+      "title": "Selected",
+      "default": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "action",
+     "match_id",
+     "item",
+     "changes",
+     "selected"
+    ],
+    "title": "ImportProposalItem"
+   },
+   "InventoryEntry": {
+    "properties": {
+     "item_id": {
+      "type": "string",
+      "title": "Item Id"
+     },
+     "kind": {
+      "$ref": "#/components/schemas/StockKind",
+      "default": "offcut"
+     },
+     "length_mm": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Length Mm"
+     },
+     "width_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width Mm"
+     },
+     "qty": {
+      "type": "integer",
+      "minimum": 1.0,
+      "title": "Qty",
+      "default": 1
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     },
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "owner_id": {
+      "type": "string",
+      "title": "Owner Id"
+     },
+     "status": {
+      "$ref": "#/components/schemas/StockStatus",
+      "default": "available"
+     },
+     "source_project_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source Project Id"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "item_id",
+     "kind",
+     "length_mm",
+     "width_mm",
+     "qty",
+     "note",
+     "id",
+     "owner_id",
+     "status",
+     "source_project_id",
+     "created_at"
+    ],
+    "title": "InventoryEntry"
+   },
+   "InventoryIn": {
+    "properties": {
+     "item_id": {
+      "type": "string",
+      "title": "Item Id"
+     },
+     "kind": {
+      "$ref": "#/components/schemas/StockKind",
+      "default": "offcut"
+     },
+     "length_mm": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Length Mm"
+     },
+     "width_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width Mm"
+     },
+     "qty": {
+      "type": "integer",
+      "minimum": 1.0,
+      "title": "Qty",
+      "default": 1
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "item_id",
+     "length_mm"
+    ],
+    "title": "InventoryIn"
+   },
+   "InventoryOut": {
+    "properties": {
+     "item_id": {
+      "type": "string",
+      "title": "Item Id"
+     },
+     "kind": {
+      "$ref": "#/components/schemas/StockKind",
+      "default": "offcut"
+     },
+     "length_mm": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Length Mm"
+     },
+     "width_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width Mm"
+     },
+     "qty": {
+      "type": "integer",
+      "minimum": 1.0,
+      "title": "Qty",
+      "default": 1
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     },
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "owner_id": {
+      "type": "string",
+      "title": "Owner Id"
+     },
+     "status": {
+      "$ref": "#/components/schemas/StockStatus",
+      "default": "available"
+     },
+     "source_project_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source Project Id"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "item_name": {
+      "type": "string",
+      "title": "Item Name",
+      "default": ""
+     },
+     "item_kind": {
+      "type": "string",
+      "title": "Item Kind",
+      "default": ""
+     },
+     "source_project_name": {
+      "type": "string",
+      "title": "Source Project Name",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "item_id",
+     "kind",
+     "length_mm",
+     "width_mm",
+     "qty",
+     "note",
+     "id",
+     "owner_id",
+     "status",
+     "source_project_id",
+     "created_at",
+     "item_name",
+     "item_kind",
+     "source_project_name"
+    ],
+    "title": "InventoryOut"
+   },
+   "InventoryPatch": {
+    "properties": {
+     "qty": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Qty"
+     },
+     "length_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Length Mm"
+     },
+     "width_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "exclusiveMinimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width Mm"
+     },
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/StockStatus"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "title": "InventoryPatch"
+   },
+   "InviteIn": {
+    "properties": {
+     "role": {
+      "type": "string",
+      "enum": [
+       "editor",
+       "viewer"
+      ],
+      "title": "Role",
+      "default": "editor"
+     }
+    },
+    "type": "object",
+    "title": "InviteIn"
+   },
+   "InviteOut": {
+    "properties": {
+     "token": {
+      "type": "string",
+      "title": "Token"
+     },
+     "role": {
+      "type": "string",
+      "title": "Role"
+     },
+     "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Expires At"
+     },
+     "project_name": {
+      "type": "string",
+      "title": "Project Name",
+      "default": ""
+     },
+     "invited_by": {
+      "type": "string",
+      "title": "Invited By",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "token",
+     "role",
+     "expires_at",
+     "project_name",
+     "invited_by"
+    ],
+    "title": "InviteOut"
+   },
+   "ItemKind": {
+    "type": "string",
+    "enum": [
+     "lumber",
+     "sheet",
+     "hardware"
+    ],
+    "title": "ItemKind"
+   },
+   "ItemStatus": {
+    "type": "string",
+    "enum": [
+     "active",
+     "suggested",
+     "retired"
+    ],
+    "title": "ItemStatus"
+   },
+   "Localized-Input": {
+    "properties": {
+     "en": {
+      "type": "string",
+      "title": "En",
+      "default": ""
+     },
+     "he": {
+      "type": "string",
+      "title": "He",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "title": "Localized"
+   },
+   "Localized-Output": {
+    "properties": {
+     "en": {
+      "type": "string",
+      "title": "En",
+      "default": ""
+     },
+     "he": {
+      "type": "string",
+      "title": "He",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "en",
+     "he"
+    ],
+    "title": "Localized"
+   },
+   "LumberPlan": {
+    "properties": {
+     "item_id": {
+      "type": "string",
+      "title": "Item Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "priced": {
+      "type": "boolean",
+      "title": "Priced",
+      "default": true
+     },
+     "supplier_name": {
+      "type": "string",
+      "title": "Supplier Name",
+      "default": ""
+     },
+     "kerf": {
+      "type": "number",
+      "title": "Kerf"
+     },
+     "cost": {
+      "type": "number",
+      "title": "Cost"
+     },
+     "waste_pct": {
+      "type": "number",
+      "title": "Waste Pct"
+     },
+     "optimal": {
+      "type": "boolean",
+      "title": "Optimal"
+     },
+     "longest_stock": {
+      "type": "number",
+      "title": "Longest Stock"
+     },
+     "buy": {
+      "items": {
+       "$ref": "#/components/schemas/BuyLine"
+      },
+      "type": "array",
+      "title": "Buy"
+     },
+     "patterns": {
+      "items": {
+       "$ref": "#/components/schemas/BoardPattern"
+      },
+      "type": "array",
+      "title": "Patterns"
+     }
+    },
+    "type": "object",
+    "required": [
+     "item_id",
+     "name",
+     "priced",
+     "supplier_name",
+     "kerf",
+     "cost",
+     "waste_pct",
+     "optimal",
+     "longest_stock",
+     "buy",
+     "patterns"
+    ],
+    "title": "LumberPlan"
+   },
+   "LumberStock-Input": {
+    "properties": {
+     "length_mm": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Length Mm"
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     }
+    },
+    "type": "object",
+    "required": [
+     "length_mm"
+    ],
+    "title": "LumberStock"
+   },
+   "LumberStock-Output": {
+    "properties": {
+     "length_mm": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Length Mm"
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     }
+    },
+    "type": "object",
+    "required": [
+     "length_mm",
+     "price"
+    ],
+    "title": "LumberStock"
+   },
+   "Member": {
+    "properties": {
+     "user_id": {
+      "type": "string",
+      "title": "User Id"
+     },
+     "role": {
+      "$ref": "#/components/schemas/Role"
+     },
+     "email": {
+      "type": "string",
+      "title": "Email",
+      "default": ""
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "user_id",
+     "role",
+     "email",
+     "name"
+    ],
+    "title": "Member"
+   },
+   "OrganizeIn": {
+    "properties": {
+     "item_ids": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Item Ids",
+      "default": []
+     }
+    },
+    "type": "object",
+    "title": "OrganizeIn"
+   },
+   "Part-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "qty": {
+      "type": "integer",
+      "maximum": 10000.0,
+      "minimum": 1.0,
+      "title": "Qty",
+      "default": 1
+     },
+     "length_mm": {
+      "type": "number",
+      "maximum": 100000.0,
+      "minimum": 0.0,
+      "title": "Length Mm",
+      "default": 0
+     },
+     "width_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100000.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width Mm"
+     },
+     "grain_locked": {
+      "type": "boolean",
+      "title": "Grain Locked",
+      "default": false
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     },
+     "members": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 10000,
+      "title": "Members",
+      "default": []
+     },
+     "short_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Short Mm"
+     },
+     "cuts": {
+      "items": {
+       "$ref": "#/components/schemas/EndCutSpec-Input"
+      },
+      "type": "array",
+      "maxItems": 2,
+      "title": "Cuts",
+      "default": []
+     },
+     "face_up": {
+      "type": "string",
+      "enum": [
+       "top",
+       "side",
+       ""
+      ],
+      "title": "Face Up",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "title": "Part"
+   },
+   "Part-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "qty": {
+      "type": "integer",
+      "maximum": 10000.0,
+      "minimum": 1.0,
+      "title": "Qty",
+      "default": 1
+     },
+     "length_mm": {
+      "type": "number",
+      "maximum": 100000.0,
+      "minimum": 0.0,
+      "title": "Length Mm",
+      "default": 0
+     },
+     "width_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100000.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width Mm"
+     },
+     "grain_locked": {
+      "type": "boolean",
+      "title": "Grain Locked",
+      "default": false
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     },
+     "members": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 10000,
+      "title": "Members",
+      "default": []
+     },
+     "short_mm": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Short Mm"
+     },
+     "cuts": {
+      "items": {
+       "$ref": "#/components/schemas/EndCutSpec-Output"
+      },
+      "type": "array",
+      "maxItems": 2,
+      "title": "Cuts",
+      "default": []
+     },
+     "face_up": {
+      "type": "string",
+      "enum": [
+       "top",
+       "side",
+       ""
+      ],
+      "title": "Face Up",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "item_id",
+     "qty",
+     "length_mm",
+     "width_mm",
+     "grain_locked",
+     "notes",
+     "members",
+     "short_mm",
+     "cuts",
+     "face_up"
+    ],
+    "title": "Part"
+   },
+   "PlacedPart": {
+    "properties": {
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "part_id": {
+      "type": "string",
+      "title": "Part Id"
+     },
+     "assembly": {
+      "type": "string",
+      "title": "Assembly"
+     },
+     "x": {
+      "type": "number",
+      "title": "X"
+     },
+     "y": {
+      "type": "number",
+      "title": "Y"
+     },
+     "w": {
+      "type": "number",
+      "title": "W"
+     },
+     "h": {
+      "type": "number",
+      "title": "H"
+     },
+     "rotated": {
+      "type": "boolean",
+      "title": "Rotated"
+     }
+    },
+    "type": "object",
+    "required": [
+     "label",
+     "name",
+     "part_id",
+     "assembly",
+     "x",
+     "y",
+     "w",
+     "h",
+     "rotated"
+    ],
+    "title": "PlacedPart"
+   },
+   "PlanOut": {
+    "properties": {
+     "project_id": {
+      "type": "string",
+      "title": "Project Id"
+     },
+     "computed_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Computed At"
+     },
+     "input_hash": {
+      "type": "string",
+      "title": "Input Hash"
+     },
+     "currency": {
+      "type": "string",
+      "title": "Currency"
+     },
+     "totals": {
+      "$ref": "#/components/schemas/Totals"
+     },
+     "lumber": {
+      "items": {
+       "$ref": "#/components/schemas/LumberPlan"
+      },
+      "type": "array",
+      "title": "Lumber"
+     },
+     "sheets": {
+      "items": {
+       "$ref": "#/components/schemas/SheetPlan"
+      },
+      "type": "array",
+      "title": "Sheets"
+     },
+     "hardware": {
+      "items": {
+       "$ref": "#/components/schemas/HardwareTotal"
+      },
+      "type": "array",
+      "title": "Hardware"
+     },
+     "unplaced": {
+      "items": {
+       "$ref": "#/components/schemas/Unplaced"
+      },
+      "type": "array",
+      "title": "Unplaced"
+     },
+     "warnings": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Warnings"
+     }
+    },
+    "type": "object",
+    "required": [
+     "project_id",
+     "computed_at",
+     "input_hash",
+     "currency",
+     "totals",
+     "lumber",
+     "sheets",
+     "hardware",
+     "unplaced",
+     "warnings"
+    ],
+    "title": "PlanOut"
+   },
+   "Prefs-Input": {
+    "properties": {
+     "units": {
+      "type": "string",
+      "enum": [
+       "mm",
+       "cm"
+      ],
+      "title": "Units",
+      "default": "mm"
+     },
+     "export_lang": {
+      "type": "string",
+      "enum": [
+       "en",
+       "he"
+      ],
+      "title": "Export Lang",
+      "default": "en"
+     },
+     "theme": {
+      "type": "string",
+      "enum": [
+       "system",
+       "light",
+       "dark"
+      ],
+      "title": "Theme",
+      "default": "system"
+     },
+     "cutting": {
+      "$ref": "#/components/schemas/CuttingSettings-Input",
+      "default": {
+       "kerf_sheet_mm": 3.0,
+       "kerf_lumber_mm": 3.0,
+       "end_trim_mm": 0.0,
+       "edge_trim_mm": 0.0,
+       "allow_rotation": true,
+       "min_offcut_mm": 300.0,
+       "min_offcut_sheet_mm": 150.0,
+       "use_inventory": true,
+       "max_miter_deg": 50.0,
+       "max_bevel_deg": 45.0
+      }
+     }
+    },
+    "type": "object",
+    "title": "Prefs"
+   },
+   "Prefs-Output": {
+    "properties": {
+     "units": {
+      "type": "string",
+      "enum": [
+       "mm",
+       "cm"
+      ],
+      "title": "Units",
+      "default": "mm"
+     },
+     "export_lang": {
+      "type": "string",
+      "enum": [
+       "en",
+       "he"
+      ],
+      "title": "Export Lang",
+      "default": "en"
+     },
+     "theme": {
+      "type": "string",
+      "enum": [
+       "system",
+       "light",
+       "dark"
+      ],
+      "title": "Theme",
+      "default": "system"
+     },
+     "cutting": {
+      "$ref": "#/components/schemas/CuttingSettings-Output",
+      "default": {
+       "kerf_sheet_mm": 3.0,
+       "kerf_lumber_mm": 3.0,
+       "end_trim_mm": 0.0,
+       "edge_trim_mm": 0.0,
+       "allow_rotation": true,
+       "min_offcut_mm": 300.0,
+       "min_offcut_sheet_mm": 150.0,
+       "use_inventory": true,
+       "max_miter_deg": 50.0,
+       "max_bevel_deg": 45.0
+      }
+     }
+    },
+    "type": "object",
+    "required": [
+     "units",
+     "export_lang",
+     "theme",
+     "cutting"
+    ],
+    "title": "Prefs"
+   },
+   "PrefsUpdate": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "prefs": {
+      "$ref": "#/components/schemas/Prefs-Input"
+     }
+    },
+    "type": "object",
+    "required": [
+     "prefs"
+    ],
+    "title": "PrefsUpdate"
+   },
+   "PricePoint": {
+    "properties": {
+     "at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "At"
+     },
+     "price": {
+      "type": "number",
+      "title": "Price"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "at",
+     "price",
+     "note"
+    ],
+    "title": "PricePoint"
+   },
+   "ProfileSpec-Input": {
+    "properties": {
+     "shape": {
+      "type": "string",
+      "enum": [
+       "rect",
+       "flat_bar",
+       "rect_tube",
+       "round_tube",
+       "round_bar",
+       "angle",
+       "channel"
+      ],
+      "title": "Shape"
+     },
+     "w": {
+      "type": "number",
+      "maximum": 2000.0,
+      "exclusiveMinimum": 0.0,
+      "title": "W"
+     },
+     "h": {
+      "type": "number",
+      "maximum": 2000.0,
+      "exclusiveMinimum": 0.0,
+      "title": "H"
+     },
+     "t": {
+      "type": "number",
+      "maximum": 200.0,
+      "minimum": 0.0,
+      "title": "T",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "shape",
+     "w",
+     "h"
+    ],
+    "title": "ProfileSpec",
+    "description": "Cross-section of a bar. w across, h up, t = wall (tubes, angle, channel). Round: w = h = diameter."
+   },
+   "ProfileSpec-Output": {
+    "properties": {
+     "shape": {
+      "type": "string",
+      "enum": [
+       "rect",
+       "flat_bar",
+       "rect_tube",
+       "round_tube",
+       "round_bar",
+       "angle",
+       "channel"
+      ],
+      "title": "Shape"
+     },
+     "w": {
+      "type": "number",
+      "maximum": 2000.0,
+      "exclusiveMinimum": 0.0,
+      "title": "W"
+     },
+     "h": {
+      "type": "number",
+      "maximum": 2000.0,
+      "exclusiveMinimum": 0.0,
+      "title": "H"
+     },
+     "t": {
+      "type": "number",
+      "maximum": 200.0,
+      "minimum": 0.0,
+      "title": "T",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "shape",
+     "w",
+     "h",
+     "t"
+    ],
+    "title": "ProfileSpec",
+    "description": "Cross-section of a bar. w across, h up, t = wall (tubes, angle, channel). Round: w = h = diameter."
+   },
+   "Project": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Name",
+      "default": "Untitled project"
+     },
+     "description": {
+      "type": "string",
+      "maxLength": 5000,
+      "title": "Description",
+      "default": ""
+     },
+     "settings": {
+      "$ref": "#/components/schemas/CuttingSettings-Output",
+      "default": {
+       "kerf_sheet_mm": 3.0,
+       "kerf_lumber_mm": 3.0,
+       "end_trim_mm": 0.0,
+       "edge_trim_mm": 0.0,
+       "allow_rotation": true,
+       "min_offcut_mm": 300.0,
+       "min_offcut_sheet_mm": 150.0,
+       "use_inventory": true,
+       "max_miter_deg": 50.0,
+       "max_bevel_deg": 45.0
+      }
+     },
+     "assemblies": {
+      "items": {
+       "$ref": "#/components/schemas/Assembly-Output"
+      },
+      "type": "array",
+      "maxItems": 200,
+      "title": "Assemblies",
+      "default": []
+     },
+     "extras": {
+      "items": {
+       "$ref": "#/components/schemas/HardwareLine-Output"
+      },
+      "type": "array",
+      "maxItems": 300,
+      "title": "Extras",
+      "default": []
+     },
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "owner_id": {
+      "type": "string",
+      "title": "Owner Id"
+     },
+     "members": {
+      "items": {
+       "$ref": "#/components/schemas/Member"
+      },
+      "type": "array",
+      "title": "Members",
+      "default": []
+     },
+     "status": {
+      "$ref": "#/components/schemas/ProjectStatus",
+      "default": "planning"
+     },
+     "archived": {
+      "type": "boolean",
+      "title": "Archived",
+      "default": false
+     },
+     "purchase": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Purchase"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "cut_inventory": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/InventoryEntry"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cut Inventory"
+     },
+     "shopping_checked": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Shopping Checked",
+      "default": []
+     },
+     "last_total": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Total"
+     },
+     "is_template": {
+      "type": "boolean",
+      "title": "Is Template",
+      "default": false
+     },
+     "template": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/TemplateMeta"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version",
+      "default": 1
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "description",
+     "settings",
+     "assemblies",
+     "extras",
+     "id",
+     "owner_id",
+     "members",
+     "status",
+     "archived",
+     "purchase",
+     "cut_inventory",
+     "shopping_checked",
+     "last_total",
+     "is_template",
+     "template",
+     "created_at",
+     "updated_at",
+     "version"
+    ],
+    "title": "Project"
+   },
+   "ProjectCreate": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": "Untitled project"
+     },
+     "description": {
+      "type": "string",
+      "title": "Description",
+      "default": ""
+     },
+     "template_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Template Id"
+     }
+    },
+    "type": "object",
+    "title": "ProjectCreate"
+   },
+   "ProjectStatus": {
+    "type": "string",
+    "enum": [
+     "planning",
+     "bought",
+     "cut",
+     "done"
+    ],
+    "title": "ProjectStatus"
+   },
+   "ProjectSummary": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "description": {
+      "type": "string",
+      "title": "Description"
+     },
+     "status": {
+      "$ref": "#/components/schemas/ProjectStatus"
+     },
+     "archived": {
+      "type": "boolean",
+      "title": "Archived"
+     },
+     "role": {
+      "$ref": "#/components/schemas/Role"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     },
+     "assemblies": {
+      "type": "integer",
+      "title": "Assemblies"
+     },
+     "parts": {
+      "type": "integer",
+      "title": "Parts"
+     },
+     "total_cost": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total Cost"
+     },
+     "is_template": {
+      "type": "boolean",
+      "title": "Is Template",
+      "default": false
+     },
+     "owner_name": {
+      "type": "string",
+      "title": "Owner Name",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "description",
+     "status",
+     "archived",
+     "role",
+     "updated_at",
+     "assemblies",
+     "parts",
+     "total_cost",
+     "is_template",
+     "owner_name"
+    ],
+    "title": "ProjectSummary"
+   },
+   "ProjectUpdate": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Name",
+      "default": "Untitled project"
+     },
+     "description": {
+      "type": "string",
+      "maxLength": 5000,
+      "title": "Description",
+      "default": ""
+     },
+     "settings": {
+      "$ref": "#/components/schemas/CuttingSettings-Input",
+      "default": {
+       "kerf_sheet_mm": 3.0,
+       "kerf_lumber_mm": 3.0,
+       "end_trim_mm": 0.0,
+       "edge_trim_mm": 0.0,
+       "allow_rotation": true,
+       "min_offcut_mm": 300.0,
+       "min_offcut_sheet_mm": 150.0,
+       "use_inventory": true,
+       "max_miter_deg": 50.0,
+       "max_bevel_deg": 45.0
+      }
+     },
+     "assemblies": {
+      "items": {
+       "$ref": "#/components/schemas/Assembly-Input"
+      },
+      "type": "array",
+      "maxItems": 200,
+      "title": "Assemblies",
+      "default": []
+     },
+     "extras": {
+      "items": {
+       "$ref": "#/components/schemas/HardwareLine-Input"
+      },
+      "type": "array",
+      "maxItems": 300,
+      "title": "Extras",
+      "default": []
+     },
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version"
+    ],
+    "title": "ProjectUpdate"
+   },
+   "Proposal": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "project_id": {
+      "type": "string",
+      "title": "Project Id"
+     },
+     "user_id": {
+      "type": "string",
+      "title": "User Id"
+     },
+     "source": {
+      "type": "string",
+      "enum": [
+       "chat",
+       "spreadsheet"
+      ],
+      "title": "Source",
+      "default": "chat"
+     },
+     "base_version": {
+      "type": "integer",
+      "title": "Base Version"
+     },
+     "summary": {
+      "type": "string",
+      "title": "Summary",
+      "default": ""
+     },
+     "ops": {
+      "items": {
+       "$ref": "#/components/schemas/AIOp"
+      },
+      "type": "array",
+      "title": "Ops",
+      "default": []
+     },
+     "diff": {
+      "items": {
+       "$ref": "#/components/schemas/DiffLine"
+      },
+      "type": "array",
+      "title": "Diff",
+      "default": []
+     },
+     "cost_before": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cost Before"
+     },
+     "cost_after": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cost After"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "pending",
+       "applied",
+       "discarded",
+       "stale"
+      ],
+      "title": "Status",
+      "default": "pending"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "project_id",
+     "user_id",
+     "source",
+     "base_version",
+     "summary",
+     "ops",
+     "diff",
+     "cost_before",
+     "cost_after",
+     "status",
+     "created_at"
+    ],
+    "title": "Proposal"
+   },
+   "Purchase": {
+    "properties": {
+     "at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "At"
+     },
+     "lines": {
+      "items": {
+       "$ref": "#/components/schemas/PurchaseLine"
+      },
+      "type": "array",
+      "title": "Lines",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "at",
+     "lines"
+    ],
+    "title": "Purchase"
+   },
+   "PurchaseLine": {
+    "properties": {
+     "item_id": {
+      "type": "string",
+      "title": "Item Id"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "length_mm": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Length Mm"
+     },
+     "width_mm": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Width Mm"
+     },
+     "qty": {
+      "type": "number",
+      "title": "Qty"
+     },
+     "unit_price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit Price"
+     }
+    },
+    "type": "object",
+    "required": [
+     "item_id",
+     "kind",
+     "length_mm",
+     "width_mm",
+     "qty",
+     "unit_price"
+    ],
+    "title": "PurchaseLine"
+   },
+   "Rect": {
+    "properties": {
+     "x": {
+      "type": "number",
+      "title": "X"
+     },
+     "y": {
+      "type": "number",
+      "title": "Y"
+     },
+     "w": {
+      "type": "number",
+      "title": "W"
+     },
+     "h": {
+      "type": "number",
+      "title": "H"
+     }
+    },
+    "type": "object",
+    "required": [
+     "x",
+     "y",
+     "w",
+     "h"
+    ],
+    "title": "Rect"
+   },
+   "Role": {
+    "type": "string",
+    "enum": [
+     "owner",
+     "editor",
+     "viewer"
+    ],
+    "title": "Role"
+   },
+   "RoleIn": {
+    "properties": {
+     "role": {
+      "$ref": "#/components/schemas/UserRole"
+     }
+    },
+    "type": "object",
+    "required": [
+     "role"
+    ],
+    "title": "RoleIn"
+   },
+   "Segment": {
+    "properties": {
+     "kind": {
+      "type": "string",
+      "enum": [
+       "part",
+       "offcut",
+       "waste"
+      ],
+      "title": "Kind"
+     },
+     "start": {
+      "type": "number",
+      "title": "Start"
+     },
+     "length": {
+      "type": "number",
+      "title": "Length"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label",
+      "default": ""
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     },
+     "part_id": {
+      "type": "string",
+      "title": "Part Id",
+      "default": ""
+     },
+     "assembly": {
+      "type": "string",
+      "title": "Assembly",
+      "default": ""
+     },
+     "cuts": {
+      "items": {
+       "$ref": "#/components/schemas/EndCutSpec-Output"
+      },
+      "type": "array",
+      "title": "Cuts",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind",
+     "start",
+     "length",
+     "label",
+     "name",
+     "part_id",
+     "assembly",
+     "cuts"
+    ],
+    "title": "Segment"
+   },
+   "SheetLayoutOut": {
+    "properties": {
+     "length": {
+      "type": "number",
+      "title": "Length"
+     },
+     "width": {
+      "type": "number",
+      "title": "Width"
+     },
+     "source": {
+      "type": "string",
+      "enum": [
+       "buy",
+       "inventory",
+       "purchased"
+      ],
+      "title": "Source"
+     },
+     "unit_price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit Price"
+     },
+     "parts": {
+      "items": {
+       "$ref": "#/components/schemas/PlacedPart"
+      },
+      "type": "array",
+      "title": "Parts"
+     },
+     "offcuts": {
+      "items": {
+       "$ref": "#/components/schemas/Rect"
+      },
+      "type": "array",
+      "title": "Offcuts"
+     },
+     "cuts": {
+      "items": {
+       "$ref": "#/components/schemas/CutStep"
+      },
+      "type": "array",
+      "title": "Cuts"
+     },
+     "used_pct": {
+      "type": "number",
+      "title": "Used Pct"
+     }
+    },
+    "type": "object",
+    "required": [
+     "length",
+     "width",
+     "source",
+     "unit_price",
+     "parts",
+     "offcuts",
+     "cuts",
+     "used_pct"
+    ],
+    "title": "SheetLayoutOut"
+   },
+   "SheetPlan": {
+    "properties": {
+     "item_id": {
+      "type": "string",
+      "title": "Item Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "priced": {
+      "type": "boolean",
+      "title": "Priced",
+      "default": true
+     },
+     "supplier_name": {
+      "type": "string",
+      "title": "Supplier Name",
+      "default": ""
+     },
+     "thickness_mm": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Thickness Mm"
+     },
+     "has_grain": {
+      "type": "boolean",
+      "title": "Has Grain"
+     },
+     "kerf": {
+      "type": "number",
+      "title": "Kerf"
+     },
+     "edge_trim": {
+      "type": "number",
+      "title": "Edge Trim"
+     },
+     "cost": {
+      "type": "number",
+      "title": "Cost"
+     },
+     "waste_pct": {
+      "type": "number",
+      "title": "Waste Pct"
+     },
+     "buy": {
+      "items": {
+       "$ref": "#/components/schemas/BuyLine"
+      },
+      "type": "array",
+      "title": "Buy"
+     },
+     "layouts": {
+      "items": {
+       "$ref": "#/components/schemas/SheetLayoutOut"
+      },
+      "type": "array",
+      "title": "Layouts"
+     }
+    },
+    "type": "object",
+    "required": [
+     "item_id",
+     "name",
+     "priced",
+     "supplier_name",
+     "thickness_mm",
+     "has_grain",
+     "kerf",
+     "edge_trim",
+     "cost",
+     "waste_pct",
+     "buy",
+     "layouts"
+    ],
+    "title": "SheetPlan"
+   },
+   "SheetStock-Input": {
+    "properties": {
+     "length_mm": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Length Mm"
+     },
+     "width_mm": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Width Mm"
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     }
+    },
+    "type": "object",
+    "required": [
+     "length_mm",
+     "width_mm"
+    ],
+    "title": "SheetStock"
+   },
+   "SheetStock-Output": {
+    "properties": {
+     "length_mm": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Length Mm"
+     },
+     "width_mm": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "Width Mm"
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     }
+    },
+    "type": "object",
+    "required": [
+     "length_mm",
+     "width_mm",
+     "price"
+    ],
+    "title": "SheetStock"
+   },
+   "ShoppingGroup": {
+    "properties": {
+     "supplier_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Supplier Id"
+     },
+     "supplier_name": {
+      "type": "string",
+      "title": "Supplier Name"
+     },
+     "lines": {
+      "items": {
+       "$ref": "#/components/schemas/ShoppingLine"
+      },
+      "type": "array",
+      "title": "Lines"
+     },
+     "subtotal": {
+      "type": "number",
+      "title": "Subtotal"
+     }
+    },
+    "type": "object",
+    "required": [
+     "supplier_id",
+     "supplier_name",
+     "lines",
+     "subtotal"
+    ],
+    "title": "ShoppingGroup"
+   },
+   "ShoppingLine": {
+    "properties": {
+     "key": {
+      "type": "string",
+      "title": "Key"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "lumber",
+       "sheet",
+       "hardware"
+      ],
+      "title": "Kind"
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "detail": {
+      "type": "string",
+      "title": "Detail"
+     },
+     "qty": {
+      "type": "number",
+      "title": "Qty"
+     },
+     "unit_price": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit Price"
+     },
+     "total": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total"
+     },
+     "checked": {
+      "type": "boolean",
+      "title": "Checked"
+     }
+    },
+    "type": "object",
+    "required": [
+     "key",
+     "kind",
+     "item_id",
+     "name",
+     "detail",
+     "qty",
+     "unit_price",
+     "total",
+     "checked"
+    ],
+    "title": "ShoppingLine"
+   },
+   "ShoppingOut": {
+    "properties": {
+     "project_id": {
+      "type": "string",
+      "title": "Project Id"
+     },
+     "lang": {
+      "type": "string",
+      "title": "Lang"
+     },
+     "currency": {
+      "type": "string",
+      "title": "Currency"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "groups": {
+      "items": {
+       "$ref": "#/components/schemas/ShoppingGroup"
+      },
+      "type": "array",
+      "title": "Groups"
+     },
+     "total": {
+      "type": "number",
+      "title": "Total"
+     },
+     "checked": {
+      "type": "integer",
+      "title": "Checked"
+     },
+     "count": {
+      "type": "integer",
+      "title": "Count"
+     },
+     "suggestions": {
+      "items": {
+       "$ref": "#/components/schemas/Suggestion"
+      },
+      "type": "array",
+      "title": "Suggestions"
+     },
+     "already_bought": {
+      "type": "boolean",
+      "title": "Already Bought"
+     }
+    },
+    "type": "object",
+    "required": [
+     "project_id",
+     "lang",
+     "currency",
+     "status",
+     "groups",
+     "total",
+     "checked",
+     "count",
+     "suggestions",
+     "already_bought"
+    ],
+    "title": "ShoppingOut"
+   },
+   "Stats": {
+    "properties": {
+     "users": {
+      "type": "integer",
+      "title": "Users"
+     },
+     "active_users_7d": {
+      "type": "integer",
+      "title": "Active Users 7D"
+     },
+     "projects": {
+      "type": "integer",
+      "title": "Projects"
+     },
+     "templates": {
+      "type": "integer",
+      "title": "Templates"
+     },
+     "catalog_items": {
+      "type": "integer",
+      "title": "Catalog Items"
+     },
+     "suggested_items": {
+      "type": "integer",
+      "title": "Suggested Items"
+     },
+     "ai_calls_today": {
+      "type": "integer",
+      "title": "Ai Calls Today"
+     },
+     "ai_usage": {
+      "items": {
+       "$ref": "#/components/schemas/UsageDay"
+      },
+      "type": "array",
+      "title": "Ai Usage"
+     }
+    },
+    "type": "object",
+    "required": [
+     "users",
+     "active_users_7d",
+     "projects",
+     "templates",
+     "catalog_items",
+     "suggested_items",
+     "ai_calls_today",
+     "ai_usage"
+    ],
+    "title": "Stats"
+   },
+   "StockKind": {
+    "type": "string",
+    "enum": [
+     "full",
+     "offcut"
+    ],
+    "title": "StockKind"
+   },
+   "StockStatus": {
+    "type": "string",
+    "enum": [
+     "available",
+     "used"
+    ],
+    "title": "StockStatus"
+   },
+   "Suggestion": {
+    "properties": {
+     "item_id": {
+      "type": "string",
+      "title": "Item Id"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "item_id",
+     "text"
+    ],
+    "title": "Suggestion"
+   },
+   "Supplier": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "url": {
+      "type": "string",
+      "title": "Url",
+      "default": ""
+     },
+     "currency": {
+      "type": "string",
+      "title": "Currency",
+      "default": "ILS"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "url",
+     "currency",
+     "notes",
+     "created_at"
+    ],
+    "title": "Supplier"
+   },
+   "SupplierIn": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Name"
+     },
+     "url": {
+      "type": "string",
+      "title": "Url",
+      "default": ""
+     },
+     "currency": {
+      "type": "string",
+      "title": "Currency",
+      "default": "ILS"
+     },
+     "notes": {
+      "type": "string",
+      "title": "Notes",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "title": "SupplierIn"
+   },
+   "TemplateIn": {
+    "properties": {
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "summary": {
+      "type": "string",
+      "title": "Summary",
+      "default": ""
+     },
+     "category": {
+      "type": "string",
+      "title": "Category",
+      "default": ""
+     },
+     "public": {
+      "type": "boolean",
+      "title": "Public",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "title"
+    ],
+    "title": "TemplateIn"
+   },
+   "TemplateMeta": {
+    "properties": {
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "summary": {
+      "type": "string",
+      "title": "Summary",
+      "default": ""
+     },
+     "category": {
+      "type": "string",
+      "title": "Category",
+      "default": ""
+     },
+     "public": {
+      "type": "boolean",
+      "title": "Public",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "title",
+     "summary",
+     "category",
+     "public"
+    ],
+    "title": "TemplateMeta"
+   },
+   "TemplateSummary": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "summary": {
+      "type": "string",
+      "title": "Summary"
+     },
+     "category": {
+      "type": "string",
+      "title": "Category"
+     },
+     "public": {
+      "type": "boolean",
+      "title": "Public"
+     },
+     "mine": {
+      "type": "boolean",
+      "title": "Mine"
+     },
+     "assemblies": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Assemblies"
+     },
+     "parts": {
+      "type": "integer",
+      "title": "Parts"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "title",
+     "summary",
+     "category",
+     "public",
+     "mine",
+     "assemblies",
+     "parts"
+    ],
+    "title": "TemplateSummary"
+   },
+   "Totals": {
+    "properties": {
+     "cost": {
+      "type": "number",
+      "title": "Cost"
+     },
+     "lumber_cost": {
+      "type": "number",
+      "title": "Lumber Cost"
+     },
+     "sheet_cost": {
+      "type": "number",
+      "title": "Sheet Cost"
+     },
+     "hardware_cost": {
+      "type": "number",
+      "title": "Hardware Cost"
+     },
+     "unpriced_lines": {
+      "type": "integer",
+      "title": "Unpriced Lines"
+     },
+     "unpriced_materials": {
+      "type": "integer",
+      "title": "Unpriced Materials",
+      "default": 0
+     },
+     "boards": {
+      "type": "integer",
+      "title": "Boards"
+     },
+     "sheets": {
+      "type": "integer",
+      "title": "Sheets"
+     },
+     "from_inventory": {
+      "type": "integer",
+      "title": "From Inventory"
+     },
+     "waste_pct": {
+      "type": "number",
+      "title": "Waste Pct"
+     },
+     "parts": {
+      "type": "integer",
+      "title": "Parts"
+     },
+     "offcuts": {
+      "type": "integer",
+      "title": "Offcuts"
+     }
+    },
+    "type": "object",
+    "required": [
+     "cost",
+     "lumber_cost",
+     "sheet_cost",
+     "hardware_cost",
+     "unpriced_lines",
+     "unpriced_materials",
+     "boards",
+     "sheets",
+     "from_inventory",
+     "waste_pct",
+     "parts",
+     "offcuts"
+    ],
+    "title": "Totals"
+   },
+   "Unplaced": {
+    "properties": {
+     "part_id": {
+      "type": "string",
+      "title": "Part Id"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "reason": {
+      "type": "string",
+      "title": "Reason"
+     }
+    },
+    "type": "object",
+    "required": [
+     "part_id",
+     "label",
+     "name",
+     "item_id",
+     "reason"
+    ],
+    "title": "Unplaced"
+   },
+   "UsageDay": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "calls": {
+      "type": "integer",
+      "title": "Calls"
+     },
+     "ok": {
+      "type": "integer",
+      "title": "Ok"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "model",
+     "calls",
+     "ok"
+    ],
+    "title": "UsageDay"
+   },
+   "User": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "email": {
+      "type": "string",
+      "title": "Email"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     },
+     "role": {
+      "$ref": "#/components/schemas/UserRole",
+      "default": "user"
+     },
+     "prefs": {
+      "$ref": "#/components/schemas/Prefs-Output",
+      "default": {
+       "units": "mm",
+       "export_lang": "en",
+       "theme": "system",
+       "cutting": {
+        "allow_rotation": true,
+        "edge_trim_mm": 0.0,
+        "end_trim_mm": 0.0,
+        "kerf_lumber_mm": 3.0,
+        "kerf_sheet_mm": 3.0,
+        "max_bevel_deg": 45.0,
+        "max_miter_deg": 50.0,
+        "min_offcut_mm": 300.0,
+        "min_offcut_sheet_mm": 150.0,
+        "use_inventory": true
+       }
+      }
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Seen"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "email",
+     "name",
+     "role",
+     "prefs",
+     "created_at",
+     "last_seen"
+    ],
+    "title": "User"
+   },
+   "UserRole": {
+    "type": "string",
+    "enum": [
+     "user",
+     "admin"
+    ],
+    "title": "UserRole"
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   },
+   "app__routers__catalog__StatusIn": {
+    "properties": {
+     "status": {
+      "$ref": "#/components/schemas/ItemStatus"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status"
+    ],
+    "title": "StatusIn"
+   },
+   "app__routers__projects__StatusIn": {
+    "properties": {
+     "status": {
+      "$ref": "#/components/schemas/ProjectStatus"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status"
+    ],
+    "title": "StatusIn"
+   }
+  },
+  "securitySchemes": {
+   "HTTPBearer": {
+    "type": "http",
+    "scheme": "bearer"
+   }
+  }
+ }
+}

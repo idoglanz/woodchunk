@@ -1,0 +1,22 @@
+{
+  "description": "A 50 x 50 leg splayed 100 mm in X over 700 mm, ending on the underside of a 100 x 40 rail (its top node sits on the rail's span). The leg leans atan(100 / 700) = 8.13 degrees and keeps its faces square to the frame (the leg's +v face looks along Y), so its top cut is a plain 8.13 degree miter with the top face up. The rail's underside is at z = 680; along the axis the cut is at (680 -/+ 25 x sin 8.13) / cos 8.13 = (680 -/+ 3.536) / 0.98995 = 683.3 / 690.5. The bottom end is free and square.",
+  "profiles": { "rail": { "shape": "rect", "w": 100, "h": 40 }, "leg": { "shape": "rect", "w": 50, "h": 50 } },
+  "frame": {
+    "defaults": { "corner": "butt", "lines": "centerline" },
+    "nodes": [
+      { "id": "h1", "x": -200, "y": 0, "z": 700 }, { "id": "h2", "x": 300, "y": 0, "z": 700 },
+      { "id": "f", "x": 0, "y": 0, "z": 0 }, { "id": "p", "x": 100, "y": 0, "z": 700 }
+    ],
+    "members": [
+      { "id": "rail", "a": "h1", "b": "h2", "item_id": "rail", "anchor": "c" },
+      { "id": "leg", "a": "f", "b": "p", "item_id": "leg", "anchor": "c" }
+    ]
+  },
+  "expect": {
+    "warnings": 0,
+    "groups": [
+      { "item_id": "leg", "qty": 1, "lp": 690.5, "sp": 683.3, "ends": [[0, 0], [8.1, 0]], "face_up": "top" },
+      { "item_id": "rail", "qty": 1, "lp": 500, "sp": 500, "ends": [[0, 0], [0, 0]] }
+    ]
+  }
+}

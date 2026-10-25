@@ -1,0 +1,23 @@
+{
+  "description": "400 x 400 frame of 30 x 30 x 3 angle iron, mitered. The section has no symmetry, but all four pieces are the same piece turned about the frame's vertical axis, so they group as one: LP 400, SP 400 - 2 x 30 = 340, 45 degree miters.",
+  "profiles": { "angle": { "shape": "angle", "w": 30, "h": 30, "t": 3 } },
+  "frame": {
+    "defaults": { "corner": "miter", "lines": "outside" },
+    "nodes": [
+      { "id": "n1", "x": 0, "y": 0, "z": 0 }, { "id": "n2", "x": 400, "y": 0, "z": 0 },
+      { "id": "n3", "x": 400, "y": 400, "z": 0 }, { "id": "n4", "x": 0, "y": 400, "z": 0 }
+    ],
+    "members": [
+      { "id": "m1", "a": "n1", "b": "n2", "item_id": "angle" },
+      { "id": "m2", "a": "n2", "b": "n3", "item_id": "angle" },
+      { "id": "m3", "a": "n3", "b": "n4", "item_id": "angle" },
+      { "id": "m4", "a": "n4", "b": "n1", "item_id": "angle" }
+    ]
+  },
+  "expect": {
+    "warnings": 0,
+    "groups": [
+      { "item_id": "angle", "qty": 4, "lp": 400, "sp": 340, "ends": [[45, 0], [45, 0]], "face_up": "top" }
+    ]
+  }
+}

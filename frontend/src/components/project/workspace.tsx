@@ -14,7 +14,6 @@ import { SummaryBar } from "@/components/project/summary-bar";
 import { Button, IconButton, Spinner } from "@/components/ui/button";
 import { EmptyState, Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
-import { cn } from "@/lib/cn";
 import { setOnSaved, useEditor } from "@/lib/editor";
 import { useMediaQuery } from "@/lib/focus";
 import { qk, useMe, usePlan, useProject } from "@/lib/queries";
@@ -115,8 +114,8 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
     <ProjectContext.Provider value={ctx}>
       <div className="flex min-h-[calc(100dvh-52px)]">
         <div className="min-w-0 flex-1">
-          <div className={cn("mx-auto w-full ps-[max(16px,env(safe-area-inset-left))] pe-[max(16px,env(safe-area-inset-right))] pb-28 pt-5 sm:ps-6 sm:pe-6",
-            tab === "build" ? "max-w-[1280px]" : tab === "sheet" ? "max-w-[960px]" : "max-w-[1200px]")}>
+          {/* One width for every tab, so switching tabs doesn't move the page. */}
+          <div className="mx-auto w-full max-w-[1280px] ps-[max(16px,env(safe-area-inset-left))] pe-[max(16px,env(safe-area-inset-right))] pb-28 pt-5 sm:ps-6 sm:pe-6">
             {!ready ? (
               <div className="flex flex-col gap-5"><Skeleton className="h-10 w-72" /><Skeleton className="h-9 w-96" /><Skeleton className="h-64 w-full rounded-[16px]" /></div>
             ) : (

@@ -30,7 +30,7 @@
 
   --asm-a: #ffe38a; --asm-a-ink: #1d1d1f;
   /* 3D frames: wood and steel members, and the viewport */
-  --wood-3d: #e8c98f; --steel-3d: #aeb6bf; --edge-3d: #3a3a3c; --view-3d: #f0f0ed;
+  --wood-3d: #e8c98f; --steel-3d: #aeb6bf; --edge-3d: #3a3a3c; --view-3d: #f0f0ed; --grid-3d: #d6d6d1;
   --asm-b: #cfe3f7; --asm-b-ink: #1d1d1f;
   --asm-c: #d3ebc6; --asm-c-ink: #1d1d1f;
   --asm-d: #f6d7c3; --asm-d-ink: #1d1d1f;
@@ -66,7 +66,7 @@
     --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.6);
     --hatch: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0 1.5px, transparent 1.5px 7px);
     --asm-a: #5e4b00; --asm-a-ink: #fff1b8;
-    --wood-3d: #b08a4e; --steel-3d: #7d8691; --edge-3d: #0b0b0c; --view-3d: #161618;
+    --wood-3d: #b08a4e; --steel-3d: #7d8691; --edge-3d: #0b0b0c; --view-3d: #161618; --grid-3d: #2c2c2f;
     --asm-b: #173a5c; --asm-b-ink: #d6e9ff;
     --asm-c: #1f4a1c; --asm-c-ink: #d9f5cf;
     --asm-d: #5a2e14; --asm-d-ink: #ffe0cc;
@@ -101,7 +101,7 @@
   --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.6);
   --hatch: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0 1.5px, transparent 1.5px 7px);
   --asm-a: #5e4b00; --asm-a-ink: #fff1b8;
-  --wood-3d: #b08a4e; --steel-3d: #7d8691; --edge-3d: #0b0b0c; --view-3d: #161618;
+  --wood-3d: #b08a4e; --steel-3d: #7d8691; --edge-3d: #0b0b0c; --view-3d: #161618; --grid-3d: #2c2c2f;
   --asm-b: #173a5c; --asm-b-ink: #d6e9ff;
   --asm-c: #1f4a1c; --asm-c-ink: #d9f5cf;
   --asm-d: #5a2e14; --asm-d-ink: #ffe0cc;

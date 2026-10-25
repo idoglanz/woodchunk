@@ -144,4 +144,10 @@ const gate: FrameTemplate = {
   },
 };
 
-export const TEMPLATES: FrameTemplate[] = [table, workbench, cart, shelf, gate];
+const empty: FrameTemplate = {
+  id: "empty", name: "Start empty", summary: "Draw every bar yourself, snapping to joints and axes.",
+  params: [], roles: [{ key: "rails", label: "Bars" }], options: [],
+  build(ctx) { return new Builder(ctx).frame([]); },
+};
+
+export const TEMPLATES: FrameTemplate[] = [table, workbench, cart, shelf, gate, empty];

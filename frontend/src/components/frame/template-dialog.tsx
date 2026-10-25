@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import { newAssembly, nextLetter, useEditor } from "@/lib/editor";
 import { deriveParts, sectionOf } from "@/lib/frame/parts";
 import { TEMPLATES, type TemplateRole } from "@/lib/frame/templates";
+import { useFrameUI } from "@/lib/frame/ui";
 import { useCatalog } from "@/lib/queries";
 
 /**
@@ -55,6 +56,11 @@ export function TemplateDialog({ open, onOpenChange, assemblyId }: { open: boole
       target = a.id;
     });
     onOpenChange(false);
+    // An empty frame opens ready to draw, with the chosen material.
+    if (!frame.members.length) {
+      useFrameUI.getState().setTool("draw");
+      useFrameUI.getState().set({ drawItem: chosen.rails ?? null });
+    }
     if (target) router.push(`/projects/${projectId}/frame/${target}`);
   };
 

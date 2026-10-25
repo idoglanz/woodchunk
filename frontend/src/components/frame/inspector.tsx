@@ -10,6 +10,7 @@ import { Segmented } from "@/components/ui/segmented";
 import type { Assembly, CatalogItem } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import type { FrameResult } from "@/lib/frame/kernel";
+import { commonItem } from "@/lib/frame/edit";
 import type { Anchor, Frame } from "@/lib/frame/types";
 import { useFrameUI } from "@/lib/frame/ui";
 import { cutSummary } from "@/components/frame/cut-list";
@@ -21,12 +22,33 @@ export function Inspector({ asm, frame, result, byId }: { asm: Assembly; frame: 
   const selected = useFrameUI((s) => s.selected);
   const member = selected?.kind === "member" ? frame.members.find((m) => m.id === selected.id) : undefined;
   const node = selected?.kind === "node" ? frame.nodes.find((n) => n.id === selected.id) : undefined;
+  const tool = useFrameUI((s) => s.tool);
   return (
     <div className="flex flex-col gap-4 border-b border-line p-4">
-      {member ? <MemberPanel asm={asm} memberId={member.id} frame={frame} result={result} byId={byId} />
+      {tool === "draw" ? <DrawPanel frame={frame} byId={byId} />
+        : member ? <MemberPanel asm={asm} memberId={member.id} frame={frame} result={result} byId={byId} />
         : node ? <JointPanel asm={asm} nodeId={node.id} frame={frame} byId={byId} />
         : <FramePanel asm={asm} frame={frame} byId={byId} />}
     </div>
+  );
+}
+
+function DrawPanel({ frame, byId }: { frame: Frame; byId: Map<string, CatalogItem> }) {
+  const drawItem = useFrameUI((s) => s.drawItem);
+  const set = useFrameUI((s) => s.set);
+  const items = [...byId.values()].filter((i) => i.kind === "lumber");
+  return (
+    <>
+      <h2 className="text-[15px] font-semibold">Draw bars</h2>
+      <Field label="New bars use">
+        <ItemPicker items={items} value={drawItem ?? commonItem(frame)} kinds={["lumber"]} ariaLabel="Material for new bars"
+          onChange={(id) => { if (id) { rememberMaterial(id); set({ drawItem: id }); } }} />
+      </Field>
+      <ul className="flex flex-col gap-1 text-[13px] text-ink-2">
+        <li>Snaps to joints, the middle of a bar, along a bar (a T-joint) and the X / Y / Z directions.</li>
+        <li>Drag to turn the view while drawing; a click places a point.</li>
+      </ul>
+    </>
   );
 }
 
@@ -55,7 +77,7 @@ function FramePanel({ asm, frame, byId }: { asm: Assembly; frame: Frame; byId: M
         <Segmented label="Dimensions are" value={defaults.lines} onChange={(v) => editFrame((f) => { f.defaults = { ...defaults, lines: v }; })}
           options={[{ value: "outside", label: "Outside" }, { value: "centerline", label: "Centerlines" }]} />
       </Field>
-      <p className="text-[13px] text-ink-3">Click a bar to change its material or turn it; click a joint to change how it&apos;s cut.</p>
+      <p className="text-[13px] text-ink-3">Click a bar to change it, a joint to drag it or change how it&apos;s cut, or a size on the model to type a new one. Press L to draw bars.</p>
     </>
   );
 }

@@ -71,10 +71,30 @@ test("design a frame in 3D: template → cut list → parameters → Build", asy
   await expect(page.locator("canvas")).toBeVisible();
 
   if (info.project.name === "desktop") {
-    const width = page.getByLabel("Width", { exact: true });
-    await width.fill("1500");
-    await width.press("Enter");
+    // Change the width on the model itself.
+    await page.getByRole("button", { name: "Width 1200 mm, click to change" }).click();
+    const onModel = page.locator('input[aria-label="Width"]').last();
+    await onModel.fill("1500");
+    await onModel.press("Enter");
     await expect(cut.getByText("2 × 1420 mm")).toBeVisible();
+
+    // Draw a 500 mm bar on the floor: L, click, point the way, type the length, Enter.
+    const box = (await page.locator("canvas").boundingBox())!;
+    await page.keyboard.press("l");
+    await page.mouse.move(box.x + box.width * 0.15, box.y + box.height * 0.82);
+    await page.mouse.click(box.x + box.width * 0.15, box.y + box.height * 0.82);
+    await page.mouse.move(box.x + box.width * 0.35, box.y + box.height * 0.84, { steps: 6 });
+    await page.keyboard.type("500");
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+    const row = cut.locator("li button", { hasText: "1 × 500 mm" });
+    await expect(row).toBeVisible();
+
+    // Select it from the cut list and delete it.
+    await row.click();
+    await page.keyboard.press("Delete");
+    await expect(row).toHaveCount(0);
   }
   const wide = info.project.name === "desktop" ? "1420" : "1120";
 

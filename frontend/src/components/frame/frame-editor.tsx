@@ -1,22 +1,26 @@
 "use client";
 
-import { ArrowLeft, Box, Maximize, Redo2, Undo2 } from "lucide-react";
+import { ArrowLeft, Box, Maximize, MousePointer2, PenLine, Redo2, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { CutList } from "@/components/frame/cut-list";
 import { Inspector } from "@/components/frame/inspector";
-import { Viewport, type JointMarker } from "@/components/frame/viewport";
+import { DimensionLabels, dimensionAnchors } from "@/components/frame/edit-layers";
+import { useFrameEdit } from "@/components/frame/use-frame-edit";
+import { Viewport, type EditHandlers, type JointMarker } from "@/components/frame/viewport";
 import { useProjectCtx } from "@/components/project/context";
 import { IconButton } from "@/components/ui/button";
 import { EmptyState, Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import type { Assembly, CatalogItem } from "@/lib/api/client";
-import { useEditor } from "@/lib/editor";
+import { cn } from "@/lib/cn";
+import { newId, useEditor } from "@/lib/editor";
+import { addMember, commonItem, deleteMembers, moveNode, nodePositions } from "@/lib/frame/edit";
 import { evaluate as ev } from "@/lib/frame/expr";
 import { useMediaQuery } from "@/lib/focus";
 import { solveFrame } from "@/lib/frame/parts";
 import type { Frame } from "@/lib/frame/types";
-import { useFrameUI, type View } from "@/lib/frame/ui";
+import { useFrameUI, type Tool, type View } from "@/lib/frame/ui";
 import { useCatalog } from "@/lib/queries";
 
 const VIEWS: { value: View; label: string }[] = [
@@ -32,7 +36,7 @@ export function FrameEditor({ assemblyId }: { assemblyId: string }) {
   const catalog = useCatalog({ kind: "lumber" });
   const byId = useMemo(() => new Map((catalog.data ?? []).map((i) => [i.id, i])), [catalog.data]);
 
-  useEffect(() => () => useFrameUI.getState().select(null), []);
+  useEffect(() => () => useFrameUI.getState().setTool("select"), []);
 
   if (!asm) return <EmptyState title="Assembly not found" text="It may have been deleted." action={<Link href={`/projects/${id}/build`} className="font-semibold text-info">Back to Build</Link>} />;
   if (!asm.frame) return <EmptyState title="No 3D frame yet" text="Start one from the assembly's menu on the Build tab." action={<Link href={`/projects/${id}/build`} className="font-semibold text-info">Back to Build</Link>} />;
@@ -43,21 +47,88 @@ export function FrameEditor({ assemblyId }: { assemblyId: string }) {
 function Loaded({ asm, frame, byId, readOnly, projectId }: {
   asm: Assembly; frame: Frame; byId: Map<string, CatalogItem>; readOnly: boolean; projectId: string;
 }) {
-  const result = useMemo(() => solveFrame(frame, byId), [frame, byId]);
+  // While a joint is dragged the frame is previewed (model and cut list) and saved on release.
+  const drag = useFrameUI((s) => s.drag);
+  const shown = useMemo(() => {
+    if (!drag) return frame;
+    const copy = structuredClone(frame);
+    moveNode(copy, drag.node, drag.at);
+    return copy;
+  }, [frame, drag]);
+  const result = useMemo(() => solveFrame(shown, byId), [shown, byId]);
   const steel = useMemo(() => new Set([...byId.values()].filter((i) => i.material === "steel").map((i) => i.id)), [byId]);
-  const joints = useMemo(() => jointMarkers(frame, result.members), [frame, result.members]);
+  const joints = useMemo(() => jointMarkers(shown, result.members), [shown, result.members]);
   const ed = useEditor();
   const ortho = useFrameUI((s) => s.ortho);
   const look = useFrameUI((s) => s.look);
   const view = useFrameUI((s) => s.view.name);
+  const tool = useFrameUI((s) => s.tool);
+  const selected = useFrameUI((s) => s.selected);
+  const editFrame = useFrameEdit(asm.id, byId);
+  const labels = useRef(new Map<string, HTMLElement>());
+  const anchors = useMemo(() => (readOnly ? [] : dimensionAnchors(shown)), [shown, readOnly]);
+
+  const handlers: EditHandlers = useMemo(() => ({
+    onMove: (node, at) => editFrame((f) => moveNode(f, node, at)),
+    onParam: (name, mm) => editFrame((f) => { const p = f.params?.find((x) => x.name === name); if (p) p.mm = mm; }),
+    onAdd: (from, to) => {
+      let end: { node: string; at: [number, number, number] } | null = null;
+      editFrame((f) => {
+        const item = useFrameUI.getState().drawItem ?? commonItem(f);
+        const res = addMember(f, from?.node ? { node: from.node } : { at: from!.at }, to, item, () => newId().slice(0, 10));
+        const at = res ? nodePositions(f).get(res.end) : undefined;
+        if (res && at) end = { node: res.end, at };
+      });
+      return end;
+    },
+  }), [editFrame]);
+
+  const deleteSelected = useCallback(() => {
+    const s = useFrameUI.getState().selected;
+    if (s?.kind !== "member") return;
+    editFrame((f) => deleteMembers(f, [s.id]));
+    useFrameUI.getState().select(null);
+  }, [editFrame]);
+
+  // Shortcuts: V select, L draw, Delete removes the selected bar.
+  useEffect(() => {
+    if (readOnly) return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) || e.metaKey || e.ctrlKey) return;
+      const ui = useFrameUI.getState();
+      if (e.key === "v" || e.key === "V") ui.setTool("select");
+      else if (e.key === "l" || e.key === "L") ui.setTool("draw");
+      else if ((e.key === "Delete" || e.key === "Backspace") && ui.tool === "select") deleteSelected();
+      else if (e.key === "Escape" && ui.tool === "select") ui.select(null);
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [readOnly, deleteSelected]);
 
   return (
     <div className="flex h-[calc(100dvh-52px)] flex-col overflow-hidden md:flex-row">
-      <div className="relative min-h-[46dvh] min-w-0 flex-1">
+      <div className={cn("relative min-h-[46dvh] min-w-0 flex-1", tool === "draw" && !readOnly && "cursor-crosshair")}>
         <div className="absolute inset-x-3 top-3 z-10 flex flex-wrap items-center gap-2">
           <Link href={`/projects/${projectId}/build`} aria-label="Back to Build"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-ink-2 shadow-[var(--shadow-card)] backdrop-blur hover:text-ink"><ArrowLeft size={18} /></Link>
           <span className="rounded-full bg-surface/90 px-3 py-1.5 text-[14px] font-semibold shadow-[var(--shadow-card)] backdrop-blur">{asm.letter} · {asm.name}</span>
+          {!readOnly ? (
+            <div role="radiogroup" aria-label="Tool" className="flex rounded-full bg-surface/90 p-0.5 shadow-[var(--shadow-card)] backdrop-blur">
+              {TOOLS.map((t) => (
+                <button key={t.value} type="button" role="radio" aria-checked={tool === t.value} title={`${t.label} (${t.key})`}
+                  onClick={() => useFrameUI.getState().setTool(t.value)}
+                  className={cn("inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium", tool === t.value ? "bg-ink text-surface" : "text-ink-2 hover:text-ink")}>
+                  <t.icon size={14} />{t.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {!readOnly && selected?.kind === "member" && tool === "select" ? (
+            <IconButton label="Delete bar (Delete)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={deleteSelected}><Trash2 size={16} /></IconButton>
+          ) : null}
           <div className="ms-auto flex items-center gap-2">
             <Segmented size="sm" label="View" value={view === "fit" ? "iso" : view} onChange={(v) => look(v)} options={VIEWS} className="bg-surface/90 shadow-[var(--shadow-card)] backdrop-blur" />
             <IconButton label={ortho ? "Perspective" : "Orthographic"} size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]"
@@ -69,13 +140,42 @@ function Loaded({ asm, frame, byId, readOnly, projectId }: {
             </> : null}
           </div>
         </div>
-        <Viewport members={result.members} joints={joints} steel={steel} readOnly={readOnly} />
+        <Viewport frame={shown} members={result.members} joints={joints} steel={steel} readOnly={readOnly} edit={handlers} anchors={tool === "select" ? anchors : []} labels={labels} />
+        {tool === "select" ? <div className="pointer-events-none absolute inset-0 overflow-hidden"><DimensionLabels anchors={anchors} labels={labels} onParam={handlers.onParam} /></div> : null}
+        {tool === "draw" && !readOnly ? <DrawHint /> : null}
       </div>
       <aside aria-label="Frame details"
         className="flex max-h-[54dvh] w-full shrink-0 flex-col overflow-y-auto border-t border-line bg-surface md:max-h-none md:w-[360px] md:border-s md:border-t-0">
         {!readOnly ? <Inspector asm={asm} frame={frame} result={result} byId={byId} /> : null}
         <CutList asm={asm} result={result} byId={byId} />
       </aside>
+    </div>
+  );
+}
+
+const TOOLS: { value: Tool; label: string; key: string; icon: typeof PenLine }[] = [
+  { value: "select", label: "Select", key: "V", icon: MousePointer2 },
+  { value: "draw", label: "Draw", key: "L", icon: PenLine },
+];
+
+const SNAP_NAMES: Record<string, string> = { node: "On a joint", mid: "Middle of a bar", "on-bar": "On a bar (T-joint)", axis: "Along an axis" };
+
+function DrawHint() {
+  const start = useFrameUI((s) => s.drawStart);
+  const typed = useFrameUI((s) => s.typed);
+  const lock = useFrameUI((s) => s.lockAxis);
+  const hover = useFrameUI((s) => s.drawHover);
+  return (
+    <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex justify-center">
+      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-2xl bg-surface/95 px-4 py-2 text-[13px] text-ink-2 shadow-[var(--shadow-pop)] backdrop-blur">
+        {!start ? <span>Click a joint, a bar or the floor to start a bar.</span> : <>
+          <span>Click to place the next joint, or type a length</span>
+          <span className="tnum min-w-16 rounded-md bg-surface-2 px-2 py-0.5 text-center font-semibold text-ink">{typed ? `${typed} mm` : hover?.len ? `${hover.len} mm` : "— mm"}</span>
+          <span>then Enter.</span>
+        </>}
+        {hover && hover.kind !== "plane" ? <span className="font-medium text-ink">{SNAP_NAMES[hover.kind] ?? ""}</span> : null}
+        <span className="text-ink-3">{lock !== null ? `Locked to ${"XYZ"[lock]}` : "Shift locks an axis"} · Esc {start ? "ends the chain" : "back to Select"}</span>
+      </div>
     </div>
   );
 }

@@ -114,8 +114,8 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
     <ProjectContext.Provider value={ctx}>
       <div className="flex min-h-[calc(100dvh-52px)]">
         <div className="min-w-0 flex-1">
-          {/* One width for every tab, so switching tabs doesn't move the page. */}
-          <div className="mx-auto w-full max-w-[1280px] ps-[max(16px,env(safe-area-inset-left))] pe-[max(16px,env(safe-area-inset-right))] pb-28 pt-5 sm:ps-6 sm:pe-6">
+          {/* The full window width on every tab, so switching tabs doesn't move the page. */}
+          <div className="w-full ps-[max(16px,env(safe-area-inset-left))] pe-[max(16px,env(safe-area-inset-right))] pb-28 pt-5 sm:ps-6 sm:pe-6 lg:ps-8 lg:pe-8">
             {!ready ? (
               <div className="flex flex-col gap-5"><Skeleton className="h-10 w-72" /><Skeleton className="h-9 w-96" /><Skeleton className="h-64 w-full rounded-[16px]" /></div>
             ) : (

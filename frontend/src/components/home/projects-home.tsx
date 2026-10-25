@@ -36,7 +36,7 @@ export function ProjectsHome() {
           <Card><EmptyState title="Couldn't load your projects" text="Check your connection and try again."
             action={<Button onClick={() => void projects.refetch()}>Try again</Button>} /></Card>
         ) : projects.isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-[168px] rounded-[16px]" />)}</div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 min-[1800px]:grid-cols-4 min-[2400px]:grid-cols-5">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-[168px] rounded-[16px]" />)}</div>
         ) : list.length === 0 ? (
           view === "active" ? (
             <Card><EmptyState title="Plan your first build"
@@ -46,7 +46,7 @@ export function ProjectsHome() {
             <Card><EmptyState title="Nothing archived" text="Projects you archive land here. You can restore them any time." /></Card>
           )
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 min-[1800px]:grid-cols-4 min-[2400px]:grid-cols-5">
             {list.map((p) => <ProjectCard key={p.id} p={p} />)}
           </div>
         )}

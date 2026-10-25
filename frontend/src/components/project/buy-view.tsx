@@ -99,6 +99,8 @@ export function BuyView() {
               <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${(data.checked / data.count) * 100}%` }} />
             </div>
           </div>
+          {/* Wide screens: suppliers side by side, so a row's name and quantity stay close. */}
+          <div className="grid items-start gap-4 min-[1500px]:grid-cols-2">
           {data.groups.map((g) => (
             <Card key={g.supplier_id ?? "other"} className="overflow-hidden">
               <div className="flex items-baseline justify-between gap-3 px-5 pb-2 pt-4">
@@ -127,6 +129,7 @@ export function BuyView() {
               </ul>
             </Card>
           ))}
+          </div>
           {data.suggestions.map((s) => (
             <Callout key={s.item_id} tone="ok" icon={<Lightbulb size={18} />}>{s.text}</Callout>
           ))}

@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     descope_project_id: str = ""
     admin_emails: str = ""  # comma separated; these users become admins on sign-in
 
-    frontend_url: str = "http://localhost:3000"
+    frontend_url: str = "http://localhost:3000"  # comma separated when the app has more than one address
 
     google_api_key: str = ""
     gemini_model: str = DEFAULT_GEMINI_MODEL
@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     @property
     def admin_email_set(self) -> set[str]:
         return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}
+
+    @property
+    def frontend_origins(self) -> set[str]:
+        urls = {u.strip().rstrip("/") for u in self.frontend_url.split(",") if u.strip()}
+        return urls | {u.replace("http://", "https://") for u in urls}
 
     @property
     def model_chain(self) -> list[str]:

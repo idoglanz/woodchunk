@@ -31,7 +31,7 @@ app = FastAPI(
 )
 
 s = get_settings()
-origins = {"http://localhost:3000", "http://127.0.0.1:3000", s.frontend_url, s.frontend_url.replace("http://", "https://")}
+origins = {"http://localhost:3000", "http://127.0.0.1:3000"} | s.frontend_origins
 app.add_middleware(CORSMiddleware, allow_origins=sorted(origins), allow_credentials=True, allow_methods=["*"],
                    allow_headers=["*"], expose_headers=["Content-Disposition"])
 

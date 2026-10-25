@@ -1,0 +1,24 @@
+{
+  "description": "1000 x 600 picture frame, 40 x 20 moulding lying flat, mitered corners, outside dimensions. Outer edges are on the lines, so LP = side length and SP = side - 2 x 40.",
+  "profiles": { "moulding": { "shape": "rect", "w": 40, "h": 20 } },
+  "frame": {
+    "defaults": { "corner": "miter", "lines": "outside" },
+    "nodes": [
+      { "id": "n1", "x": 0, "y": 0, "z": 0 }, { "id": "n2", "x": 1000, "y": 0, "z": 0 },
+      { "id": "n3", "x": 1000, "y": 600, "z": 0 }, { "id": "n4", "x": 0, "y": 600, "z": 0 }
+    ],
+    "members": [
+      { "id": "m1", "a": "n1", "b": "n2", "item_id": "moulding" },
+      { "id": "m2", "a": "n2", "b": "n3", "item_id": "moulding" },
+      { "id": "m3", "a": "n3", "b": "n4", "item_id": "moulding" },
+      { "id": "m4", "a": "n4", "b": "n1", "item_id": "moulding" }
+    ]
+  },
+  "expect": {
+    "warnings": 0,
+    "groups": [
+      { "item_id": "moulding", "qty": 2, "lp": 1000, "sp": 920, "ends": [[45, 0], [45, 0]], "face_up": "top" },
+      { "item_id": "moulding", "qty": 2, "lp": 600, "sp": 520, "ends": [[45, 0], [45, 0]], "face_up": "top" }
+    ]
+  }
+}

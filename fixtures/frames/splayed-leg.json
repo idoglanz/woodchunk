@@ -1,0 +1,22 @@
+{
+  "description": "A 50 x 50 leg splayed 100 mm in X and Y over 700 mm, ending on the underside of a 100 x 40 rail (its top node sits on the rail's span). The leg leans acos(700 / 714.14) = 11.42 degrees from vertical, so its top cut is that angle; turning the leg on its side makes it a plain miter with no bevel. The underside is at z = 680, so along the axis the cut is at (680 -/+ 25 x 0.19803) / 0.98020 = 688.7 / 698.8. The bottom end is free and square.",
+  "profiles": { "rail": { "shape": "rect", "w": 100, "h": 40 }, "leg": { "shape": "rect", "w": 50, "h": 50 } },
+  "frame": {
+    "defaults": { "corner": "butt", "lines": "centerline" },
+    "nodes": [
+      { "id": "h1", "x": -200, "y": 100, "z": 700 }, { "id": "h2", "x": 300, "y": 100, "z": 700 },
+      { "id": "f", "x": 0, "y": 0, "z": 0 }, { "id": "p", "x": 100, "y": 100, "z": 700 }
+    ],
+    "members": [
+      { "id": "rail", "a": "h1", "b": "h2", "item_id": "rail", "anchor": "c" },
+      { "id": "leg", "a": "f", "b": "p", "item_id": "leg", "anchor": "c" }
+    ]
+  },
+  "expect": {
+    "warnings": 0,
+    "groups": [
+      { "item_id": "leg", "qty": 1, "lp": 698.8, "sp": 688.7, "ends": [[0, 0], [11.4, 0]], "face_up": "side" },
+      { "item_id": "rail", "qty": 1, "lp": 500, "sp": 500, "ends": [[0, 0], [0, 0]] }
+    ]
+  }
+}

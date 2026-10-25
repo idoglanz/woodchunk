@@ -1,0 +1,23 @@
+{
+  "description": "Corner of a welded box: two 40 x 40 x 2 tube rails mitered at the top, the leg below butting into their undersides. Outside dimensions: rails hang 40 mm below the top line, so the leg is 500 - 40 = 460. Rails: LP 500, SP 460, 45 degree miter at the corner and square at the free end; the two are the same piece turned over.",
+  "profiles": { "tube": { "shape": "rect_tube", "w": 40, "h": 40, "t": 2 } },
+  "frame": {
+    "defaults": { "corner": "miter", "lines": "outside" },
+    "nodes": [
+      { "id": "t", "x": 0, "y": 0, "z": 500 }, { "id": "x", "x": 500, "y": 0, "z": 500 },
+      { "id": "y", "x": 0, "y": 500, "z": 500 }, { "id": "f", "x": 0, "y": 0, "z": 0 }
+    ],
+    "members": [
+      { "id": "rx", "a": "t", "b": "x", "item_id": "tube" },
+      { "id": "ry", "a": "t", "b": "y", "item_id": "tube" },
+      { "id": "leg", "a": "f", "b": "t", "item_id": "tube" }
+    ]
+  },
+  "expect": {
+    "warnings": 0,
+    "groups": [
+      { "item_id": "tube", "qty": 2, "lp": 500, "sp": 460, "ends": [[0, 0], [45, 0]], "face_up": "top" },
+      { "item_id": "tube", "qty": 1, "lp": 460, "sp": 460, "ends": [[0, 0], [0, 0]] }
+    ]
+  }
+}

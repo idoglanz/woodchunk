@@ -14,8 +14,9 @@ install:          ## Install backend and frontend dependencies
 	cd backend && uv sync
 	cd frontend && npm install
 
-test:             ## Backend tests (optimizers + API; needs Mongo running)
+test:             ## Backend tests (needs Mongo running) and frontend unit tests
 	cd backend && uv run pytest -q
+	cd frontend && npm test
 
 lint:             ## Lint and type-check everything
 	cd backend && uv run ruff check app tests

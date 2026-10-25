@@ -127,7 +127,7 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
       else if (e.key === "l" || e.key === "L") ui.setTool("draw");
       // Deleting is stricter: only from the page, the 3D view or the cut list, never a focused button.
       else if ((e.key === "Delete" || e.key === "Backspace") && ui.tool === "select" && onCanvasOrPage(e.target)) deleteSelected();
-      else if (e.key === "Escape" && ui.tool === "select") ui.select(null);
+      else if (e.key === "Escape" && ui.tool === "select") { if (ui.back) ui.goBack(); else ui.select(null); }
       else return;
       e.preventDefault();
     };
@@ -157,7 +157,7 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
             <IconButton label="Delete bar (Delete)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={deleteSelected}><Trash2 size={16} /></IconButton>
           ) : null}
           <div className="ms-auto flex items-center gap-2">
-            <Segmented size="sm" label="View" value={view === "fit" ? "iso" : view} onChange={(v) => look(v)} options={VIEWS} className="bg-surface/90 shadow-[var(--shadow-card)] backdrop-blur" />
+            <Segmented size="sm" label="View" value={view === "fit" || view === "along" ? "iso" : view} onChange={(v) => look(v)} options={VIEWS} className="bg-surface/90 shadow-[var(--shadow-card)] backdrop-blur" />
             <IconButton label={ortho ? "Perspective" : "Orthographic"} size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]"
               onClick={() => useFrameUI.getState().setOrtho(!ortho)} aria-pressed={ortho}><Box size={16} /></IconButton>
             <IconButton label="Fit to frame" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={() => look("fit")}><Maximize size={16} /></IconButton>

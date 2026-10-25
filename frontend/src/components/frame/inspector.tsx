@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCw } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useFrameEdit } from "@/components/frame/use-frame-edit";
 import { ItemPicker, rememberMaterial } from "@/components/project/material-picker";
 import { useProjectCtx } from "@/components/project/context";
@@ -8,19 +8,39 @@ import { Button } from "@/components/ui/button";
 import { Field, LengthInput, NumberInput, Select, TextInput } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
 import type { Assembly, CatalogItem } from "@/lib/api/client";
-import { cn } from "@/lib/cn";
 import type { FrameResult } from "@/lib/frame/kernel";
 import { commonItem, moveNode, nodePositions, setMemberLength } from "@/lib/frame/edit";
-import type { Anchor, Frame } from "@/lib/frame/types";
+import type { Frame } from "@/lib/frame/types";
 import { useFrameUI } from "@/lib/frame/ui";
+import { SectionEditor } from "@/components/frame/section-editor";
+import { AsmChip } from "@/components/ui/misc";
 import { cutSummary } from "@/components/frame/cut-list";
 
 const PARAM_LABELS: Record<string, string> = { W: "Width", D: "Depth", H: "Height", S: "Lower level" };
-const ANCHOR_GRID: Anchor[] = ["tl", "t", "tr", "l", "c", "r", "bl", "b", "br"];
-const ANCHOR_NAMES: Record<string, string> = {
-  tl: "top left corner", t: "top edge", tr: "top right corner", l: "left edge", c: "centre", r: "right edge",
-  bl: "bottom left corner", b: "bottom edge", br: "bottom right corner",
-};
+
+/** Where you are in the panel, and one step back (Esc does the same). */
+function PanelHeader({ title, sub, chip, frame }: { title: string; sub?: string; chip?: { letter: string; text: string }; frame: Frame }) {
+  const back = useFrameUI((s) => s.back);
+  const goBack = useFrameUI((s) => s.goBack);
+  const select = useFrameUI((s) => s.select);
+  const backLabel = back?.kind === "member" ? (() => {
+    const i = frame.members.findIndex((m) => m.id === back.id);
+    return frame.members[i]?.name || `Bar ${i + 1}`;
+  })() : back?.kind === "node" ? "Joint" : "Frame";
+  return (
+    <div className="-mx-1 -mt-1 flex flex-col gap-1">
+      <button type="button" onClick={() => (back ? goBack() : select(null))}
+        className="inline-flex items-center gap-1 self-start rounded-md px-1 text-[13px] font-medium text-info hover:underline">
+        <ChevronLeft size={15} />{backLabel}
+      </button>
+      <div className="flex items-center gap-2 px-1">
+        {chip ? <AsmChip letter={chip.letter}>{chip.text}</AsmChip> : null}
+        <h2 className="min-w-0 truncate text-[17px] font-semibold">{title}</h2>
+      </div>
+      {sub ? <p className="px-1 text-[13px] text-ink-2">{sub}</p> : null}
+    </div>
+  );
+}
 
 export function Inspector({ asm, frame, result, byId }: { asm: Assembly; frame: Frame; result: FrameResult; byId: Map<string, CatalogItem> }) {
   const selected = useFrameUI((s) => s.selected);
@@ -96,18 +116,19 @@ function MemberPanel({ asm, memberId, frame, result, byId }: {
   const items = [...byId.values()].filter((i) => i.kind === "lumber");
   const same = frame.members.filter((x) => x.id !== m.id && m.name && x.name === m.name);
   const upd = (fn: (x: typeof m) => void, key?: string) => editFrame((f) => { const x = f.members.find((y) => y.id === memberId); if (x) fn(x); }, key);
-  const anchor = m.anchor ?? "auto";
   const { units } = useProjectCtx();
   const pos = nodePositions(frame);
   const [pa, pb] = [pos.get(m.a), pos.get(m.b)];
   const lineLength = pa && pb ? Math.round(Math.hypot(pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]) * 10) / 10 : null;
-  const select = useFrameUI((s) => s.select);
+  const open = useFrameUI((s) => s.open);
+  const lookAlong = useFrameUI((s) => s.lookAlong);
+  const index = frame.members.findIndex((x) => x.id === m.id);
+  const group = result.groups.findIndex((g) => g.members.includes(m.id));
   return (
     <>
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-[15px] font-semibold">Bar</h2>
-        {solved ? <span className="tnum text-[13px] text-ink-2">cut {solved.lp} mm · {cutSummary(solved.ends)}</span> : null}
-      </div>
+      <PanelHeader frame={frame} title={m.name || `Bar ${index + 1}`}
+        chip={group >= 0 ? { letter: asm.letter, text: `${asm.letter}${group + 1}` } : undefined}
+        sub={solved ? `Cut ${solved.lp} mm · ${cutSummary(solved.ends)}` : undefined} />
       <div className="flex items-end gap-3">
         <Field label="Length, joint to joint" htmlFor="member-length" className="flex-1"
           hint="Moves the end with fewer bars on it. An end tied to a size (W, H…) changes that size.">
@@ -117,8 +138,8 @@ function MemberPanel({ asm, memberId, frame, result, byId }: {
       </div>
       <div className="-mt-2 flex items-center gap-2 text-[13px] text-ink-2">
         Ends:
-        <Button size="sm" variant="ghost" onClick={() => select({ kind: "node", id: m.a })}>Start joint</Button>
-        <Button size="sm" variant="ghost" onClick={() => select({ kind: "node", id: m.b })}>End joint</Button>
+        <Button size="sm" variant="ghost" onClick={() => open({ kind: "node", id: m.a })}>Start joint <ChevronRight size={13} className="text-ink-3 rtl:rotate-180" /></Button>
+        <Button size="sm" variant="ghost" onClick={() => open({ kind: "node", id: m.b })}>End joint <ChevronRight size={13} className="text-ink-3 rtl:rotate-180" /></Button>
       </div>
       <Field label="Name" htmlFor="member-name">
         <TextInput id="member-name" key={`${m.id}:${m.name ?? ""}`} defaultValue={m.name ?? ""} placeholder="Leg, rail…" className="h-9 text-[14px]"
@@ -134,25 +155,10 @@ function MemberPanel({ asm, memberId, frame, result, byId }: {
           Use for all {same.length + 1} “{m.name}” bars
         </Button>
       ) : null}
-      <div className="flex items-end gap-4">
-        <Field label="Turn">
-          <Button size="sm" icon={<RotateCw size={15} />} onClick={() => upd((x) => { x.roll_deg = (((x.roll_deg ?? 0) + 90) % 360); })}>
-            {Math.round(m.roll_deg ?? 0)}°
-          </Button>
-        </Field>
-        <Field label="Line sits at" hint={anchor === "auto" ? "Automatic: on the outside edge." : undefined}>
-          <div className="flex items-center gap-2">
-            <div role="radiogroup" aria-label="Line position on the bar" className="grid grid-cols-3 gap-0.5 rounded-lg bg-surface-2 p-1">
-              {ANCHOR_GRID.map((a) => (
-                <button key={a} type="button" role="radio" aria-checked={anchor === a} aria-label={`Line on the bar's ${ANCHOR_NAMES[a]}`} title={`Line on the bar's ${ANCHOR_NAMES[a]}`}
-                  onClick={() => upd((x) => { x.anchor = a; })}
-                  className={cn("h-4 w-4 rounded-[4px]", anchor === a ? "bg-ink" : "bg-surface hover:bg-line-strong")} />
-              ))}
-            </div>
-            <Button size="sm" variant={anchor === "auto" ? "secondary" : "ghost"} onClick={() => upd((x) => { x.anchor = "auto"; })}>Auto</Button>
-          </div>
-        </Field>
-      </div>
+      <SectionEditor member={m} solved={solved}
+        onAnchor={(an) => upd((x) => { x.anchor = an; })}
+        onRoll={(deg) => upd((x) => { x.roll_deg = ((deg % 360) + 360) % 360; })}
+        onLookAlong={() => { if (pa && pb) lookAlong(pa, pb); }} />
     </>
   );
 }
@@ -180,8 +186,8 @@ function JointPanel({ asm, nodeId, frame, byId }: { asm: Assembly; nodeId: strin
   };
   return (
     <>
-      <h2 className="text-[15px] font-semibold">Joint</h2>
-      <p className="-mt-2 text-[13px] text-ink-2">{here.length} {here.length === 1 ? "bar ends" : "bars meet"} here: {here.map((m) => label(m.id)).join(", ")}.</p>
+      <PanelHeader frame={frame} title="Joint"
+        sub={`${here.length} ${here.length === 1 ? "bar ends" : "bars meet"} here: ${here.map((m) => label(m.id)).join(", ")}.`} />
       {at ? (
         <div className="grid grid-cols-3 gap-2">
           {(["x", "y", "z"] as const).map((axis, i) => {

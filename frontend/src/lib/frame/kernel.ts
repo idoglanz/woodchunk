@@ -23,7 +23,7 @@ const AUTO_SIDE_MM = 1.0;
 const MIN_PLANE_COS = 0.02;
 const VERTICAL_Z = 0.7;
 // A member this close to vertical takes its profile "up" from world Y (far from normal splays).
-const UPRIGHT_Z = 0.866;
+export const UPRIGHT_Z = 0.866;
 const STRAIGHT = 0.999; // two ends this opposed at a joint are one straight run
 // The through bar grows to cover butting bars only when they meet it about square (an L corner).
 const SQUARE_ON = 0.26;

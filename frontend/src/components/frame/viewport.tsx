@@ -205,14 +205,23 @@ function Controls({ members, flat, ortho }: { members: MemberResult[]; flat: boo
     const dirs: Record<View, [number, number, number]> = {
       iso: toThree([0.9, -1.3, 0.85]), front: toThree([0, -1, 0]), top: toThree([0, -0.0001, 1]), side: toThree([1, 0, 0]),
     };
-    const dir = new Vector3(...dirs[view.name === "fit" ? "iso" : view.name]).normalize().multiplyScalar(size * 1.6);
-    const eye = center.clone().add(dir);
+    let target = center;
+    let eye: Vector3;
+    if (view.name === "along" && view.along) {
+      // Sight down the bar from beyond its start, aimed at its middle.
+      const a = new Vector3(...toThree(view.along.a)), b = new Vector3(...toThree(view.along.b));
+      target = a.clone().add(b).multiplyScalar(0.5);
+      eye = a.clone().sub(b.clone().sub(a).normalize().multiplyScalar(Math.max(800, size * 0.6)));
+    } else {
+      const dir = new Vector3(...dirs[view.name === "fit" || view.name === "along" ? "iso" : view.name]).normalize().multiplyScalar(size * 1.6);
+      eye = center.clone().add(dir);
+    }
     const animate = view.n > 0;
     // camera-controls settles on rendered frames, and this canvas renders on demand: ask for one.
     const run = () => {
-      void cc.setLookAt(eye.x, eye.y, eye.z, center.x, center.y, center.z, animate);
+      void cc.setLookAt(eye.x, eye.y, eye.z, target.x, target.y, target.z, animate);
       // fitToBox snaps to the nearest axis; a sphere keeps the view direction we just set.
-      void cc.fitToSphere(box.getBoundingSphere(new Sphere()), animate);
+      if (view.name !== "along") void cc.fitToSphere(box.getBoundingSphere(new Sphere()), animate);
       invalidate();
     };
     // The first fit waits a frame so the camera has the canvas's final aspect.

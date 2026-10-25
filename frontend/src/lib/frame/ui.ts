@@ -30,9 +30,11 @@ export type DrawStart = { node?: string; at: Vec } | null;
 /** View state of the 3D frame editor (not saved with the project). */
 type FrameUI = {
   selected: Selection;
+  /** Where "back" goes from the current selection (a bar, when its joint was opened from it). */
+  back: Selection;
   hovered: string[]; // member ids lit by a cut-list row or the pointer
   ortho: boolean;
-  view: { name: View | "fit"; n: number }; // bump n to re-run the same request
+  view: { name: View | "fit" | "along"; n: number; along?: { a: Vec; b: Vec } }; // bump n to re-run the same request
   tool: Tool;
   mode: Mode;
   depth: Record<FlatMode, number | null>; // drawing depth per flat view (null: the nearest face)
@@ -43,6 +45,11 @@ type FrameUI = {
   drag: { node: string; at: Vec } | null; // a joint being dragged (previewed, not saved yet)
   drawHover: { kind: string; len: number } | null; // what the draw tool points at, for the hint
   select: (s: Selection) => void;
+  /** Open something from the current selection, so "back" returns to it. */
+  open: (s: Selection) => void;
+  goBack: () => void;
+  /** Point the 3D camera down a bar (from its start), to see its section in place. */
+  lookAlong: (a: Vec, b: Vec) => void;
   hover: (ids: string[]) => void;
   setOrtho: (o: boolean) => void;
   look: (name: View | "fit") => void;
@@ -52,10 +59,14 @@ type FrameUI = {
 
 export const useFrameUI = create<FrameUI>((set) => ({
   selected: null,
+  back: null,
   hovered: [],
   ortho: false,
   view: { name: "fit", n: 0 },
-  select: (selected) => set({ selected }),
+  select: (selected) => set({ selected, back: null }),
+  open: (selected) => set((s) => ({ selected, back: s.selected })),
+  goBack: () => set((s) => ({ selected: s.back, back: null })),
+  lookAlong: (a, b) => set((s) => ({ view: { name: "along", n: s.view.n + 1, along: { a, b } }, mode: "3d" })),
   hover: (hovered) => set({ hovered }),
   setOrtho: (ortho) => set({ ortho }),
   look: (name) => set((s) => ({
@@ -79,7 +90,7 @@ export const useFrameUI = create<FrameUI>((set) => ({
 /** Back to a fresh editor: Select tool, nothing selected or pending, the next view fitted. */
 export function resetFrameUI() {
   useFrameUI.setState({
-    selected: null, hovered: [], ortho: false, view: { name: "fit", n: 0 }, tool: "select", mode: "3d",
+    selected: null, back: null, hovered: [], ortho: false, view: { name: "fit", n: 0 }, tool: "select", mode: "3d",
     depth: { front: null, side: null, top: null }, drawStart: null, typed: "",
     lockAxis: null, drawItem: null, drag: null, drawHover: null,
   });

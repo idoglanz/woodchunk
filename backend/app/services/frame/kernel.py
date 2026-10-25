@@ -447,6 +447,12 @@ def _turns(symmetry: str) -> list[tuple[bool, int, int, bool]]:
     return turns
 
 
+def num(x: float) -> str:
+    """Shortest fixed form of a number, identical in Python and JS (keys and ids depend on it)."""
+    s = f"{rnd(x, 3):.3f}".rstrip("0").rstrip(".")
+    return "0" if s in ("-0", "") else s
+
+
 def _key(r: MemberResult) -> str:
     best: tuple | None = None
     for flip, su, sv, swap in _turns(r.profile.symmetry()):
@@ -462,7 +468,19 @@ def _key(r: MemberResult) -> str:
         if best is None or cand < best:
             best = cand
     p = r.profile
-    return f"{r.item_id}|{p.shape}:{p.w}x{p.h}x{p.t}|{r.lp}|{r.sp}|{best}"
+    assert best is not None
+    normals = ",".join(num(c) for n in best for c in n)
+    return f"{r.item_id or ''}|{p.shape}:{num(p.w)}x{num(p.h)}x{num(p.t)}|{num(r.lp)}|{num(r.sp)}|{normals}"
+
+
+def stable_id(text: str) -> str:
+    """16 hex chars from two FNV-1a passes; the editor computes the same ids."""
+    def fnv(seed: int) -> int:
+        h = seed
+        for byte in text.encode():
+            h = ((h ^ byte) * 0x01000193) & 0xFFFFFFFF
+        return h
+    return f"{fnv(0x811C9DC5):08x}{fnv(0x01234567):08x}"
 
 
 def _group(results: list[MemberResult]) -> list[CutGroup]:

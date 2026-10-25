@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 
 from app.models.frame import Frame, FrameJoint
 from app.services.frame.expr import ExprError, evaluate
-from app.services.frame.kernel import Profile, solve
+from app.services.frame.kernel import Profile, solve, stable_id
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "frames"
 TOL = 0.11
@@ -105,3 +105,24 @@ def test_deterministic():
     a = [(g.key, g.qty) for g in solve(frame, profiles).groups]
     b = [(g.key, g.qty) for g in solve(frame, profiles).groups]
     assert a == b
+
+
+PARITY = FIXTURES.parent / "frame-parity.json"
+
+
+def parity_snapshot() -> dict:
+    """Every fixture's piece keys and part ids: the editor's TS kernel must produce the same strings."""
+    out = {}
+    for path in sorted(FIXTURES.glob("*.json")):
+        _, frame, profiles = load(path.name)
+        out[path.name] = {g.key: stable_id(f"asm|{g.key}") for g in solve(frame, profiles).groups}
+    return out
+
+
+def test_parity_file_is_current():
+    """Regenerate with: uv run python -c 'from tests.test_frame import write_parity; write_parity()'"""
+    assert json.loads(PARITY.read_text()) == parity_snapshot()
+
+
+def write_parity() -> None:
+    PARITY.write_text(json.dumps(parity_snapshot(), indent=2, ensure_ascii=False) + "\n")

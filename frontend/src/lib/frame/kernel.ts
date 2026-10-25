@@ -365,6 +365,23 @@ function compareTuples(a: number[], b: number[]): number {
   return 0;
 }
 
+/** Shortest fixed form of a number, identical to the backend's num() (keys and ids depend on it). */
+export function num(x: number): string {
+  const s = rnd(x, 3).toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+  return s === "-0" || s === "" ? "0" : s;
+}
+
+/** 16 hex chars from two FNV-1a passes; matches the backend's stable_id(). */
+export function stableId(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  const fnv = (seed: number) => {
+    let h = seed >>> 0;
+    for (const b of bytes) h = Math.imul(h ^ b, 0x01000193) >>> 0;
+    return h.toString(16).padStart(8, "0");
+  };
+  return fnv(0x811c9dc5) + fnv(0x01234567);
+}
+
 function keyOf(r: MemberResult): string {
   let best: number[] | null = null;
   for (const [flip, su, sv, swap] of turns(r.profile.symmetry())) {
@@ -377,7 +394,7 @@ function keyOf(r: MemberResult): string {
     if (best === null || compareTuples(cand, best) < 0) best = cand;
   }
   const p = r.profile;
-  return `${r.item_id}|${p.shape}:${p.w}x${p.h}x${p.t}|${r.lp}|${r.sp}|${best!.join(",")}`;
+  return `${r.item_id ?? ""}|${p.shape}:${num(p.w)}x${num(p.h)}x${num(p.t)}|${num(r.lp)}|${num(r.sp)}|${best!.map(num).join(",")}`;
 }
 
 function group(results: MemberResult[]): CutGroup[] {

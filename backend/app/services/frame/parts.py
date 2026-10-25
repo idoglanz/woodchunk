@@ -4,13 +4,11 @@ The editor shows the same numbers live from its TypeScript copy of the kernel; t
 plans, shopping lists and exports use.
 """
 
-import hashlib
-
 from pymongo.asynchronous.database import AsyncDatabase
 
 from app.models.catalog import CatalogItem
 from app.models.project import Assembly, EndCutSpec, Part, ProjectContent
-from app.services.frame.kernel import Profile, solve
+from app.services.frame.kernel import Profile, solve, stable_id
 
 
 async def frame_profiles(db: AsyncDatabase, content: ProjectContent) -> tuple[dict[str, Profile], dict[str, CatalogItem]]:
@@ -39,7 +37,7 @@ def derive_parts(a: Assembly, profiles: dict[str, Profile], items: dict[str, Cat
             it = items.get(g.item_id)
             name = it.name.en if it else "Member"
         parts.append(Part(
-            id="f" + hashlib.sha1(f"{a.id}|{g.key}".encode()).hexdigest()[:12],
+            id="f" + stable_id(f"{a.id}|{g.key}"),
             name=name, item_id=g.item_id, qty=g.qty, length_mm=max(0.0, g.lp), short_mm=max(0.0, g.sp),
             cuts=[EndCutSpec(miter=e.miter, bevel=e.bevel) for e in g.ends], face_up=g.face_up, members=g.members,
         ))

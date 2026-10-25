@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ExprError, evaluate } from "./expr";
-import { Profile, solve, type CutGroup } from "./kernel";
+import { Profile, solve, stableId, type CutGroup } from "./kernel";
 import type { Frame, ProfileSpec } from "./types";
 
 // The golden fixtures shared with the backend (backend/tests/test_frame.py).
@@ -68,5 +68,16 @@ describe("expressions", () => {
   });
   it("rejects bad input", () => {
     for (const bad of ["W +", "X", "2 / 0", "(W", "W W", ""]) expect(() => evaluate(bad, p)).toThrow(ExprError);
+  });
+});
+
+describe("parity with the backend", () => {
+  it("produces the same piece keys and part ids", () => {
+    const want = JSON.parse(readFileSync(new URL("../frame-parity.json", DIR), "utf8")) as Record<string, Record<string, string>>;
+    for (const [name, groups] of Object.entries(want)) {
+      const { data, profiles } = load(name);
+      const got = Object.fromEntries(solve(data.frame, profiles).groups.map((g) => [g.key, stableId(`asm|${g.key}`)]));
+      expect(got, name).toEqual(groups);
+    }
   });
 });

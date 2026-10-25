@@ -46,7 +46,7 @@ export function ShopSheetView() {
       </div>
 
       {!p || !content ? <Skeleton className="h-[70vh] rounded-[16px]" /> : (
-        <article dir={dirOf(lang)} lang={lang} className="flex flex-col gap-8 rounded-[16px] bg-surface p-6 shadow-[var(--shadow-card)] sm:p-10 print:p-0 print:shadow-none dark:border dark:border-line print:border-0">
+        <article dir={dirOf(lang)} lang={lang} className="mx-auto flex w-full max-w-[1100px] flex-col gap-8 rounded-[16px] print:max-w-none bg-surface p-6 shadow-[var(--shadow-card)] sm:p-10 print:p-0 print:shadow-none dark:border dark:border-line print:border-0">
           <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
             <div className="flex flex-col gap-1">
               <p className="text-[12px] font-medium text-ink-3">{t(lang, "shopSheet")}</p>

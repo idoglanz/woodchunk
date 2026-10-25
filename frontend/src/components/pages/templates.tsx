@@ -22,12 +22,12 @@ export function TemplatesPage() {
     <Page>
       <div className="flex flex-col gap-8">
         <PageTitle title="Templates" subtitle="Start from a proven build and change the sizes. Ask Woodchunk to adapt it, e.g. “make it 150 cm wide”." />
-        {tpls.isLoading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-48 rounded-[16px]" />)}</div> : !tpls.data?.length ? (
+        {tpls.isLoading ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 min-[1800px]:grid-cols-4 min-[2400px]:grid-cols-5">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-48 rounded-[16px]" />)}</div> : !tpls.data?.length ? (
           <Card><EmptyState title="No templates yet" text="Save any project as a template from its ••• menu." /></Card>
         ) : categories.map((cat) => (
           <section key={cat} className="flex flex-col gap-3">
             <h2 className="text-[13px] font-semibold capitalize text-ink-2">{cat}</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 min-[1800px]:grid-cols-4 min-[2400px]:grid-cols-5">
               {tpls.data.filter((t) => (t.category || "other") === cat).map((t) => (
                 <Card key={t.id} as="article" className="flex flex-col gap-3 p-5">
                   <div className="flex items-start justify-between gap-2">

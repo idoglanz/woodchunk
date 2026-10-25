@@ -5,9 +5,9 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Matrix4, Raycaster, Vector2, Vector3 } from "three";
 import { cn } from "@/lib/cn";
-import { nodePositions, snapTo, type Endpoint } from "@/lib/frame/edit";
+import { neighbours, nodePositions, type Endpoint } from "@/lib/frame/edit";
 import type { MemberResult, Vec } from "@/lib/frame/kernel";
-import { snapPoint, typedEnd, type DrawPlane, type Projector, type Snap } from "@/lib/frame/snap";
+import { snapDrag, snapPoint, typedEnd, type Axis, type DragSnap, type DrawPlane, type Projector, type Snap } from "@/lib/frame/snap";
 import type { Frame } from "@/lib/frame/types";
 import { FLAT, flatPlane, useFrameUI, type DrawStart } from "@/lib/frame/ui";
 
@@ -35,10 +35,11 @@ export function onCanvasOrPage(target: EventTarget | null): boolean {
 const DRAG_STEP = 5;
 
 /**
- * Arrows on the selected joint, or on both ends of the selected bar: drag along X, Y or Z
- * (snapped to 5 mm), saved on release.
+ * Arrows on the selected joint, or on both ends of the selected bar: drag along X, Y or Z (or,
+ * in flat views, freely in the plane). The joint snaps to other joints (joined on release), to
+ * bars (a T-joint) and their midpoints, else moves in 5 mm steps, lined up with joints nearby.
  */
-export function NodeHandle({ frame, onMove }: { frame: Frame; onMove: (node: string, at: Vec) => void }) {
+export function NodeHandle({ frame, onMove }: { frame: Frame; onMove: (node: string, at: Vec, join?: string) => void }) {
   const selected = useFrameUI((s) => s.selected);
   const tool = useFrameUI((s) => s.tool);
   if (tool !== "select" || !selected) return null;
@@ -47,15 +48,18 @@ export function NodeHandle({ frame, onMove }: { frame: Frame; onMove: (node: str
   return <>{ids.map((id) => <Handle key={id} id={id} frame={frame} onMove={onMove} />)}</>;
 }
 
-function Handle({ id, frame, onMove }: { id: string; frame: Frame; onMove: (node: string, at: Vec) => void }) {
+type DragStart = { base: Vec; free: Axis[]; nodes: Map<string, Vec>; members: { id: string; a: Vec; b: Vec }[]; alignWith: Vec[] };
+
+function Handle({ id, frame, onMove }: { id: string; frame: Frame; onMove: (node: string, at: Vec, join?: string) => void }) {
   const drag = useFrameUI((s) => s.drag);
   const set = useFrameUI((s) => s.set);
   const mode = useFrameUI((s) => s.mode);
   // Flat views: only the two in-plane arrows, plus a square to drag freely within the plane.
   const active: [boolean, boolean, boolean] = mode === "3d" ? [true, true, true] : [0, 1, 2].map((i) => i !== FLAT[mode].normal) as [boolean, boolean, boolean];
-  const base = useMemo(() => (id ? nodePositions(frame).get(id) : undefined), [frame, id]);
+  const base = useMemo(() => nodePositions(frame).get(id), [frame, id]);
   const getState = useThree((s) => s.get);
   const frameReq = useRef<number | null>(null);
+  const start = useRef<DragStart | null>(null);
 
   // If the handle goes away mid-drag (Esc, a tool switch, undo), drop the preview and give the
   // camera back: drei only re-enables the controls on the arrow's own pointer-up.
@@ -67,25 +71,63 @@ function Handle({ id, frame, onMove }: { id: string; frame: Frame; onMove: (node
   }, [id, getState]);
 
   if (!base) return null;
-  const at = drag?.node === id ? drag.at : base;
+  const mine = drag?.node === id ? drag : null;
   return (
-    <PivotControls matrix={new Matrix4().makeTranslation(...at)} autoTransform={false} fixed scale={90} lineWidth={3}
-      depthTest={false} disableRotations disableScaling disableSliders={mode === "3d"} activeAxes={active}
-      axisColors={AXIS_COLORS as [string, string, string]}
-      onDrag={(l) => {
-        const p = new Vector3().setFromMatrixPosition(l);
-        // Only the dragged axis moves (in 5 mm steps); the others stay exactly where they were.
-        const next = [p.x, p.y, p.z].map((v, i) => (Math.abs(v - base[i]) > 0.5 ? base[i] + snapTo(v - base[i], DRAG_STEP) : base[i])) as Vec;
-        // At most one preview per frame: each re-solves and re-meshes the frame.
-        if (frameReq.current) cancelAnimationFrame(frameReq.current);
-        frameReq.current = requestAnimationFrame(() => { frameReq.current = null; set({ drag: { node: id, at: next } }); });
-      }}
-      onDragEnd={() => {
-        if (frameReq.current) { cancelAnimationFrame(frameReq.current); frameReq.current = null; }
-        const d = useFrameUI.getState().drag;
-        set({ drag: null });
-        if (d) onMove(d.node, d.at);
-      }} />
+    <>
+      <PivotControls matrix={new Matrix4().makeTranslation(...(mine?.at ?? base))} autoTransform={false} fixed scale={90} lineWidth={3}
+        depthTest={false} disableRotations disableScaling disableSliders={mode === "3d"} activeAxes={active}
+        axisColors={AXIS_COLORS as [string, string, string]}
+        onDragStart={({ component, axis }) => {
+          // What it can snap to, fixed for the whole drag (the preview moves joints tied to a size).
+          const pos = nodePositions(frame);
+          const near = neighbours(frame, id);
+          start.current = {
+            base,
+            free: component === "Slider" ? ([0, 1, 2] as Axis[]).filter((a) => a !== axis) : [axis],
+            nodes: new Map([...pos].filter(([n]) => n !== id && !near.has(n))),
+            members: frame.members.filter((m) => m.a !== id && m.b !== id)
+              .flatMap((m) => { const a = pos.get(m.a), b = pos.get(m.b); return a && b ? [{ id: m.id, a, b }] : []; }),
+            alignWith: [...pos].filter(([n]) => n !== id).map(([, p]) => p),
+          };
+        }}
+        onDrag={(l) => {
+          const st = start.current;
+          if (!st) return;
+          const p = new Vector3().setFromMatrixPosition(l);
+          const { camera, size } = getState();
+          const toScreen = (q: Vec): [number, number] | null => {
+            const v = new Vector3(...toThree(q)).project(camera);
+            return v.z > 1 ? null : [((v.x + 1) / 2) * size.width, ((1 - v.y) / 2) * size.height];
+          };
+          const snap = snapDrag({ ...st, raw: [p.x, p.y, p.z], toScreen, step: DRAG_STEP });
+          // At most one preview per frame: each re-solves and re-meshes the frame.
+          if (frameReq.current) cancelAnimationFrame(frameReq.current);
+          frameReq.current = requestAnimationFrame(() => { frameReq.current = null; set({ drag: { node: id, at: snap.at, snap } }); });
+        }}
+        onDragEnd={() => {
+          if (frameReq.current) { cancelAnimationFrame(frameReq.current); frameReq.current = null; }
+          const d = useFrameUI.getState().drag;
+          set({ drag: null });
+          start.current = null;
+          if (d) onMove(d.node, d.at, d.snap?.kind === "node" ? d.snap.node : undefined);
+        }} />
+      {mine?.snap ? <SnapMark snap={mine.snap} /> : null}
+    </>
+  );
+}
+
+/** What a dragged joint snapped to: a dot on the joint or bar, or guides to the joints it lines up with. */
+function SnapMark({ snap }: { snap: DragSnap }) {
+  if (snap.kind === "free") {
+    return <>{snap.aligned.map((g) => (
+      <Line key={g.axis} points={[g.to, snap.at]} color={AXIS_COLORS[g.axis]} lineWidth={1} dashed dashSize={20} gapSize={14} depthTest={false} renderOrder={4} />
+    ))}</>;
+  }
+  return (
+    <mesh position={snap.at} renderOrder={6}>
+      <sphereGeometry args={[snap.kind === "node" ? 18 : 14, 16, 12]} />
+      <meshBasicMaterial color="#ffcc00" depthTest={false} transparent opacity={0.9} />
+    </mesh>
   );
 }
 
@@ -202,7 +244,7 @@ export function DrawLayer({ frame, members, onAdd }: {
 
   if (tool !== "draw" || !hover) return null;
   const end = start && typed ? typedEnd(start.at, hover.at, Number(typed.replace(",", "."))) ?? hover.at : hover.at;
-  const color = hover.kind === "axis" ? AXIS_COLORS[hover.axis] : hover.kind === "plane" ? "#8e8e93" : "#ffcc00";
+  const color = hover.kind === "axis" || hover.kind === "meet" ? AXIS_COLORS[hover.axis] : hover.kind === "plane" ? "#8e8e93" : "#ffcc00";
   return (
     <group>
       {start ? <Line points={[start.at, end]} color={color} lineWidth={2.5} depthTest={false} renderOrder={5} /> : null}

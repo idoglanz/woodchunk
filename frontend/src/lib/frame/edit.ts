@@ -46,6 +46,37 @@ export function moveNode(frame: Frame, nodeId: string, to: Vec): void {
   });
 }
 
+/**
+ * Join joint `from` into joint `into` (they're at the same place): its bars now end at `into`.
+ * A bar that would join `into` to itself, or repeat a bar already there, is dropped.
+ */
+export function mergeNode(frame: Frame, from: string, into: string): void {
+  if (from === into || !frame.nodes.some((n) => n.id === into)) return;
+  const seen = new Set(frame.members.filter((m) => m.a !== from && m.b !== from).map((m) => [m.a, m.b].sort().join("|")));
+  frame.members = frame.members.filter((m) => {
+    if (m.a !== from && m.b !== from) return true;
+    if (m.a === from) m.a = into;
+    if (m.b === from) m.b = into;
+    const key = [m.a, m.b].sort().join("|");
+    if (m.a === m.b || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  frame.nodes = frame.nodes.filter((n) => n.id !== from);
+  const kept = new Set(frame.members.map((m) => m.id));
+  frame.joints = (frame.joints ?? []).filter((j) => j.node !== from && !(j.through && !kept.has(j.through)));
+}
+
+/** The joints at the other ends of a joint's bars. */
+export function neighbours(frame: Frame, node: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of frame.members) {
+    if (m.a === node) out.add(m.b);
+    if (m.b === node) out.add(m.a);
+  }
+  return out;
+}
+
 export function findNodeAt(frame: Frame, at: Vec): string | null {
   for (const [id, p] of nodePositions(frame)) if (length(sub(p, at)) <= SAME_POINT_MM) return id;
   return null;

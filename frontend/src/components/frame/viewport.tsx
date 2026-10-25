@@ -14,7 +14,8 @@ import { nodePositions } from "@/lib/frame/edit";
 
 /** Frames are Z-up in millimetres; three.js is Y-up. Everything is drawn inside a group turned -90° about X. */
 export type EditHandlers = {
-  onMove: (node: string, at: Vec) => void;
+  /** Move a joint; `join`: it was dropped on that joint, so the two become one. */
+  onMove: (node: string, at: Vec, join?: string) => void;
   onAdd: (from: DrawStart, to: Endpoint) => { node: string; at: Vec } | null;
   onParam: (name: string, mm: number) => void;
   onLabel: (key: string, mm: number) => void;

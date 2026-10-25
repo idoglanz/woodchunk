@@ -41,7 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <ThemeSync theme={user?.prefs.theme as Theme | undefined} />
       <header className="no-print sticky z-30 border-b border-line backdrop-blur-xl backdrop-saturate-[1.8]"
         style={{ top: "env(safe-area-inset-top, 0px)", background: "color-mix(in srgb, var(--bg) 72%, transparent)" }}>
-        <div className="mx-auto flex h-[52px] max-w-[1280px] items-center gap-6 ps-[max(16px,env(safe-area-inset-left))] pe-[max(16px,env(safe-area-inset-right))] sm:ps-6 sm:pe-6">
+        <div className="flex h-[52px] items-center gap-6 ps-[max(16px,env(safe-area-inset-left))] pe-[max(16px,env(safe-area-inset-right))] sm:ps-6 sm:pe-6 lg:ps-8 lg:pe-8">
           <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-[-0.01em]">
             <Logo />
             <span className="text-[17px]">Woodchunk</span>
@@ -82,9 +82,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-export function Page({ children, className, wide }: { children: ReactNode; className?: string; wide?: boolean }) {
+/** A page's content: the full width of the window, with side margins. */
+export function Page({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn("mx-auto w-full ps-[max(16px,env(safe-area-inset-left))] pe-[max(16px,env(safe-area-inset-right))] pb-24 pt-8 sm:ps-6 sm:pe-6", wide ? "max-w-[1280px]" : "max-w-[1200px]", className)}>
+    <div className={cn("w-full ps-[max(16px,env(safe-area-inset-left))] pe-[max(16px,env(safe-area-inset-right))] pb-24 pt-8 sm:ps-6 sm:pe-6 lg:ps-8 lg:pe-8", className)}>
       {children}
     </div>
   );

@@ -16,7 +16,7 @@ import { Segmented } from "@/components/ui/segmented";
 import type { Assembly, CatalogItem } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { newId, useEditor } from "@/lib/editor";
-import { addMember, commonItem, deleteMembers, moveNode, nodePositions, setMemberLength } from "@/lib/frame/edit";
+import { addMember, commonItem, deleteMembers, mergeNode, moveNode, nodePositions, setMemberLength } from "@/lib/frame/edit";
 import { frameStl, saveBlob } from "@/lib/frame/export";
 import { evaluate as ev } from "@/lib/frame/expr";
 import { useMediaQuery } from "@/lib/focus";
@@ -83,7 +83,17 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
   }, [shown, readOnly, mode, depths]);
 
   const handlers: EditHandlers = useMemo(() => ({
-    onMove: (node, at) => editFrame((f) => moveNode(f, node, at)),
+    onMove: (node, at, join) => {
+      editFrame((f) => {
+        moveNode(f, node, at);
+        // Dropped on a joint: join them (if moving it didn't move that joint too, via a size).
+        const pos = nodePositions(f);
+        const [p, q] = [pos.get(node), join ? pos.get(join) : undefined];
+        if (join && p && q && Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) <= 0.5) mergeNode(f, node, join);
+      });
+      const ui = useFrameUI.getState();
+      if (join && ui.selected?.kind === "node" && ui.selected.id === node) ui.select({ kind: "node", id: join });
+    },
     onParam: (name, mm) => editFrame((f) => { const p = f.params?.find((x) => x.name === name); if (p) p.mm = mm; }),
     onLabel: (key, mm) => {
       const [kind, id] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
@@ -172,6 +182,7 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
         <Viewport frame={shown} members={result.members} joints={joints} steel={steel} readOnly={readOnly} edit={handlers} anchors={tool === "select" ? anchors : []} labels={labels} />
         {tool === "select" ? <div className="pointer-events-none absolute inset-0 overflow-hidden"><DimensionLabels anchors={anchors} labels={labels} onCommit={handlers.onLabel} /></div> : null}
         {tool === "draw" && !readOnly ? <DrawHint /> : null}
+        {tool === "select" && !readOnly ? <DragHint frame={frame} /> : null}
         {mode !== "3d" && !readOnly ? <DepthChip mode={mode} frame={shown} /> : null}
         {mode !== "3d" ? <MiniView members={result.members} steel={steel} /> : null}
       </div>
@@ -190,7 +201,31 @@ const TOOLS: { value: Tool; label: string; key: string; icon: typeof PenLine }[]
   { value: "draw", label: "Draw", key: "L", icon: PenLine },
 ];
 
-const SNAP_NAMES: Record<string, string> = { node: "On a joint", mid: "Middle of a bar", "on-bar": "On a bar (T-joint)", axis: "Along an axis" };
+const SNAP_NAMES: Record<string, string> = {
+  node: "On a joint", mid: "Middle of a bar", "on-bar": "On a bar (T-joint)", axis: "Along an axis",
+  meet: "Meets a bar (T-joint)", square: "Square to a bar (T-joint)",
+};
+
+/** While a joint is dragged: what it snapped to, and what releasing there does. */
+function DragHint({ frame }: { frame: Frame }) {
+  const snap = useFrameUI((s) => s.drag?.snap);
+  const flat = useFrameUI((s) => s.mode !== "3d");
+  if (!snap) return null;
+  const bar = (id: string) => {
+    const i = frame.members.findIndex((m) => m.id === id);
+    return i < 0 ? "a bar" : frame.members[i].name || `Bar ${i + 1}`;
+  };
+  const text = snap.kind === "node" ? "Release to join these joints"
+    : snap.kind === "mid" ? `Middle of ${bar(snap.member)}: release for a T-joint`
+    : snap.kind === "on-bar" ? `On ${bar(snap.member)}: release for a T-joint`
+    : snap.aligned.length ? `Lined up with a joint on ${snap.aligned.map((g) => "XYZ"[g.axis]).join(" and ")}` : null;
+  if (!text) return null;
+  return (
+    <div className={cn("pointer-events-none absolute inset-x-3 bottom-3 z-10 flex justify-center", flat && "pe-[13rem] sm:pe-[16rem]")}>
+      <div role="status" className="rounded-2xl bg-surface/95 px-4 py-2 text-[13px] font-medium text-ink shadow-[var(--shadow-pop)] backdrop-blur">{text}</div>
+    </div>
+  );
+}
 
 function DrawHint() {
   const start = useFrameUI((s) => s.drawStart);

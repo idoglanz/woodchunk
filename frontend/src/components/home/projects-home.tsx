@@ -32,7 +32,10 @@ export function ProjectsHome() {
             <Button variant="primary" icon={<Plus size={17} strokeWidth={2.4} />} onClick={() => setCreating(true)}>New project</Button>
           </>}
         />
-        {projects.isLoading ? (
+        {projects.isError && !projects.data ? (
+          <Card><EmptyState title="Couldn't load your projects" text="Check your connection and try again."
+            action={<Button onClick={() => void projects.refetch()}>Try again</Button>} /></Card>
+        ) : projects.isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-[168px] rounded-[16px]" />)}</div>
         ) : list.length === 0 ? (
           view === "active" ? (

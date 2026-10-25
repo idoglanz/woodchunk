@@ -64,15 +64,15 @@ export function LumberBars({ plan, labels = true, print = false, active, onPick 
                 const slanted = angled.some(Boolean) && !print;
                 const piece = (
                   <div key={slanted ? undefined : j} title={title} data-part={s.part_id} onClick={onPick ? () => onPick(s.part_id) : undefined}
-                    className={cn("@container flex min-w-[2px] flex-col justify-center overflow-hidden px-2 transition-opacity duration-150",
+                    className={cn("@container flex min-w-[2px] flex-col justify-center overflow-hidden px-1 transition-opacity duration-150 @min-[60px]:px-2",
                       onPick && "cursor-pointer", dim && s.part_id !== active && "opacity-35")}
                     style={{ flex: slanted ? "1 1 0" : `${s.length} 1 0`, ...(print ? { background: "#fff", color: "#000" } : asmColors(s.assembly)),
                       // Angled ends (bars from a 3D frame) drawn as a slant, like the piece itself.
                       ...(slanted ? { clipPath: `polygon(${angled[0] ? 9 : 0}px 0, calc(100% - ${angled[1] ? 9 : 0}px) 0, 100% 100%, 0 100%)` } : {}),
                       ...(s.part_id === active && !print ? { boxShadow: "inset 0 0 0 2.5px var(--ink)" } : {}) }}>
                     {labels ? <>
-                      <span className="hidden truncate text-[12px] font-bold leading-tight @min-[30px]:block">{s.label}</span>
-                      <span className="tnum hidden truncate font-mono text-[11px] leading-tight opacity-80 @min-[44px]:block">{Math.round(s.length)}</span>
+                      <span className="hidden truncate text-[12px] font-bold leading-tight @min-[18px]:block">{s.label}</span>
+                      <span className="tnum hidden truncate font-mono text-[11px] leading-tight opacity-80 @min-[30px]:block">{Math.round(s.length)}</span>
                     </> : null}
                   </div>
                 );

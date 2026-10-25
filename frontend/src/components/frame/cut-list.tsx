@@ -11,10 +11,10 @@ import type { EndCut, FrameResult } from "@/lib/frame/kernel";
 import { useFrameUI } from "@/lib/frame/ui";
 import { fmtMeters } from "@/lib/units";
 
-/** "Square", "45° / 45°", "Square / 11.4°", with "bevel" when the blade tilts. */
+/** "Square", "45° / 45°", "square / 11.4°", with "bevel" when the blade tilts. */
 export function cutSummary(ends: readonly EndCut[] | readonly { miter: number; bevel: number }[]): string {
   const one = (e: { miter: number; bevel: number }) =>
-    !e.miter && !e.bevel ? "□" : e.bevel ? `${e.miter}° · bevel ${e.bevel}°` : `${e.miter}°`;
+    !e.miter && !e.bevel ? "square" : e.bevel ? `${e.miter}° · bevel ${e.bevel}°` : `${e.miter}°`;
   if (ends.every((e) => !e.miter && !e.bevel)) return "Square";
   return ends.map(one).join(" / ");
 }
@@ -58,7 +58,7 @@ export function CutList({ asm, result, byId }: { asm: Assembly; result: FrameRes
           const lit = g.members.some((m) => hovered.includes(m)) || (selected?.kind === "member" && g.members.includes(selected.id));
           return (
             <li key={g.key}>
-              <button type="button" onMouseEnter={() => hover(g.members)} onMouseLeave={() => hover([])}
+              <button type="button" data-frame-shortcuts onMouseEnter={() => hover(g.members)} onMouseLeave={() => hover([])}
                 onFocus={() => hover(g.members)} onBlur={() => hover([])} onClick={() => select({ kind: "member", id: g.members[0] })}
                 className={cn("grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 rounded-xl px-2 py-2 text-start transition-colors", lit ? "bg-accent-soft" : "hover:bg-surface-2")}>
                 <AsmChip letter={asm.letter}>{asm.letter}{i + 1}</AsmChip>

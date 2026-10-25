@@ -6,6 +6,11 @@ export function money(value: number | null | undefined, currency = "ILS"): strin
   return `${sym}${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/** A total that may be missing prices: "No prices yet" rather than a misleading ₪0.00. */
+export function costText(value: number, currency: string, unpriced: boolean): string {
+  return unpriced && !value ? "No prices yet" : money(value, currency);
+}
+
 export function moneyShort(value: number | null | undefined, currency = "ILS"): string {
   if (value === null || value === undefined) return "—";
   const sym = SYMBOL[currency] ?? `${currency} `;

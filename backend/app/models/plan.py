@@ -38,6 +38,7 @@ class BoardPattern(Model):
 class LumberPlan(Model):
     item_id: str
     name: str
+    priced: bool = True  # every stock length used has a price
     supplier_name: str = ""
     kerf: float
     cost: float
@@ -93,6 +94,7 @@ class SheetLayoutOut(Model):
 class SheetPlan(Model):
     item_id: str
     name: str
+    priced: bool = True  # every sheet size used has a price
     supplier_name: str = ""
     thickness_mm: float | None
     has_grain: bool
@@ -131,6 +133,7 @@ class Totals(Model):
     sheet_cost: float
     hardware_cost: float
     unpriced_lines: int
+    unpriced_materials: int = 0  # lumber/sheet materials without a price (their cost counts as 0)
     boards: int
     sheets: int
     from_inventory: int

@@ -18,12 +18,19 @@ import { newAssembly, newId, newPart, nextLetter, useEditor } from "@/lib/editor
 import { partRowId, useActivePart, usePartFocus } from "@/lib/focus";
 import { money } from "@/lib/format";
 import { deriveParts } from "@/lib/frame/parts";
-import { useCatalog } from "@/lib/queries";
+import { useCatalog, useItemMap } from "@/lib/queries";
 
 function useItems() {
   const q = useCatalog({});
   const items = useMemo(() => q.data ?? [], [q.data]);
-  const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+  // Parts can use items the list hides (retired, or someone's suggestion): look those up by id.
+  const content = useEditor((s) => s.content);
+  const used = useMemo(() => (content ? [
+    ...content.assemblies.flatMap((a) => [...a.parts.map((p) => p.item_id), ...a.hardware.map((h) => h.item_id),
+      ...(a.frame?.members.map((m) => m.item_id) ?? [])]),
+    ...content.extras.map((h) => h.item_id),
+  ] : []), [content]);
+  const byId = useItemMap(items, used);
   return { items, byId };
 }
 

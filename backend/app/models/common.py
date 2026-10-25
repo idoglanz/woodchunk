@@ -16,13 +16,14 @@ class Model(BaseModel):
     """Base for API models: fields with defaults are still required in *response* schemas,
     so generated client types don't mark always-present fields (like `id`) optional."""
 
-    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+    # No NaN/Infinity anywhere: they'd be stored, then break plans, exports and the editor.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True, allow_inf_nan=False)
 
 
 class Doc(Model):
     """Base for documents stored in Mongo with a string `_id` (exposed as `id` in the API)."""
 
-    model_config = ConfigDict(populate_by_name=True, json_schema_serialization_defaults_required=True)
+    model_config = ConfigDict(populate_by_name=True, json_schema_serialization_defaults_required=True, allow_inf_nan=False)
 
     id: str = Field(default_factory=new_id)
 

@@ -7,6 +7,7 @@ from pydantic import Field, field_validator, model_validator
 
 from app.models.common import Doc, Model, new_id, now
 from app.models.frame import Frame
+from app.models.inventory import InventoryEntry
 
 
 class ProjectStatus(StrEnum):
@@ -43,8 +44,8 @@ class CuttingSettings(Model):
 class EndCutSpec(Model):
     """Saw settings for one end of a bar: miter = table rotation, bevel = blade tilt (0 = square)."""
 
-    miter: float = 0
-    bevel: float = 0
+    miter: float = Field(default=0, ge=0, le=90)
+    bevel: float = Field(default=0, ge=0, le=90)
 
 
 class Part(Model):
@@ -52,14 +53,14 @@ class Part(Model):
     name: str = ""
     item_id: str | None = None
     qty: int = Field(default=1, ge=1, le=10000)
-    length_mm: float = Field(default=0, ge=0)  # bars from a frame: long point to long point
-    width_mm: float | None = Field(default=None, ge=0)  # sheet parts only
+    length_mm: float = Field(default=0, ge=0, le=100_000)  # bars from a frame: long point to long point
+    width_mm: float | None = Field(default=None, ge=0, le=100_000)  # sheet parts only
     grain_locked: bool = False
     notes: str = ""
     # Set on parts generated from the assembly's frame (read-only in the editor).
-    members: list[str] = []  # frame member ids this part is cut for
-    short_mm: float | None = None  # short point
-    cuts: list[EndCutSpec] = []  # the two ends
+    members: list[str] = Field(default=[], max_length=10_000)  # frame member ids this part is cut for
+    short_mm: float | None = Field(default=None, ge=0)  # short point
+    cuts: list[EndCutSpec] = Field(default=[], max_length=2)  # the two ends
     face_up: Literal["top", "side", ""] = ""
 
 
@@ -76,9 +77,9 @@ class Assembly(Model):
     letter: str = ""
     name: str = ""
     qty: int = Field(default=1, ge=1, le=10000)
-    parts: list[Part] = []
-    hardware: list[HardwareLine] = []
-    notes: str = ""
+    parts: list[Part] = Field(default=[], max_length=1000)
+    hardware: list[HardwareLine] = Field(default=[], max_length=300)
+    notes: str = Field(default="", max_length=5000)
     # A drawn assembly: its parts are generated from this frame on every save.
     frame: Frame | None = None
     frame_warnings: list[str] = []
@@ -126,10 +127,10 @@ class ProjectContent(Model):
     """The part of a project the editor changes (and autosaves)."""
 
     name: str = Field(default="Untitled project", min_length=1, max_length=120)
-    description: str = ""
+    description: str = Field(default="", max_length=5000)
     settings: CuttingSettings = CuttingSettings()
-    assemblies: list[Assembly] = []
-    extras: list[HardwareLine] = []
+    assemblies: list[Assembly] = Field(default=[], max_length=200)
+    extras: list[HardwareLine] = Field(default=[], max_length=300)
 
     @model_validator(mode="after")
     def _assign_letters(self):
@@ -152,6 +153,9 @@ class Project(Doc, ProjectContent):
     status: ProjectStatus = ProjectStatus.planning
     archived: bool = False
     purchase: Purchase | None = None
+    # The workshop stock as it was when the project was cut: its plan keeps using it afterwards,
+    # so cutting (which uses up boards and adds offcuts) doesn't change what the project shows.
+    cut_inventory: list[InventoryEntry] | None = None
     shopping_checked: list[str] = []  # shopping line keys ticked off
     last_total: float | None = None  # cached from the latest plan, for project cards
     is_template: bool = False

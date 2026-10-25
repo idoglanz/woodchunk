@@ -15,6 +15,15 @@ export const toThree = ([x, y, z]: Vec): [number, number, number] => [x, z, -y];
 const fromThree = (v: Vector3): Vec => [v.x, -v.z, v.y];
 
 const AXIS_COLORS = ["#e5484d", "#30a46c", "#3b82f6"];
+
+/**
+ * Editor shortcuts act when focus is on the page, the 3D view or an element that opts in
+ * (cut-list rows: pick a bar there, press Delete); never in fields, menus or other buttons.
+ */
+export function onCanvasOrPage(target: EventTarget | null): boolean {
+  if (!target || target === document.body || target instanceof HTMLCanvasElement) return true;
+  return target instanceof HTMLElement && !!target.closest("[data-frame-shortcuts]");
+}
 const DRAG_STEP = 5;
 
 /** Arrows on the selected joint: drag along X, Y or Z (snapped to 5 mm), saved on release. */
@@ -25,6 +34,18 @@ export function NodeHandle({ frame, onMove }: { frame: Frame; onMove: (node: str
   const set = useFrameUI((s) => s.set);
   const id = selected?.kind === "node" && tool === "select" ? selected.id : null;
   const base = useMemo(() => (id ? nodePositions(frame).get(id) : undefined), [frame, id]);
+  const getState = useThree((s) => s.get);
+  const frameReq = useRef<number | null>(null);
+
+  // If the handle goes away mid-drag (Esc, a tool switch, undo), drop the preview and give the
+  // camera back: drei only re-enables the controls on the arrow's own pointer-up.
+  useEffect(() => () => {
+    if (frameReq.current) cancelAnimationFrame(frameReq.current);
+    if (useFrameUI.getState().drag) useFrameUI.getState().set({ drag: null });
+    const controls = getState().controls as { enabled?: boolean } | null;
+    if (controls && controls.enabled === false) controls.enabled = true;
+  }, [id, getState]);
+
   if (!id || !base) return null;
   const at = drag?.node === id ? drag.at : base;
   return (
@@ -32,9 +53,14 @@ export function NodeHandle({ frame, onMove }: { frame: Frame; onMove: (node: str
       depthTest={false} disableRotations disableScaling disableSliders axisColors={AXIS_COLORS as [string, string, string]}
       onDrag={(l) => {
         const p = new Vector3().setFromMatrixPosition(l);
-        set({ drag: { node: id, at: [snapTo(p.x, DRAG_STEP), snapTo(p.y, DRAG_STEP), snapTo(p.z, DRAG_STEP)] } });
+        // Only the dragged axis moves (in 5 mm steps); the others stay exactly where they were.
+        const next = [p.x, p.y, p.z].map((v, i) => (Math.abs(v - base[i]) > 0.5 ? base[i] + snapTo(v - base[i], DRAG_STEP) : base[i])) as Vec;
+        // At most one preview per frame: each re-solves and re-meshes the frame.
+        if (frameReq.current) cancelAnimationFrame(frameReq.current);
+        frameReq.current = requestAnimationFrame(() => { frameReq.current = null; set({ drag: { node: id, at: next } }); });
       }}
       onDragEnd={() => {
+        if (frameReq.current) { cancelAnimationFrame(frameReq.current); frameReq.current = null; }
         const d = useFrameUI.getState().drag;
         set({ drag: null });
         if (d) onMove(d.node, d.at);
@@ -57,8 +83,16 @@ export function DrawLayer({ frame, members, onAdd }: {
   const set = useFrameUI((s) => s.set);
   const [hover, setHover] = useState<Snap | null>(null);
   const hoverRef = useRef<Snap | null>(null);
-  const nodes = useMemo(() => nodePositions(frame), [frame]);
-  const segs = useMemo(() => members.map((m) => ({ id: m.id, a: m.a, b: m.b })), [members]);
+  // Read through refs, so placing a point (which changes the frame) doesn't re-subscribe the
+  // listeners and drop the hover point or a click in progress.
+  const nodes = useRef(nodePositions(frame));
+  const segs = useRef(members.map((m) => ({ id: m.id, a: m.a, b: m.b })));
+  const add = useRef(onAdd);
+  useEffect(() => {
+    nodes.current = nodePositions(frame);
+    segs.current = members.map((m) => ({ id: m.id, a: m.a, b: m.b }));
+    add.current = onAdd;
+  }, [frame, members, onAdd]);
 
   useEffect(() => {
     if (tool !== "draw") return;
@@ -78,7 +112,7 @@ export function DrawLayer({ frame, members, onAdd }: {
         ray: { origin: fromThree(raycaster.ray.origin), dir: fromThree(raycaster.ray.direction) },
       };
       const s = useFrameUI.getState();
-      return snapPoint({ cursor, proj, nodes, members: segs, start: s.drawStart?.at ?? null, lockAxis: s.lockAxis, planeZ: s.drawStart?.at[2] ?? 0, grid: 10 });
+      return snapPoint({ cursor, proj, nodes: nodes.current, members: segs.current, start: s.drawStart?.at ?? null, lockAxis: s.lockAxis, planeZ: s.drawStart?.at[2] ?? 0, grid: 10 });
     };
     const show = (snap: Snap | null) => {
       hoverRef.current = snap;
@@ -91,7 +125,7 @@ export function DrawLayer({ frame, members, onAdd }: {
       const s = useFrameUI.getState();
       const point: DrawStart = snap.kind === "node" ? { node: snap.node, at: snap.at } : { at: snap.at };
       if (!s.drawStart) { set({ drawStart: point, typed: "" }); return; }
-      const end = onAdd(s.drawStart, snap.kind === "node" ? { node: snap.node } : { at: snap.at });
+      const end = add.current(s.drawStart, snap.kind === "node" ? { node: snap.node } : { at: snap.at });
       set({ drawStart: end ? { node: end.node, at: end.at } : s.drawStart, typed: "" });
     };
 
@@ -105,8 +139,7 @@ export function DrawLayer({ frame, members, onAdd }: {
       if (moved < 5) place(locate(e));
     };
     const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || !onCanvasOrPage(e.target)) return;
       const s = useFrameUI.getState();
       if (e.key === "Escape") {
         if (s.drawStart) set({ drawStart: null, typed: "" });
@@ -138,7 +171,7 @@ export function DrawLayer({ frame, members, onAdd }: {
       window.removeEventListener("keyup", onKeyUp);
       show(null);
     };
-  }, [tool, gl, camera, nodes, segs, onAdd, set, invalidate]);
+  }, [tool, gl, camera, set, invalidate]);
 
   if (tool !== "draw" || !hover) return null;
   const end = start && typed ? typedEnd(start.at, hover.at, Number(typed.replace(",", "."))) ?? hover.at : hover.at;

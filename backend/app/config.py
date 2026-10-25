@@ -17,7 +17,8 @@ class Settings(BaseSettings):
     database_name: str = "woodchunk"
 
     # "dev" accepts `Bearer dev:<email>` tokens so the app runs without a login provider.
-    auth_mode: Literal["dev", "descope"] = "dev"
+    # Fails closed: dev sign-in (any email, no password) only when AUTH_MODE=dev is set explicitly.
+    auth_mode: Literal["dev", "descope"] = "descope"
     descope_project_id: str = ""
     admin_emails: str = ""  # comma separated; these users become admins on sign-in
 

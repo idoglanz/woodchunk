@@ -32,6 +32,7 @@ from app.routers.deps import load_project, plan_for
 from app.services.ai.catalog_ai import translate_strings
 from app.services.ai.client import AIServiceError
 from app.services.frame.parts import derive_all
+from app.services.ratelimit import check_ai_quota
 from app.services.shopping import build_shopping, purchase_from
 
 router = APIRouter(prefix="/api", tags=["projects"])
@@ -174,6 +175,8 @@ class CheckIn(Model):
 @router.put("/projects/{project_id}/shopping/checked", status_code=204)
 async def check_line(project_id: str, body: CheckIn, user: User = Depends(current_user)):
     p = await load_project(project_id, user, "edit")
+    if p.status == ProjectStatus.done:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This project is done. Reopen it to make changes.")
     op = "$addToSet" if body.checked else "$pull"
     await get_db().projects.update_one({"_id": p.id}, {op: {"shopping_checked": body.key}})
 
@@ -199,6 +202,7 @@ async def set_status(project_id: str, body: StatusIn, user: User = Depends(curre
         raise HTTPException(status.HTTP_409_CONFLICT, f"A {p.status} project can't move to {body.status}.")
     db = get_db()
     update: dict = {"status": body.status, "updated_at": now(), "version": p.version + 1}
+    stock_changes: list = []  # inventory writes, done only once this request has claimed the change
     if body.status == ProjectStatus.bought:
         plan, items, _, _ = await plan_for(p)
         if plan.unplaced:
@@ -209,6 +213,7 @@ async def set_status(project_id: str, body: StatusIn, user: User = Depends(curre
         update["purchase"] = None
     elif body.status == ProjectStatus.cut and p.status == ProjectStatus.bought:
         plan, items, _, inventory = await plan_for(p)
+        update["cut_inventory"] = [e.model_dump(mode="python") for e in inventory]
         entries = []
         for lp in plan.lumber:
             for pat in lp.patterns:
@@ -238,12 +243,22 @@ async def set_status(project_id: str, body: StatusIn, user: User = Depends(curre
                     take = min(qty, e.qty)
                     qty -= take
                     if take >= e.qty:
-                        await db.inventory.update_one({"_id": e.id}, {"$set": {"status": StockStatus.used}})
+                        stock_changes.append(({"_id": e.id}, {"$set": {"status": StockStatus.used}}))
                     else:
-                        await db.inventory.update_one({"_id": e.id}, {"$inc": {"qty": -take}})
+                        stock_changes.append(({"_id": e.id}, {"$inc": {"qty": -take}}))
         if entries:
-            await db.inventory.insert_many([e.to_mongo() for e in entries])
-    res = await db.projects.find_one_and_update({"_id": p.id}, {"$set": update}, return_document=True)
+            stock_changes.append(("insert", [e.to_mongo() for e in entries]))
+    # Claim the change first (same status and version as we read): a double click or a second
+    # tab gets a 409 instead of using up stock twice.
+    res = await db.projects.find_one_and_update({"_id": p.id, "status": p.status, "version": p.version},
+                                                {"$set": update}, return_document=True)
+    if res is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "The project changed at the same moment. Reload and try again.")
+    for target, change in stock_changes:
+        if target == "insert":
+            await db.inventory.insert_many(change)
+        else:
+            await db.inventory.update_one(target, change)
     return Project.from_mongo(res)
 
 
@@ -271,6 +286,7 @@ async def ensure_translations(project_id: str, lang: Lang = "he", user: User = D
     missing = [s for s in _strings(p) if s not in have]
     if missing:
         try:
+            check_ai_quota(user)
             have.update(await translate_strings(missing, lang))
         except AIServiceError as e:
             raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(e)) from e
@@ -404,10 +420,15 @@ async def accept_invite(token: str, user: User = Depends(current_user)):
     if doc is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "The project no longer exists.")
     p = Project.from_mongo(doc)
-    if p.role_of(user.id) is None:
+    role = p.role_of(user.id)
+    if role is None:
         m = Member(user_id=user.id, role=Role(inv["role"]), email=user.email, name=user.name)
-        doc = await db.projects.find_one_and_update({"_id": p.id}, {"$push": {"members": m.model_dump()}},
-                                                    return_document=True)
+        doc = await db.projects.find_one_and_update({"_id": p.id, "members.user_id": {"$ne": user.id}},
+                                                    {"$push": {"members": m.model_dump()}}, return_document=True) or doc
+    elif role == Role.viewer and inv["role"] == Role.editor:
+        # A viewer who opens an editor link is upgraded (never the other way round).
+        doc = await db.projects.find_one_and_update({"_id": p.id, "members.user_id": user.id},
+                                                    {"$set": {"members.$.role": Role.editor}}, return_document=True)
     return Project.from_mongo(doc)
 
 

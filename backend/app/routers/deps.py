@@ -9,7 +9,7 @@ from fastapi import HTTPException, status
 from app.db import get_db
 from app.models.catalog import CatalogItem, Supplier
 from app.models.inventory import InventoryEntry
-from app.models.project import Project, Role
+from app.models.project import Project, ProjectStatus, Role
 from app.models.user import User
 from app.services.planner import PlanInputs, compute_plan
 
@@ -66,7 +66,12 @@ async def plan_for(p: Project, lang: str = "en", save_total: bool = True):
     ids = project_item_ids(p)
     items = await load_items(ids)
     suppliers = await load_suppliers()
-    inventory = await load_inventory(p.owner_id, ids) if p.settings.use_inventory else []
+    if not p.settings.use_inventory or p.is_template:
+        inventory = []  # a template is planned for anyone: not against its author's workshop
+    elif p.status in (ProjectStatus.cut, ProjectStatus.done) and p.cut_inventory is not None:
+        inventory = p.cut_inventory
+    else:
+        inventory = await load_inventory(p.owner_id, ids)
     tr = await translations_for(p.id, lang)
     inp = PlanInputs(project=p, items=items, suppliers=suppliers, inventory=inventory, lang=lang,
                      translate=(lambda s: tr.get(s, s)) if tr else None)

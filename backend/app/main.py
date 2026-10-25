@@ -1,8 +1,10 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app import db
 from app.config import get_settings
@@ -32,6 +34,13 @@ s = get_settings()
 origins = {"http://localhost:3000", "http://127.0.0.1:3000", s.frontend_url, s.frontend_url.replace("http://", "https://")}
 app.add_middleware(CORSMiddleware, allow_origins=sorted(origins), allow_credentials=True, allow_methods=["*"],
                    allow_headers=["*"], expose_headers=["Content-Disposition"])
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
+    # Don't echo the rejected input back: it may not even be valid JSON (Infinity, NaN).
+    detail = [{"loc": list(e.get("loc", ())), "msg": e.get("msg", ""), "type": e.get("type", "")} for e in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": detail})
+
 
 for r in (me.router, catalog.router, projects.router, inventory.router, ai.router, admin.router):
     app.include_router(r)

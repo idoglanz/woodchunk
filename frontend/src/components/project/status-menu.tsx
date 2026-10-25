@@ -5,7 +5,7 @@ import { StatusPill } from "@/components/ui/misc";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/overlay";
 import { useProjectCtx } from "@/components/project/context";
 import type { Project } from "@/lib/api/client";
-import { useEditor } from "@/lib/editor";
+import { saveFirst, useEditor } from "@/lib/editor";
 import { useProjectAction } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 
@@ -15,7 +15,7 @@ export function useSetStatus() {
   return {
     pending: act.status.isPending,
     set: async (status: Project["status"], message?: string) => {
-      await useEditor.getState().flush();
+      try { await saveFirst(); } catch (e) { toast.error((e as Error).message); return; }
       act.status.mutate({ id, status }, {
         onSuccess: (p) => { useEditor.getState().serverUpdate(p); if (message) toast.info(message); },
       });

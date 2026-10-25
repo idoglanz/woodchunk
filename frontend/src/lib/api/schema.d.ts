@@ -1007,7 +1007,7 @@ export interface components {
              * @default review
              * @enum {string}
              */
-            status: "review" | "applied" | "discarded";
+            status: "review" | "applying" | "applied" | "discarded";
             /**
              * Items
              * @default []
@@ -1524,7 +1524,7 @@ export interface components {
              * Params
              * @default []
              */
-            params: components["schemas"]["FrameParam"][];
+            params: components["schemas"]["FrameParam-Input"][];
             /**
              * @default {
              *       "corner": "butt",
@@ -1559,7 +1559,7 @@ export interface components {
              * Params
              * @default []
              */
-            params: components["schemas"]["FrameParam"][];
+            params: components["schemas"]["FrameParam-Output"][];
             /**
              * @default {
              *       "corner": "butt",
@@ -1738,11 +1738,28 @@ export interface components {
             z: number | string;
         };
         /** FrameParam */
-        FrameParam: {
+        "FrameParam-Input": {
             /** Name */
             name: string;
             /** Mm */
             mm: number;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
+        };
+        /** FrameParam */
+        "FrameParam-Output": {
+            /** Name */
+            name: string;
+            /** Mm */
+            mm: number;
+            /**
+             * Label
+             * @default
+             */
+            label: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1830,6 +1847,40 @@ export interface components {
              * @default true
              */
             selected: boolean;
+        };
+        /** InventoryEntry */
+        InventoryEntry: {
+            /** Item Id */
+            item_id: string;
+            /** @default offcut */
+            kind: components["schemas"]["StockKind"];
+            /** Length Mm */
+            length_mm: number;
+            /** Width Mm */
+            width_mm: number | null;
+            /**
+             * Qty
+             * @default 1
+             */
+            qty: number;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Id */
+            id: string;
+            /** Owner Id */
+            owner_id: string;
+            /** @default available */
+            status: components["schemas"]["StockStatus"];
+            /** Source Project Id */
+            source_project_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** InventoryIn */
         InventoryIn: {
@@ -1986,6 +2037,11 @@ export interface components {
             item_id: string;
             /** Name */
             name: string;
+            /**
+             * Priced
+             * @default true
+             */
+            priced: boolean;
             /**
              * Supplier Name
              * @default
@@ -2381,6 +2437,8 @@ export interface components {
              */
             archived: boolean;
             purchase: components["schemas"]["Purchase"] | null;
+            /** Cut Inventory */
+            cut_inventory: components["schemas"]["InventoryEntry"][] | null;
             /**
              * Shopping Checked
              * @default []
@@ -2665,6 +2723,11 @@ export interface components {
             /** Name */
             name: string;
             /**
+             * Priced
+             * @default true
+             */
+            priced: boolean;
+            /**
              * Supplier Name
              * @default
              */
@@ -2916,6 +2979,11 @@ export interface components {
             hardware_cost: number;
             /** Unpriced Lines */
             unpriced_lines: number;
+            /**
+             * Unpriced Materials
+             * @default 0
+             */
+            unpriced_materials: number;
             /** Boards */
             boards: number;
             /** Sheets */
@@ -3092,6 +3160,8 @@ export interface operations {
                 kind?: components["schemas"]["ItemKind"] | null;
                 status?: components["schemas"]["ItemStatus"] | null;
                 supplier_id?: string | null;
+                /** @description Comma-separated item ids: exactly these, whatever their status */
+                ids?: string;
             };
             header?: never;
             path?: never;

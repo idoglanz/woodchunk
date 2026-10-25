@@ -2,7 +2,7 @@
 
 import { CameraControls, GizmoHelper, GizmoViewport, Grid, OrthographicCamera, PerspectiveCamera } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, type RefObject } from "react";
+import { memo, useEffect, useMemo, useRef, type RefObject } from "react";
 import { Box3, DoubleSide, EdgesGeometry, Sphere, Vector3 } from "three";
 import { DrawLayer, LabelProjector, NodeHandle, toThree, type DimAnchor } from "@/components/frame/edit-layers";
 import type { Endpoint } from "@/lib/frame/edit";
@@ -60,10 +60,23 @@ export function Viewport({ frame, members, joints, steel, readOnly, edit, anchor
   );
 }
 
-function Member({ m, color, edge, accent }: { m: MemberResult; color: string; edge: string; accent: string }) {
+/** What a bar's solid depends on: when this is unchanged its geometry is reused. */
+function shapeKey(m: MemberResult): string {
+  const p = m.profile;
+  return JSON.stringify([m.a, m.b, m.u, m.v, m.anchor_uv, m.planes, p.shape, p.w, p.h, p.t]);
+}
+
+type MemberProps = { m: MemberResult; color: string; edge: string; accent: string };
+
+// Re-render (and re-mesh) a bar only when its own shape or colours change, not on every edit.
+const Member = memo(MemberImpl, (a: MemberProps, b: MemberProps) =>
+  a.color === b.color && a.edge === b.edge && a.accent === b.accent && a.m.id === b.m.id && shapeKey(a.m) === shapeKey(b.m));
+
+function MemberImpl({ m, color, edge, accent }: MemberProps) {
   const geometry = useMemo(() => memberGeometry(m), [m]);
   const edges = useMemo(() => new EdgesGeometry(geometry, 25), [geometry]);
   useEffect(() => () => { geometry.dispose(); edges.dispose(); }, [geometry, edges]);
+  useEffect(() => () => { document.body.style.cursor = ""; }, []); // deleted while hovered
   const selected = useFrameUI((s) => s.selected?.kind === "member" && s.selected.id === m.id);
   const lit = useFrameUI((s) => s.hovered.includes(m.id));
   const select = useFrameUI((s) => s.select);

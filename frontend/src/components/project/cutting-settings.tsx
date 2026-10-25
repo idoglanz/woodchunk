@@ -46,10 +46,10 @@ export function CuttingSettingsForm({ value, onChange, units }: { value: Cutting
           </Select>
         </Field>
         <Field label="Square off board ends" htmlFor="trim" hint="Cut from the start of every board.">
-          <LengthInput id="trim" ariaLabel="End trim" units={units} value={value.end_trim_mm} onChange={(mm) => onChange((s) => { s.end_trim_mm = mm ?? 0; })} placeholder="0" />
+          <LengthInput id="trim" ariaLabel="End trim" units={units} value={value.end_trim_mm} onChange={(mm) => onChange((s) => { s.end_trim_mm = Math.min(200, mm ?? 0); })} placeholder="0" />
         </Field>
         <Field label="Trim sheet edges" htmlFor="edge" hint="Factory edges are often damaged.">
-          <LengthInput id="edge" ariaLabel="Edge trim" units={units} value={value.edge_trim_mm} onChange={(mm) => onChange((s) => { s.edge_trim_mm = mm ?? 0; })} placeholder="0" />
+          <LengthInput id="edge" ariaLabel="Edge trim" units={units} value={value.edge_trim_mm} onChange={(mm) => onChange((s) => { s.edge_trim_mm = Math.min(100, mm ?? 0); })} placeholder="0" />
         </Field>
         <Field label="Keep lumber offcuts from" htmlFor="minoff">
           <LengthInput id="minoff" ariaLabel="Minimum lumber offcut" units={units} value={value.min_offcut_mm} onChange={(mm) => onChange((s) => { s.min_offcut_mm = mm ?? 0; })} />

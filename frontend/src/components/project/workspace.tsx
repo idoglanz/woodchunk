@@ -61,6 +61,15 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
     return () => { void useEditor.getState().flush(); };
   }, [qc]);
 
+  // Warn before leaving the page with edits the server doesn't have yet.
+  const unsaved = ed.save === "pending" || ed.save === "saving" || ed.save === "error" || ed.save === "conflict";
+  useEffect(() => {
+    if (!unsaved) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [unsaved]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
@@ -96,6 +105,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
   if (fullBleed) {
     return (
       <ProjectContext.Provider value={ctx}>
+        <ConflictBanner />
         {ready ? children : <div className="p-6"><Skeleton className="h-[70dvh] w-full rounded-[16px]" /></div>}
       </ProjectContext.Provider>
     );
@@ -111,6 +121,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
               <div className="flex flex-col gap-5"><Skeleton className="h-10 w-72" /><Skeleton className="h-9 w-96" /><Skeleton className="h-64 w-full rounded-[16px]" /></div>
             ) : (
               <div className="flex flex-col gap-5">
+                <ConflictBanner />
                 <div className="no-print flex flex-col gap-4">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                     <Link href="/" aria-label="Back to projects" title="Projects"
@@ -148,12 +159,28 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
   );
 }
 
+/** Someone else saved while this tab was editing: choose whose version wins. */
+function ConflictBanner() {
+  const save = useEditor((s) => s.save);
+  const latest = useEditor((s) => s.latest);
+  if (save !== "conflict") return null;
+  return (
+    <div role="alert" className="no-print flex flex-wrap items-center justify-between gap-3 rounded-[14px] bg-kerf-soft px-4 py-3 text-[14px]">
+      <span className="font-medium text-ink">Someone else changed this project while you were editing, so your last changes aren&apos;t saved.</span>
+      <span className="flex gap-2">
+        <Button size="sm" onClick={() => useEditor.getState().takeTheirs()} disabled={!latest}>Load their version</Button>
+        <Button size="sm" variant="primary" onClick={() => useEditor.getState().keepMine()} disabled={!latest}>Keep mine</Button>
+      </span>
+    </div>
+  );
+}
+
 function TitleInput() {
   const name = useEditor((s) => s.content?.name ?? "");
   const readOnly = useEditor((s) => s.readOnly);
   const edit = useEditor((s) => s.edit);
   return (
-    <input key={name} aria-label="Project name" defaultValue={name} readOnly={readOnly} dir="auto"
+    <input key={name} aria-label="Project name" defaultValue={name} readOnly={readOnly} dir="auto" maxLength={120}
       onBlur={(e) => { const v = e.target.value.trim() || "Untitled project"; if (v !== name) edit((d) => { d.name = v; }); else e.target.value = name; }}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
       onInput={(e) => { (e.target as HTMLInputElement).size = Math.max(8, (e.target as HTMLInputElement).value.length + 1); }}
@@ -167,7 +194,7 @@ function SaveIndicator() {
   const readOnly = useEditor((s) => s.readOnly);
   if (readOnly) return <span className="me-2 text-[13px] text-ink-3">View only</span>;
   if (save === "saving" || save === "pending") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-ink-3"><Spinner className="h-3.5 w-3.5" />Saving</span>;
-  if (save === "error" || save === "conflict") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-kerf"><CloudOff size={14} />{save === "conflict" ? "Out of date" : "Not saved"}</span>;
+  if (save === "error" || save === "conflict") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-kerf"><CloudOff size={14} />{save === "conflict" ? "Out of date" : "Not saved, retrying"}</span>;
   if (save === "saved") return <span className="me-2 inline-flex items-center gap-1 text-[13px] text-ink-3"><Check size={14} />Saved</span>;
   return null;
 }

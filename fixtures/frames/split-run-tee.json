@@ -1,0 +1,25 @@
+{
+  "description": "1000 x 400 flat frame of 40 x 40 tube, outside dimensions, butt corners. The front and back are each drawn as two 500 bars meeting at x = 500, where a cross bar runs front to back. A split straight run continues: both halves are square at the split (500 + 500 = 1000, no overlap) and the long halves run through at the corners. The sides and the cross bar butt between the front and back inner faces: 400 - 2 x 40 = 320.",
+  "profiles": { "tube": { "shape": "rect_tube", "w": 40, "h": 40, "t": 2 } },
+  "frame": {
+    "defaults": { "corner": "butt", "lines": "outside" },
+    "nodes": [
+      { "id": "a", "x": 0, "y": 0, "z": 0 }, { "id": "m", "x": 500, "y": 0, "z": 0 }, { "id": "b", "x": 1000, "y": 0, "z": 0 },
+      { "id": "c", "x": 1000, "y": 400, "z": 0 }, { "id": "n", "x": 500, "y": 400, "z": 0 }, { "id": "d", "x": 0, "y": 400, "z": 0 }
+    ],
+    "members": [
+      { "id": "front1", "a": "a", "b": "m", "item_id": "tube" }, { "id": "front2", "a": "m", "b": "b", "item_id": "tube" },
+      { "id": "right", "a": "b", "b": "c", "item_id": "tube" },
+      { "id": "back1", "a": "c", "b": "n", "item_id": "tube" }, { "id": "back2", "a": "n", "b": "d", "item_id": "tube" },
+      { "id": "left", "a": "d", "b": "a", "item_id": "tube" },
+      { "id": "cross", "a": "m", "b": "n", "item_id": "tube" }
+    ]
+  },
+  "expect": {
+    "warnings": 0,
+    "groups": [
+      { "item_id": "tube", "qty": 4, "lp": 500, "sp": 500, "ends": [[0, 0], [0, 0]] },
+      { "item_id": "tube", "qty": 3, "lp": 320, "sp": 320, "ends": [[0, 0], [0, 0]] }
+    ]
+  }
+}

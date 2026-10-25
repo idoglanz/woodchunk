@@ -50,6 +50,15 @@ export const useFrameUI = create<FrameUI>((set) => ({
   set: (p) => set(p),
 }));
 
+/** Back to a fresh editor: Select tool, nothing selected or pending, the next view fitted. */
+export function resetFrameUI() {
+  useFrameUI.setState({
+    selected: null, hovered: [], ortho: false, view: { name: "fit", n: 0 }, tool: "select", drawStart: null, typed: "",
+    lockAxis: null, drawItem: null, drag: null, drawHover: null,
+  });
+  if (typeof document !== "undefined") document.body.style.cursor = "";
+}
+
 /** Read CSS colour tokens for three.js, re-reading when the theme changes. */
 export function useCssVars<T extends string>(names: readonly T[]): Record<T, string> {
   const key = useSyncExternalStore(

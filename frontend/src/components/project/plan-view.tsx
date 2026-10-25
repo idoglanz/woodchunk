@@ -11,7 +11,7 @@ import { Tip } from "@/components/ui/overlay";
 import type { LumberPlan, SheetPlan } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { useActivePart } from "@/lib/focus";
-import { money, pct, plural } from "@/lib/format";
+import { costText, money, pct, plural } from "@/lib/format";
 import { fmtMeters } from "@/lib/units";
 
 export const materialCardId = (itemId: string) => `mat-${itemId}`;
@@ -24,7 +24,9 @@ export function PlanSummary({ onIssues, compact }: { onIssues?: () => void; comp
   const stock = [t.boards ? plural(t.boards, "board") : "", t.sheets ? plural(t.sheets, "sheet") : ""].filter(Boolean).join(" + ") || "Nothing to buy";
   return (
     <div className={cn("flex min-w-0 items-baseline gap-x-3 gap-y-1", compact ? "flex-nowrap" : "flex-wrap")}>
-      <span className="tnum shrink-0 text-[20px] font-bold tracking-[-0.01em]">{money(t.cost, plan.currency)}</span>
+      <span className={cn("tnum shrink-0 font-bold tracking-[-0.01em]", t.unpriced_materials && !t.cost ? "text-[16px] text-ink-2" : "text-[20px]")}>
+        {costText(t.cost, plan.currency, t.unpriced_materials > 0)}
+      </span>
       <span className={cn("tnum text-[14px] text-ink-2", compact && "min-w-0 truncate")}>
         {stock}{t.waste_pct ? ` · ${pct(t.waste_pct)} waste` : ""}
         {t.unpriced_lines ? <span className="text-warn"> · {t.unpriced_lines} unpriced</span> : null}
@@ -132,8 +134,8 @@ function BuyLine({ lines, sheet }: { lines: LumberPlan["buy"]; sheet?: boolean }
   );
 }
 
-function MaterialCard({ id, name, buy, cost, currency, meta, badge, sheet, children }: {
-  id: string; name: string; buy: LumberPlan["buy"]; cost: number; currency: string; meta: string; badge?: ReactNode; sheet?: boolean; children: ReactNode;
+function MaterialCard({ id, name, buy, cost, priced, currency, meta, badge, sheet, children }: {
+  id: string; name: string; buy: LumberPlan["buy"]; cost: number; priced: boolean; currency: string; meta: string; badge?: ReactNode; sheet?: boolean; children: ReactNode;
 }) {
   return (
     <div id={materialCardId(id)} className="flex scroll-mt-4 flex-col gap-4 rounded-[16px] border border-line bg-surface p-4">
@@ -145,7 +147,7 @@ function MaterialCard({ id, name, buy, cost, currency, meta, badge, sheet, child
         <div className="ms-auto flex items-center gap-3">
           {badge}
           <div className="tnum flex flex-col items-end leading-tight">
-            <span className="text-[16px] font-semibold">{money(cost, currency)}</span>
+            <span className={cn("text-[16px] font-semibold", !priced && !cost && "text-[14px] text-ink-3")}>{priced || cost ? money(cost, currency) : "No price"}</span>
             <span className="text-[12px] text-ink-3">{meta}</span>
           </div>
         </div>
@@ -163,7 +165,7 @@ function LumberCard({ lp, currency, onPick }: { lp: LumberPlan; currency: string
     </Tip>
   ) : <Tip content="Best plan found in the time allowed."><span><Badge>Best found</Badge></span></Tip>;
   return (
-    <MaterialCard id={lp.item_id} name={lp.name} buy={lp.buy} cost={lp.cost} currency={currency} meta={`${pct(lp.waste_pct)} waste · saw ${lp.kerf} mm`} badge={badge}>
+    <MaterialCard id={lp.item_id} name={lp.name} buy={lp.buy} cost={lp.cost} priced={lp.priced} currency={currency} meta={`${pct(lp.waste_pct)} waste · saw ${lp.kerf} mm`} badge={badge}>
       <LumberBars plan={lp} active={active} onPick={onPick} />
     </MaterialCard>
   );
@@ -171,7 +173,7 @@ function LumberCard({ lp, currency, onPick }: { lp: LumberPlan; currency: string
 
 function SheetCard({ sp, currency, wide, onPick }: { sp: SheetPlan; currency: string; wide?: boolean; onPick: (partId: string) => void }) {
   return (
-    <MaterialCard id={sp.item_id} name={sp.name} buy={sp.buy} cost={sp.cost} currency={currency} sheet
+    <MaterialCard id={sp.item_id} name={sp.name} buy={sp.buy} cost={sp.cost} priced={sp.priced} currency={currency} sheet
       meta={`${pct(sp.waste_pct)} waste · saw ${sp.kerf} mm${sp.edge_trim ? ` · trim ${sp.edge_trim} mm` : ""}`}>
       {sp.layouts.map((lay, i) => <SheetLayoutBlock key={i} index={i} total={sp.layouts.length} lay={lay} hasGrain={sp.has_grain} wide={wide} onPick={onPick} />)}
     </MaterialCard>

@@ -8,7 +8,7 @@ import { Button, IconButton } from "@/components/ui/button";
 import { Field, Switch, TextArea, TextInput } from "@/components/ui/field";
 import { Menu, MenuItem, MenuSeparator, Sheet } from "@/components/ui/overlay";
 import { api, unwrap } from "@/lib/api/client";
-import { useEditor } from "@/lib/editor";
+import { saveFirst, useEditor } from "@/lib/editor";
 import { qk, useProjectAction } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 
@@ -20,7 +20,7 @@ export function MoreMenu({ owner, onTemplate }: { owner: boolean; onTemplate: ()
   return (
     <Menu trigger={<IconButton label="More" size="sm"><MoreHorizontal size={18} /></IconButton>}>
       <MenuItem icon={<Copy size={15} />} onSelect={async () => {
-        await useEditor.getState().flush();
+        try { await saveFirst(); } catch (e) { toast.error((e as Error).message); return; }
         act.duplicate.mutate(project.id, { onSuccess: (p) => { toast.info("Duplicated"); router.push(`/projects/${p!.id}/build`); } });
       }}>Duplicate</MenuItem>
       <MenuItem icon={<LayoutTemplate size={15} />} onSelect={onTemplate}>Save as template</MenuItem>
@@ -45,7 +45,7 @@ export function TemplateSheet({ onClose, admin }: { onClose: () => void; admin: 
   const save = async () => {
     setBusy(true);
     try {
-      await useEditor.getState().flush();
+      await saveFirst();
       await unwrap(api.POST("/api/projects/{project_id}/template", { params: { path: { project_id: project.id } }, body: { title: title.trim() || project.name, summary, category: "", public: pub } }));
       void qc.invalidateQueries({ queryKey: qk.templates });
       toast.info("Saved as a template");

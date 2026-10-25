@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
+import ipaddress
+import socket
 from urllib import robotparser
 from urllib.parse import urljoin, urlparse
 
@@ -13,23 +16,62 @@ from openpyxl import load_workbook
 
 USER_AGENT = "WoodchunkCatalogBot/1.0 (+catalog import for a woodworking planner)"
 MAX_CHARS = 60_000
+MAX_BYTES = 3_000_000  # a page bigger than this isn't a price list we can read
+MAX_REDIRECTS = 5
+BLOCKED_SUFFIXES = (".internal", ".local", ".localhost", ".lan", ".home.arpa")
 
 
 class FetchError(RuntimeError):
     pass
 
 
+async def check_public(url: str) -> None:
+    """Refuse addresses on this server's own network (SSRF): only public internet hosts may be fetched."""
+    parts = urlparse(url)
+    host = (parts.hostname or "").rstrip(".").lower()
+    if parts.scheme not in ("http", "https") or not host:
+        raise FetchError("Enter a web address that starts with http:// or https://")
+    if host == "localhost" or host.endswith(BLOCKED_SUFFIXES):
+        raise FetchError("That address isn't a public website.")
+    try:
+        infos = await asyncio.get_running_loop().getaddrinfo(host, parts.port or (443 if parts.scheme == "https" else 80),
+                                                              type=socket.SOCK_STREAM)
+    except OSError as e:
+        raise FetchError("Couldn't find that website. Check the address.") from e
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if not ip.is_global or ip.is_multicast:
+            raise FetchError("That address isn't a public website.")
+
+
+async def safe_get(client: httpx.AsyncClient, url: str, timeout: float = 20) -> tuple[httpx.Response, bytes]:
+    """GET a public URL, checking every redirect hop and stopping at MAX_BYTES."""
+    for _ in range(MAX_REDIRECTS + 1):
+        await check_public(url)
+        async with client.stream("GET", url, timeout=timeout) as r:
+            if r.is_redirect and r.headers.get("location"):
+                url = urljoin(str(r.url), r.headers["location"])
+                continue
+            body = b""
+            async for chunk in r.aiter_bytes():
+                body += chunk
+                if len(body) > MAX_BYTES:
+                    raise FetchError("That page is too large to read. Paste the product list as text instead.")
+            return r, body
+    raise FetchError("That page redirects too many times.")
+
+
 async def allowed_by_robots(client: httpx.AsyncClient, url: str) -> bool:
     parts = urlparse(url)
     robots_url = f"{parts.scheme}://{parts.netloc}/robots.txt"
     try:
-        r = await client.get(robots_url, timeout=8)
-    except httpx.HTTPError:
+        r, body = await safe_get(client, robots_url, timeout=8)
+    except (httpx.HTTPError, FetchError):
         return True  # unreachable robots.txt: treat as allowed, like most crawlers
     if r.status_code >= 400:
         return True
     rp = robotparser.RobotFileParser()
-    rp.parse(r.text.splitlines())
+    rp.parse(body.decode(r.encoding or "utf-8", errors="replace").splitlines())
     return rp.can_fetch(USER_AGENT, url)
 
 
@@ -55,24 +97,25 @@ def html_to_text(html: str, base_url: str = "") -> str:
 
 async def fetch_page_text(url: str) -> tuple[str, str]:
     """Return (page title, page text)."""
-    if urlparse(url).scheme not in ("http", "https"):
-        raise FetchError("Enter a web address that starts with http:// or https://")
-    async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, follow_redirects=True, timeout=20) as client:
+    await check_public(url)
+    async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, follow_redirects=False, timeout=20) as client:
         if not await allowed_by_robots(client, url):
             raise FetchError("This site asks automated tools not to read that page (robots.txt). "
                              "Paste the product list as text instead.")
         try:
-            r = await client.get(url)
+            r, body = await safe_get(client, url)
         except httpx.HTTPError as e:
-            raise FetchError(f"Couldn't load the page: {e}") from e
+            # Don't echo network details back: they'd tell a user what's reachable from the server.
+            raise FetchError("Couldn't load that page. Check the address, or paste the product list as text.") from e
     if r.status_code >= 400:
-        raise FetchError(f"The page returned an error ({r.status_code}).")
+        raise FetchError("That page couldn't be loaded (the site returned an error).")
     ctype = r.headers.get("content-type", "")
     if "html" not in ctype and "text" not in ctype:
         raise FetchError("That address is not a web page. Upload the file instead.")
-    soup = BeautifulSoup(r.text, "lxml")
+    html = body.decode(r.encoding or "utf-8", errors="replace")
+    soup = BeautifulSoup(html, "lxml")
     title = soup.title.get_text(strip=True) if soup.title else urlparse(url).netloc
-    text = html_to_text(r.text, str(r.url))
+    text = html_to_text(html, str(r.url))
     if len(text) < 200:
         raise FetchError("The page has almost no readable text (it probably loads products with JavaScript). "
                          "Copy the product list from your browser and paste it as text.")

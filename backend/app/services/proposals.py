@@ -36,6 +36,23 @@ class AIOp(Model):
     unit_price: float | None = Field(description="Hardware not in the catalog: price per unit if known.")
 
 
+def _qty(v: float | None, lo: int = 1) -> int:
+    """AI numbers are suggestions: keep them inside what the models accept."""
+    return int(min(10_000, max(lo, round(v or lo))))
+
+
+def _mm(v: float | None) -> float:
+    return float(min(100_000.0, max(0.0, v or 0.0)))
+
+
+def _drawn(op, a, labels) -> bool:
+    """Does this part op touch an assembly drawn in 3D?"""
+    if op.action == "add_part":
+        return bool(a and a.frame)
+    hit = labels().get((op.target or "").strip().upper())
+    return bool(hit and hit[0].frame)
+
+
 class DiffLine(Model):
     kind: Literal["add", "change", "remove", "note"]
     text: str
@@ -103,7 +120,7 @@ def apply_ops(
     for op in ops:
         a = find_assembly(op.assembly) if op.assembly.upper() != "EXTRAS" else None
         if op.action == "add_assembly":
-            asm = Assembly(name=(op.name or "Assembly").strip(), qty=max(1, op.qty or 1))
+            asm = Assembly(name=(op.name or "Assembly").strip()[:120], qty=_qty(op.qty))
             c.assemblies.append(asm)
             new_keys[op.assembly.strip().upper()] = asm
             ensure_letters()
@@ -114,22 +131,26 @@ def apply_ops(
             if op.name and op.name != a.name:
                 changes.append(f"rename to {op.name}")
                 a.name = op.name
-            if op.qty and op.qty != a.qty:
-                changes.append(f"×{a.qty} → ×{op.qty}")
-                a.qty = max(1, op.qty)
+            if op.qty and _qty(op.qty) != a.qty:
+                changes.append(f"×{a.qty} → ×{_qty(op.qty)}")
+                a.qty = _qty(op.qty)
             if changes:
                 diff.append(DiffLine(kind="change", text=f"Assembly {a.letter} {a.name}: {', '.join(changes)}"))
         elif op.action == "remove_assembly" and a:
             c.assemblies = [x for x in c.assemblies if x.id != a.id]
             diff.append(DiffLine(kind="remove", text=f"Assembly {a.letter} {a.name}"))
+        elif op.action in ("add_part", "update_part", "remove_part") and _drawn(op, a, labels):
+            # A drawn assembly's parts come from its 3D frame; the AI can't edit them directly.
+            asm_name = a.name if a else op.target
+            diff.append(DiffLine(kind="note", text=f"{asm_name} is drawn in 3D: change its bars in the 3D view."))
         elif op.action == "add_part" and a:
             item_id = valid_item(op.item_id, cuttable)
             item = items.get(item_id) if item_id else None
             is_sheet = item is not None and item.kind == ItemKind.sheet
             part = Part(
-                name=(op.name or "Part").strip(), item_id=item_id, qty=max(1, op.qty or 1),
-                length_mm=max(0.0, op.length_mm or 0.0),
-                width_mm=(max(0.0, op.width_mm) if op.width_mm else None) if is_sheet else None,
+                name=(op.name or "Part").strip()[:120], item_id=item_id, qty=_qty(op.qty),
+                length_mm=_mm(op.length_mm),
+                width_mm=(_mm(op.width_mm) if op.width_mm else None) if is_sheet else None,
                 grain_locked=bool(op.grain_locked) if is_sheet else False,
             )
             a.parts.append(part)
@@ -151,16 +172,16 @@ def apply_ops(
             if op.name:
                 part.name = op.name.strip()
             if op.qty:
-                part.qty = max(1, op.qty)
+                part.qty = _qty(op.qty)
             if op.length_mm:
-                part.length_mm = max(0.0, op.length_mm)
+                part.length_mm = _mm(op.length_mm)
             new_item = valid_item(op.item_id, cuttable)
             if new_item:
                 part.item_id = new_item
             item = items.get(part.item_id or "")
             if item is not None and item.kind == ItemKind.sheet:
                 if op.width_mm:
-                    part.width_mm = op.width_mm
+                    part.width_mm = _mm(op.width_mm)
                 if op.grain_locked is not None:
                     part.grain_locked = op.grain_locked
             else:
@@ -176,7 +197,8 @@ def apply_ops(
                 item_id = valid_item(op.item_id, {ItemKind.hardware})
                 item = items.get(item_id) if item_id else None
                 line = HardwareLine(item_id=item_id, name=(op.name or (item.name.en if item else "Hardware")).strip(),
-                                    qty=max(0, op.qty or 1), unit_price=op.unit_price if not item_id else None)
+                                    qty=min(1e6, max(0, op.qty or 1)),
+                                    unit_price=max(0.0, op.unit_price) if op.unit_price is not None and not item_id else None)
                 target_list.append(line)
                 diff.append(DiffLine(kind="add", text=f"{where}: {item.name.en if item else line.name} ×{line.qty:g}"))
             else:
@@ -191,8 +213,8 @@ def apply_ops(
                     diff.append(DiffLine(kind="remove", text=f"{where}: {line.name}"))
                 else:
                     if op.qty is not None:
-                        line.qty = max(0, op.qty)
+                        line.qty = min(1e6, max(0, op.qty))
                     if op.unit_price is not None:
-                        line.unit_price = op.unit_price
+                        line.unit_price = max(0.0, op.unit_price)
                     diff.append(DiffLine(kind="change", text=f"{where}: {line.name} ×{line.qty:g}"))
     return ProjectContent.model_validate(c.model_dump()), diff

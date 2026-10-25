@@ -62,13 +62,20 @@ function endpointNode(frame: Frame, e: Endpoint, newId: () => string): string {
   return id;
 }
 
-/** Add a bar between two endpoints (reusing a node already at a point). Returns its id, or null if it has no length. */
+/**
+ * Add a bar between two endpoints (reusing a node already at a point). Returns its id and end node,
+ * or null, changing nothing, if it would have no length, duplicate a bar, or an endpoint's node is gone.
+ */
 export function addMember(frame: Frame, a: Endpoint, b: Endpoint, itemId: string | null, newId: () => string): { member: string; end: string } | null {
+  const pos = nodePositions(frame);
+  const where = (e: Endpoint) => ("node" in e ? pos.get(e.node) : e.at);
+  const pa = where(a), pb = where(b);
+  if (!pa || !pb || length(sub(pa, pb)) < 1) return null;
+  const idOf = (e: Endpoint, p: Vec) => ("node" in e ? e.node : findNodeAt(frame, p));
+  const [ea, eb] = [idOf(a, pa), idOf(b, pb)];
+  if (ea && eb && frame.members.some((m) => (m.a === ea && m.b === eb) || (m.a === eb && m.b === ea))) return null;
   const na = endpointNode(frame, a, newId);
   const nb = endpointNode(frame, b, newId);
-  const pos = nodePositions(frame);
-  if (na === nb || length(sub(pos.get(na)!, pos.get(nb)!)) < 1) return null;
-  if (frame.members.some((m) => (m.a === na && m.b === nb) || (m.a === nb && m.b === na))) return null;
   const member: FrameMember = { id: newId(), a: na, b: nb, item_id: itemId, roll_deg: 0, anchor: "auto", name: "" };
   frame.members.push(member);
   return { member: member.id, end: nb };

@@ -126,3 +126,36 @@ def test_parity_file_is_current():
 
 def write_parity() -> None:
     PARITY.write_text(json.dumps(parity_snapshot(), indent=2, ensure_ascii=False) + "\n")
+
+
+def test_splay_sweep_is_continuous():
+    """A leg splaying from 0° to 15° changes the rail it butts into smoothly (no 90° section flip)."""
+    prev = None
+    for tenth in range(0, 151, 5):
+        dx = 700 * math.tan(math.radians(tenth / 10))
+        frame = Frame.model_validate({
+            "defaults": {"corner": "butt", "lines": "centerline"},
+            "nodes": [{"id": "f", "x": 0, "y": 0, "z": 0}, {"id": "p", "x": dx, "y": 0, "z": 700},
+                      {"id": "q", "x": dx + 600, "y": 0, "z": 700}],
+            "members": [{"id": "leg", "a": "f", "b": "p", "item_id": "board"},
+                        {"id": "rail", "a": "p", "b": "q", "item_id": "board"}],
+        })
+        res = solve(frame, {"board": Profile("rect", 100, 44)})
+        leg = next(m for m in res.members if m.id == "leg")
+        if prev is not None:
+            assert abs(leg.lp - prev) < 15, (tenth, leg.lp, prev)
+        prev = leg.lp
+
+
+def test_bad_expressions_are_contained():
+    for bad in ("(" * 2000 + "1" + ")" * 2000, "-" * 3000 + "1", "9" * 400, "9" * 400 + " - " + "9" * 400):
+        with pytest.raises(ExprError):
+            evaluate(bad, {})
+    frame = Frame.model_validate({
+        "nodes": [{"id": "a", "x": 0}, {"id": "b", "x": "W"}, {"id": "c", "x": 0, "y": 500}],
+        "members": [{"id": "ab", "a": "a", "b": "b", "item_id": "p", "name": "Rail"},
+                    {"id": "ac", "a": "a", "b": "c", "item_id": "p"}],
+    })
+    res = solve(frame, {"p": Profile("rect", 40, 40)})
+    assert [m.id for m in res.members] == ["ac"]  # the bar on the bad joint is left out, not measured from 0
+    assert any("Rail is left out" in w for w in res.warnings)

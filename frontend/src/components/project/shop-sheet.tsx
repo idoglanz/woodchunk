@@ -11,9 +11,9 @@ import { AsmChip, Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { download } from "@/lib/api/client";
 import { useEditor } from "@/lib/editor";
-import { money } from "@/lib/format";
+import { costText } from "@/lib/format";
 import { dirOf, endsText, t, type Lang } from "@/lib/i18n";
-import { usePlan, useCatalog } from "@/lib/queries";
+import { useCatalog, useItemMap, usePlan } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 import { fmtMeters } from "@/lib/units";
 
@@ -25,7 +25,7 @@ export function ShopSheetView() {
   const tr = useTranslations(id, version, lang);
   const plan = usePlan(id, version, lang, true, tr.dataUpdatedAt);
   const catalog = useCatalog({});
-  const items = new Map((catalog.data ?? []).map((i) => [i.id, i]));
+  const items = useItemMap(catalog.data, content?.assemblies.flatMap((a) => a.parts.map((p) => p.item_id)) ?? []);
   // Bars from 3D frames have angled ends: show an Ends column only when there are any.
   const angled = !!content?.assemblies.some((a) => a.parts.some((pt) => pt.cuts.some((e) => e.miter || e.bevel)));
   const tx = (s: string) => (lang === "en" ? s : tr.data?.[s] ?? s);
@@ -55,7 +55,7 @@ export function ShopSheetView() {
             <div className="tnum flex gap-6 text-[14px]">
               <div className="flex flex-col"><span className="text-ink-3">{t(lang, "parts")}</span><span className="font-semibold">{p.totals.parts}</span></div>
               <div className="flex flex-col"><span className="text-ink-3">{t(lang, "kerf")}</span><span className="font-semibold">{content.settings.kerf_sheet_mm} / {content.settings.kerf_lumber_mm} mm</span></div>
-              <div className="flex flex-col"><span className="text-ink-3">{t(lang, "total")}</span><span className="font-semibold">{money(p.totals.cost, p.currency)}</span></div>
+              <div className="flex flex-col"><span className="text-ink-3">{t(lang, "total")}</span><span className="font-semibold">{costText(p.totals.cost, p.currency, p.totals.unpriced_materials > 0)}</span></div>
             </div>
           </header>
 

@@ -15,7 +15,8 @@ type StoredNode = StoredFrame["nodes"][number];
 type StoredMember = StoredFrame["members"][number];
 
 export type TemplateRole = "legs" | "rails";
-export type TemplateParam = { name: string; label: string; mm: number };
+/** A size. `option`: only used (and shown) when that option is on. */
+export type TemplateParam = { name: string; label: string; mm: number; option?: string };
 export type TemplateOption = { key: string; label: string; kind: "toggle" | "count"; value: number; min?: number; max?: number };
 
 export type FrameTemplate = {
@@ -62,7 +63,8 @@ class Builder {
   frame(params: TemplateParam[], corner: "butt" | "miter" = "butt"): StoredFrame {
     return {
       version: 1,
-      params: params.map((p) => ({ name: p.name, mm: this.ctx.params[p.name] ?? p.mm })),
+      params: params.filter((p) => !p.option || this.ctx.options[p.option])
+        .map((p) => ({ name: p.name, label: p.label, mm: this.ctx.params[p.name] ?? p.mm })),
       defaults: { corner, lines: "outside" },
       nodes: this.nodes, members: this.members, joints: [],
     };
@@ -83,7 +85,7 @@ function legsAndRings(t: FrameTemplate, ctx: BuildCtx, levels: (string | number)
 
 const table: FrameTemplate = {
   id: "table", name: "Table", summary: "Four legs with aprons under the top; optional lower frame.",
-  params: [{ name: "W", label: "Width", mm: 1200 }, { name: "D", label: "Depth", mm: 600 }, { name: "H", label: "Height", mm: 750 }, { name: "S", label: "Lower frame height", mm: 150 }],
+  params: [{ name: "W", label: "Width", mm: 1200 }, { name: "D", label: "Depth", mm: 600 }, { name: "H", label: "Height", mm: 750 }, { name: "S", label: "Lower frame height", mm: 150, option: "lower" }],
   roles: [{ key: "legs", label: "Legs" }, { key: "rails", label: "Aprons and rails" }],
   options: [{ key: "lower", label: "Lower frame", kind: "toggle", value: 0 }],
   build(ctx) { return legsAndRings(this, ctx, ctx.options.lower ? ["S", "H"] : ["H"]); },
@@ -91,14 +93,14 @@ const table: FrameTemplate = {
 
 const workbench: FrameTemplate = {
   ...table, id: "workbench", name: "Workbench", summary: "Sturdy bench frame with a lower shelf frame.",
-  params: [{ name: "W", label: "Width", mm: 1500 }, { name: "D", label: "Depth", mm: 700 }, { name: "H", label: "Height", mm: 900 }, { name: "S", label: "Shelf height", mm: 200 }],
+  params: [{ name: "W", label: "Width", mm: 1500 }, { name: "D", label: "Depth", mm: 700 }, { name: "H", label: "Height", mm: 900 }, { name: "S", label: "Shelf height", mm: 200, option: "lower" }],
   options: [{ key: "lower", label: "Lower shelf frame", kind: "toggle", value: 1 }],
   build(ctx) { return legsAndRings(this, ctx, ctx.options.lower ? ["S", "H"] : ["H"], "Shelf rail"); },
 };
 
 const cart: FrameTemplate = {
   id: "cart", name: "Cart / box frame", summary: "A box of 12 bars: a frame at the bottom and at the top.",
-  params: [{ name: "W", label: "Width", mm: 900 }, { name: "D", label: "Depth", mm: 500 }, { name: "H", label: "Height", mm: 800 }, { name: "S", label: "Middle shelf height", mm: 400 }],
+  params: [{ name: "W", label: "Width", mm: 900 }, { name: "D", label: "Depth", mm: 500 }, { name: "H", label: "Height", mm: 800 }, { name: "S", label: "Middle shelf height", mm: 400, option: "middle" }],
   roles: [{ key: "legs", label: "Uprights" }, { key: "rails", label: "Rails" }],
   options: [{ key: "middle", label: "Middle shelf frame", kind: "toggle", value: 0 }],
   build(ctx) {

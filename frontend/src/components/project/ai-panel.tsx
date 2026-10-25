@@ -8,7 +8,7 @@ import { useProjectCtx } from "@/components/project/context";
 import { Button, IconButton, Spinner } from "@/components/ui/button";
 import { api, postForm, unwrap, type Conversation, type Project, type Proposal } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
-import { useEditor } from "@/lib/editor";
+import { saveFirst, useEditor } from "@/lib/editor";
 import { money } from "@/lib/format";
 import { qk, useAIStatus, useConversation } from "@/lib/queries";
 import { toast } from "@/lib/toast";
@@ -45,7 +45,7 @@ export function AIPanel({ onClose, embedded }: { onClose: () => void; embedded?:
     setBusy(m);
     setText("");
     try {
-      await useEditor.getState().flush();
+      await saveFirst();
       const c = await unwrap<Conversation>(api.POST("/api/ai/projects/{project_id}/chat", { params: { path: { project_id: id } }, body: { message: m } }));
       qc.setQueryData(qk.conversation(id), c);
       void qc.invalidateQueries({ queryKey: qk.aiStatus });
@@ -74,7 +74,7 @@ export function AIPanel({ onClose, embedded }: { onClose: () => void; embedded?:
   const importFile = async (file: File) => {
     setBusy(`Import ${file.name}`);
     try {
-      await useEditor.getState().flush();
+      await saveFirst();
       const form = new FormData();
       form.append("file", file);
       const c = await postForm<Conversation>(`/api/ai/projects/${id}/import`, form);
@@ -162,7 +162,7 @@ function ProposalCard({ p }: { p: Proposal }) {
   const act = async (what: "apply" | "discard") => {
     setBusy(true);
     try {
-      await useEditor.getState().flush();
+      await saveFirst();
       if (what === "apply") {
         const proj = await unwrap<Project>(api.POST("/api/ai/proposals/{proposal_id}/apply", { params: { path: { proposal_id: p.id } } }));
         useEditor.getState().serverUpdate(proj, true);

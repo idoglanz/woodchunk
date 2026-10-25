@@ -69,9 +69,11 @@ async def current_user(creds: HTTPAuthorizationCredentials | None = Depends(bear
     admin = c["email"] in get_settings().admin_email_set
     doc = await db.users.find_one({"email": c["email"]})
     if doc is None:
-        user = User(id=c["sub"], email=c["email"], name=c["name"], role=UserRole.admin if admin else UserRole.user)
-        await db.users.insert_one(user.to_mongo())
-        return user
+        # A new user's first page load sends several requests at once: create atomically, then read.
+        fresh = User(id=c["sub"], email=c["email"], name=c["name"], role=UserRole.admin if admin else UserRole.user)
+        await db.users.update_one({"_id": fresh.id}, {"$setOnInsert": fresh.to_mongo()}, upsert=True)
+        doc = await db.users.find_one({"_id": fresh.id})
+        assert doc is not None
     user = User.from_mongo(doc)
     updates = {}
     if admin and user.role != UserRole.admin:

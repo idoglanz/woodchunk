@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { CutList } from "@/components/frame/cut-list";
 import { Inspector } from "@/components/frame/inspector";
-import { DimensionLabels, dimensionAnchors } from "@/components/frame/edit-layers";
+import { DimensionLabels, dimensionAnchors, onCanvasOrPage } from "@/components/frame/edit-layers";
 import { useFrameEdit } from "@/components/frame/use-frame-edit";
 import { Viewport, type EditHandlers, type JointMarker } from "@/components/frame/viewport";
 import { useProjectCtx } from "@/components/project/context";
@@ -21,8 +21,8 @@ import { evaluate as ev } from "@/lib/frame/expr";
 import { useMediaQuery } from "@/lib/focus";
 import { solveFrame } from "@/lib/frame/parts";
 import type { Frame } from "@/lib/frame/types";
-import { useFrameUI, type Tool, type View } from "@/lib/frame/ui";
-import { useCatalog } from "@/lib/queries";
+import { resetFrameUI, useFrameUI, type Tool, type View } from "@/lib/frame/ui";
+import { useCatalog, useItemMap } from "@/lib/queries";
 
 const VIEWS: { value: View; label: string }[] = [
   { value: "iso", label: "3D" }, { value: "front", label: "Front" }, { value: "side", label: "Side" }, { value: "top", label: "Top" },
@@ -35,18 +35,20 @@ export function FrameEditor({ assemblyId }: { assemblyId: string }) {
   const desktop = useMediaQuery("(min-width: 900px)");
   const readOnly = readOnlyProject || !desktop;
   const catalog = useCatalog({ kind: "lumber" });
-  const byId = useMemo(() => new Map((catalog.data ?? []).map((i) => [i.id, i])), [catalog.data]);
+  // The frame's own materials too, even if the list hides them (retired or suggested items).
+  const byId = useItemMap(catalog.data, asm?.frame?.members.map((m) => m.item_id) ?? []);
 
-  useEffect(() => () => useFrameUI.getState().setTool("select"), []);
+  // Leaving the editor resets its view state (next time starts fitted, in Select, nothing pending).
+  useEffect(() => () => resetFrameUI(), []);
 
   if (!asm) return <EmptyState title="Assembly not found" text="It may have been deleted." action={<Link href={`/projects/${id}/build`} className="font-semibold text-info">Back to Build</Link>} />;
   if (!asm.frame) return <EmptyState title="No 3D frame yet" text="Start one from the assembly's menu on the Build tab." action={<Link href={`/projects/${id}/build`} className="font-semibold text-info">Back to Build</Link>} />;
   if (!catalog.data) return <div className="p-6"><Skeleton className="h-[70dvh] w-full rounded-[16px]" /></div>;
-  return <Loaded asm={asm} frame={asm.frame as Frame} byId={byId} readOnly={readOnly} projectId={id} />;
+  return <Loaded asm={asm} frame={asm.frame as Frame} byId={byId} readOnly={readOnly} smallScreen={!desktop && !readOnlyProject} projectId={id} />;
 }
 
-function Loaded({ asm, frame, byId, readOnly, projectId }: {
-  asm: Assembly; frame: Frame; byId: Map<string, CatalogItem>; readOnly: boolean; projectId: string;
+function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
+  asm: Assembly; frame: Frame; byId: Map<string, CatalogItem>; readOnly: boolean; smallScreen: boolean; projectId: string;
 }) {
   // While a joint is dragged the frame is previewed (model and cut list) and saved on release.
   const drag = useFrameUI((s) => s.drag);
@@ -59,7 +61,7 @@ function Loaded({ asm, frame, byId, readOnly, projectId }: {
   const result = useMemo(() => solveFrame(shown, byId), [shown, byId]);
   const steel = useMemo(() => new Set([...byId.values()].filter((i) => i.material === "steel").map((i) => i.id)), [byId]);
   const joints = useMemo(() => jointMarkers(shown, result.members), [shown, result.members]);
-  const ed = useEditor();
+  const ed = { past: useEditor((s) => s.past.length), future: useEditor((s) => s.future.length), undo: useEditor((s) => s.undo), redo: useEditor((s) => s.redo) };
   const ortho = useFrameUI((s) => s.ortho);
   const look = useFrameUI((s) => s.look);
   const view = useFrameUI((s) => s.view.name);
@@ -73,16 +75,23 @@ function Loaded({ asm, frame, byId, readOnly, projectId }: {
     onMove: (node, at) => editFrame((f) => moveNode(f, node, at)),
     onParam: (name, mm) => editFrame((f) => { const p = f.params?.find((x) => x.name === name); if (p) p.mm = mm; }),
     onAdd: (from, to) => {
+      if (!from) return null;
+      const current = useEditor.getState().content?.assemblies.find((a) => a.id === asm.id)?.frame as Frame | undefined;
+      if (!current) return null;
+      // The start joint may be gone (undo mid-chain): start from its position instead.
+      const start = from.node && current.nodes.some((n) => n.id === from.node) ? { node: from.node } : { at: from.at };
+      // Try it on a copy first, so a bar that can't be added changes nothing (no stray joints, no empty undo step).
+      if (!addMember(structuredClone(current), start, to, null, () => newId().slice(0, 10))) return null;
       let end: { node: string; at: [number, number, number] } | null = null;
       editFrame((f) => {
         const item = useFrameUI.getState().drawItem ?? commonItem(f);
-        const res = addMember(f, from?.node ? { node: from.node } : { at: from!.at }, to, item, () => newId().slice(0, 10));
+        const res = addMember(f, start, to, item, () => newId().slice(0, 10));
         const at = res ? nodePositions(f).get(res.end) : undefined;
         if (res && at) end = { node: res.end, at };
       });
       return end;
     },
-  }), [editFrame]);
+  }), [editFrame, asm.id]);
 
   const deleteSelected = useCallback(() => {
     const s = useFrameUI.getState().selected;
@@ -95,9 +104,9 @@ function Loaded({ asm, frame, byId, readOnly, projectId }: {
   useEffect(() => {
     if (readOnly) return;
     const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) || e.metaKey || e.ctrlKey) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || !onCanvasOrPage(e.target)) return;
       const ui = useFrameUI.getState();
+      if (ui.drag) return; // finish (or drop) the drag first
       if (e.key === "v" || e.key === "V") ui.setTool("select");
       else if (e.key === "l" || e.key === "L") ui.setTool("draw");
       else if ((e.key === "Delete" || e.key === "Backspace") && ui.tool === "select") deleteSelected();
@@ -138,8 +147,8 @@ function Loaded({ asm, frame, byId, readOnly, projectId }: {
             <IconButton label="Download 3D model (STL)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!result.members.length}
               onClick={() => saveBlob(frameStl(result.members), `${asm.name || "frame"}.stl`)}><Download size={16} /></IconButton>
             {!readOnly ? <>
-              <IconButton label="Undo (⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.past.length} onClick={ed.undo}><Undo2 size={16} /></IconButton>
-              <IconButton label="Redo (⇧⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.future.length} onClick={ed.redo}><Redo2 size={16} /></IconButton>
+              <IconButton label="Undo (⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.past} onClick={ed.undo}><Undo2 size={16} /></IconButton>
+              <IconButton label="Redo (⇧⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.future} onClick={ed.redo}><Redo2 size={16} /></IconButton>
             </> : null}
           </div>
         </div>
@@ -150,6 +159,7 @@ function Loaded({ asm, frame, byId, readOnly, projectId }: {
       <aside aria-label="Frame details"
         className="flex max-h-[54dvh] w-full shrink-0 flex-col overflow-y-auto border-t border-line bg-surface md:max-h-none md:w-[360px] md:border-s md:border-t-0">
         {!readOnly ? <Inspector asm={asm} frame={frame} result={result} byId={byId} /> : null}
+        {smallScreen ? <p className="border-b border-line px-4 py-3 text-[13px] text-ink-2">Look around and check the cut list here. To change the frame, open it on a larger screen.</p> : null}
         <CutList asm={asm} result={result} byId={byId} />
       </aside>
     </div>

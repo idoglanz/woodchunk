@@ -78,7 +78,7 @@ class CatalogImport(Doc):
     source: str = ""  # url, filename or "pasted text"
     supplier_id: str | None = None
     supplier_name: str = ""
-    status: Literal["review", "applied", "discarded"] = "review"
+    status: Literal["review", "applying", "applied", "discarded"] = "review"
     items: list[ImportProposalItem] = []
     note: str = ""
     created_at: datetime = Field(default_factory=now)

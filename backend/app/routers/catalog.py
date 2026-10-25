@@ -32,8 +32,15 @@ def _out(item: CatalogItem, suppliers: dict[str, Supplier]) -> CatalogItemOut:
 async def list_catalog(
     q: str = "", kind: ItemKind | None = None, status_: ItemStatus | None = Query(None, alias="status"),
     supplier_id: str | None = None,
+    ids: str = Query("", description="Comma-separated item ids: exactly these, whatever their status"),
     user: User = Depends(current_user),
 ):
+    suppliers = await load_suppliers()
+    if ids:
+        # A project's own materials, including retired or suggested ones it still uses.
+        wanted = [i for i in ids.split(",") if i][:500]
+        found = [CatalogItem.from_mongo(d) async for d in get_db().catalog_items.find({"_id": {"$in": wanted}})]
+        return [_out(i, suppliers) for i in found]
     query: dict = {"status": status_.value if status_ else {"$ne": "retired"}}
     if status_ is None and not user.is_admin:
         query["status"] = "active"
@@ -43,8 +50,9 @@ async def list_catalog(
         query["supplier_id"] = supplier_id
     for word in re.findall(r"\S+", q.lower())[:6]:
         query.setdefault("$and", []).append({"search": {"$regex": re.escape(word.replace("×", "x"))}})
-    suppliers = await load_suppliers()
-    cur = get_db().catalog_items.find(query).limit(1000)
+    # Sort in the database so the limit cuts the end of the list, not an arbitrary subset.
+    cur = get_db().catalog_items.find(query).sort([("kind", 1), ("thickness_mm", 1), ("width_mm", 1),
+                                                    ("name.en", 1)]).limit(2000)
     items = [CatalogItem.from_mongo(d) async for d in cur]
     order = {"lumber": 0, "sheet": 1, "hardware": 2}
     items.sort(key=lambda i: (order[i.kind], i.thickness_mm or 0, i.width_mm or 0, i.name.en.lower()))

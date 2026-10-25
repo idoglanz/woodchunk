@@ -17,6 +17,10 @@ import { cutSummary } from "@/components/frame/cut-list";
 
 const PARAM_LABELS: Record<string, string> = { W: "Width", D: "Depth", H: "Height", S: "Lower level" };
 const ANCHOR_GRID: Anchor[] = ["tl", "t", "tr", "l", "c", "r", "bl", "b", "br"];
+const ANCHOR_NAMES: Record<string, string> = {
+  tl: "top left corner", t: "top edge", tr: "top right corner", l: "left edge", c: "centre", r: "right edge",
+  bl: "bottom left corner", b: "bottom edge", br: "bottom right corner",
+};
 
 export function Inspector({ asm, frame, result, byId }: { asm: Assembly; frame: Frame; result: FrameResult; byId: Map<string, CatalogItem> }) {
   const selected = useFrameUI((s) => s.selected);
@@ -62,8 +66,8 @@ function FramePanel({ asm, frame, byId }: { asm: Assembly; frame: Frame; byId: M
       {frame.params?.length ? (
         <div className="grid grid-cols-2 gap-3">
           {frame.params.map((p, i) => (
-            <Field key={p.name} label={`${PARAM_LABELS[p.name] ?? p.name} (${p.name})`} htmlFor={`param-${p.name}`}>
-              <LengthInput id={`param-${p.name}`} ariaLabel={PARAM_LABELS[p.name] ?? p.name} units={units} value={p.mm}
+            <Field key={p.name} label={`${p.label || PARAM_LABELS[p.name] || p.name} (${p.name})`} htmlFor={`param-${p.name}`}>
+              <LengthInput id={`param-${p.name}`} ariaLabel={p.label || PARAM_LABELS[p.name] || p.name} units={units} value={p.mm}
                 onChange={(mm) => { if (mm && mm > 0) editFrame((f) => { f.params![i].mm = mm; }); }} />
             </Field>
           ))}
@@ -99,7 +103,7 @@ function MemberPanel({ asm, memberId, frame, result, byId }: {
         {solved ? <span className="tnum text-[13px] text-ink-2">{solved.lp} mm · {cutSummary(solved.ends)}</span> : null}
       </div>
       <Field label="Name" htmlFor="member-name">
-        <TextInput id="member-name" key={m.id} defaultValue={m.name ?? ""} placeholder="Leg, rail…" className="h-9 text-[14px]"
+        <TextInput id="member-name" key={`${m.id}:${m.name ?? ""}`} defaultValue={m.name ?? ""} placeholder="Leg, rail…" className="h-9 text-[14px]"
           onBlur={(e) => { const v = e.target.value.trim(); if (v !== (m.name ?? "")) upd((x) => { x.name = v; }); }} />
       </Field>
       <Field label="Material">
@@ -122,7 +126,7 @@ function MemberPanel({ asm, memberId, frame, result, byId }: {
           <div className="flex items-center gap-2">
             <div role="radiogroup" aria-label="Line position on the bar" className="grid grid-cols-3 gap-0.5 rounded-lg bg-surface-2 p-1">
               {ANCHOR_GRID.map((a) => (
-                <button key={a} type="button" role="radio" aria-checked={anchor === a} aria-label={`Line at ${a}`}
+                <button key={a} type="button" role="radio" aria-checked={anchor === a} aria-label={`Line on the bar's ${ANCHOR_NAMES[a]}`} title={`Line on the bar's ${ANCHOR_NAMES[a]}`}
                   onClick={() => upd((x) => { x.anchor = a; })}
                   className={cn("h-4 w-4 rounded-[4px]", anchor === a ? "bg-ink" : "bg-surface hover:bg-line-strong")} />
               ))}
@@ -144,11 +148,14 @@ function JointPanel({ asm, nodeId, frame, byId }: { asm: Assembly; nodeId: strin
     f.joints = (f.joints ?? []).filter((j) => j.node !== nodeId);
     if (next) f.joints.push({ node: nodeId, ...next });
   });
-  const label = (id: string) => { const m = frame.members.find((x) => x.id === id); return m?.name || "Bar"; };
+  const label = (id: string) => {
+    const i = frame.members.findIndex((x) => x.id === id);
+    return frame.members[i]?.name || `Bar ${i + 1}`;
+  };
   return (
     <>
       <h2 className="text-[15px] font-semibold">Joint</h2>
-      <p className="-mt-2 text-[13px] text-ink-2">{here.length} bars meet here: {here.map((m) => m.name || "bar").join(", ")}.</p>
+      <p className="-mt-2 text-[13px] text-ink-2">{here.length} bars meet here: {here.map((m) => label(m.id)).join(", ")}.</p>
       <Field label="Cut">
         <Segmented label="Joint cut" value={kind} onChange={(v) => set(v === "default" ? null : { kind: v, through: joint?.through ?? null })}
           options={[{ value: "default", label: `Frame default (${frame.defaults?.corner ?? "butt"})` }, { value: "miter", label: "Miter" }, { value: "butt", label: "Butt" }]} />
@@ -157,7 +164,7 @@ function JointPanel({ asm, nodeId, frame, byId }: { asm: Assembly; nodeId: strin
         <Field label="Runs through" htmlFor="through" hint="The other bars stop at its face.">
           <Select id="through" value={joint?.through ?? ""} onChange={(e) => set({ kind: "butt", through: e.target.value || null })}>
             <option value="">Automatic (uprights, then the longest)</option>
-            {here.map((m, i) => <option key={m.id} value={m.id}>{label(m.id)} {i + 1}</option>)}
+            {here.map((m) => <option key={m.id} value={m.id}>{label(m.id)}</option>)}
           </Select>
         </Field>
       ) : null}

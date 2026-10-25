@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   api, postForm, unwrap,
@@ -110,6 +111,24 @@ export function useProjectAction() {
       onError,
     }),
   };
+}
+
+/** Exactly these catalog items, whatever their status (a project's own materials, even retired ones). */
+export function useCatalogByIds(ids: (string | null | undefined)[]) {
+  const key = [...new Set(ids.filter((x): x is string => !!x))].sort();
+  return useQuery({
+    queryKey: ["catalog-ids", key],
+    enabled: key.length > 0,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+    queryFn: () => unwrap<CatalogItem[]>(api.GET("/api/catalog", { params: { query: { ids: key.join(",") } } })),
+  });
+}
+
+/** The catalog list plus a project's own materials, by id. */
+export function useItemMap(list: CatalogItem[] | undefined, ids: (string | null | undefined)[]) {
+  const own = useCatalogByIds(ids);
+  return useMemo(() => new Map([...(own.data ?? []), ...(list ?? [])].map((i) => [i.id, i])), [own.data, list]);
 }
 
 export function useCatalog(params: { q?: string; kind?: "lumber" | "sheet" | "hardware" | null; status?: "active" | "suggested" | "retired" | null; supplier_id?: string | null }, enabled = true) {

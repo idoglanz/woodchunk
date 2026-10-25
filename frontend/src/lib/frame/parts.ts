@@ -37,7 +37,8 @@ export function deriveParts(a: Assembly, byId: Map<string, CatalogItem>): FrameR
   for (const g of res.groups) {
     const item = g.item_id ? byId.get(g.item_id) : undefined;
     if (!item || !sectionOf(item)) continue;
-    const name = g.members.map((m) => names.get(m)).find(Boolean) || item.name.en || "Member";
+    // Identical pieces can have different roles ("Bottom rail", "Top rail"): name them all, like the server.
+    const name = [...new Set(g.members.map((m) => names.get(m)).filter(Boolean))].join(" / ") || item.name.en || "Member";
     parts.push({
       id: "f" + stableId(`${a.id}|${g.key}`), name, item_id: g.item_id, qty: g.qty,
       length_mm: Math.max(0, g.lp), short_mm: Math.max(0, g.sp), width_mm: null, grain_locked: false, notes: "",

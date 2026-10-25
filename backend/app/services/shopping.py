@@ -54,8 +54,9 @@ def build_lines(plan: PlanOut, project: Project, items: dict[str, CatalogItem], 
     for hw in plan.hardware:
         key = f"hardware:{hw.key}"
         need = hw.qty
-        if hw.item_id and hw.item_id in bought_hw:
-            need = max(0.0, need - bought_hw[hw.item_id] * (hw.pack_size if hw.packs is not None else 1))
+        bought_id = hw.item_id or f"free:{key}"  # typed-in hardware is recorded by its line key
+        if bought_id in bought_hw:
+            need = max(0.0, need - bought_hw[bought_id] * (hw.pack_size if hw.packs is not None else 1))
         if need <= 0:
             continue
         if hw.packs is not None:
@@ -137,6 +138,7 @@ def purchase_from(plan: PlanOut, project: Project, items: dict[str, CatalogItem]
                 lines.append(PurchaseLine(item_id=sp.item_id, kind="sheet", length_mm=b.length_mm,
                                           width_mm=b.width_mm, qty=b.qty, unit_price=b.unit_price))
     for ln in build_lines(plan, project, items, "en"):
-        if ln.kind == "hardware" and ln.item_id:
-            lines.append(PurchaseLine(item_id=ln.item_id, kind="hardware", qty=ln.qty, unit_price=ln.unit_price))
+        if ln.kind == "hardware":
+            lines.append(PurchaseLine(item_id=ln.item_id or f"free:{ln.key}", kind="hardware", qty=ln.qty,
+                                      unit_price=ln.unit_price))
     return Purchase(lines=lines)

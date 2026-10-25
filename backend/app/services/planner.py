@@ -345,6 +345,9 @@ async def compute_plan(inp: PlanInputs) -> PlanOut:
     return plan
 
 
+MAX_PIECES = 5000  # pieces per plan; beyond this the optimizer would take too long (and memory)
+
+
 async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
     p = inp.project
     labels = p.part_labels()
@@ -354,6 +357,7 @@ async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
     unplaced: list[Unplaced] = []
     warnings: list[str] = []
     part_count = 0
+    budget = MAX_PIECES
 
     for a in p.assemblies:
         for pt in a.parts:
@@ -374,6 +378,13 @@ async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
                 unplaced.append(Unplaced(part_id=pt.id, label=label, name=meta[pt.id]["name"], item_id=item.id,
                                          reason="Enter a length."))
                 continue
+            if item.kind in (ItemKind.lumber, ItemKind.sheet):
+                if n > budget:
+                    unplaced.append(Unplaced(part_id=pt.id, label=label, name=meta[pt.id]["name"], item_id=item.id,
+                                             reason=f"Too many pieces to plan at once (the limit is {MAX_PIECES}). "
+                                                    "Lower the quantity or split the project."))
+                    continue
+                budget -= n
             if item.kind == ItemKind.lumber:
                 for i in range(n):
                     lumber_pieces[item.id].append(Piece(key=f"{pt.id}#{i}", label=label,
@@ -421,6 +432,7 @@ async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
         lumber_plans.append(plan)
         unplaced.extend(unp)
         offcuts += len(leftovers)
+        plan.priced = known
         if not known:
             warnings.append(f"Some lengths of {plan.name} have no price; its cost is incomplete.")
         w = gross(plan.item_id, plan.buy, False) or 1.0
@@ -431,6 +443,7 @@ async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
         sheet_plans.append(plan)
         unplaced.extend(unp)
         offcuts += n_off
+        plan.priced = known
         if not known:
             warnings.append(f"Some sizes of {plan.name} have no price; its cost is incomplete.")
         w = gross(plan.item_id, plan.buy, True) or 1.0
@@ -461,6 +474,7 @@ async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
         cost=round(lumber_cost + sheet_cost + hardware_cost + purchased_value, 2),
         lumber_cost=round(lumber_cost, 2), sheet_cost=round(sheet_cost, 2), hardware_cost=round(hardware_cost, 2),
         unpriced_lines=unpriced,
+        unpriced_materials=sum(1 for pl in [*lumber_plans, *sheet_plans] if not pl.priced),
         boards=sum(b.qty for pl in lumber_plans for b in pl.buy if b.source != "inventory"),
         sheets=sum(b.qty for pl in sheet_plans for b in pl.buy if b.source != "inventory"),
         from_inventory=from_inventory,

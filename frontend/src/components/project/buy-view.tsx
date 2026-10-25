@@ -12,7 +12,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { api, download, type Shopping } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { useEditor } from "@/lib/editor";
-import { money } from "@/lib/format";
+import { costText, money } from "@/lib/format";
 import { dirOf, t, type Lang } from "@/lib/i18n";
 import { qk, useShopping } from "@/lib/queries";
 import { toast } from "@/lib/toast";
@@ -29,6 +29,7 @@ export function BuyView() {
   const qc = useQueryClient();
   const status = useSetStatus();
   const data = shop.data;
+  const unpriced = !!data?.groups.some((g) => g.lines.some((l) => l.total == null));
 
   const toggle = async (key: string, checked: boolean) => {
     const k = qk.shopping(id, version, lang, tr.dataUpdatedAt);
@@ -92,7 +93,7 @@ export function BuyView() {
           <div className="flex flex-col gap-2">
             <div className="tnum flex justify-between text-[14px] text-ink-2">
               <span>{data.checked} / {data.count} {t(lang, "pickedUp")}</span>
-              <span className="font-semibold text-ink">{t(lang, "total")} {money(data.total, data.currency)}</span>
+              <span className="font-semibold text-ink">{t(lang, "total")} {costText(data.total, data.currency, unpriced)}</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
               <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${(data.checked / data.count) * 100}%` }} />
@@ -132,7 +133,7 @@ export function BuyView() {
           <div className="no-print fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-line px-4 pt-3 backdrop-blur-xl sm:hidden"
             style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))", background: "color-mix(in srgb, var(--surface) 85%, transparent)" }}>
             <span className="tnum text-[13px] text-ink-2">{data.checked} / {data.count} {t(lang, "pickedUp")}</span>
-            <span className="tnum text-[17px] font-semibold">{money(data.total, data.currency)}</span>
+            <span className="tnum text-[17px] font-semibold">{costText(data.total, data.currency, unpriced)}</span>
           </div>
         </div>
       )}

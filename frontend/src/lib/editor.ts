@@ -14,17 +14,25 @@ type Editor = {
   future: ProjectContent[];
   save: SaveState;
   readOnly: boolean;
+  /** The server's version after a save was refused because someone else saved first. */
+  latest: Project | null;
   load: (p: Project, readOnly: boolean) => void;
   edit: (fn: (draft: ProjectContent) => void, coalesce?: string) => void;
   undo: () => void;
   redo: () => void;
   serverUpdate: (p: Project, keepHistory?: boolean) => void;
-  flush: () => Promise<void>;
+  /** Save now; resolves false if the project couldn't be saved (callers should stop). */
+  flush: () => Promise<boolean>;
+  keepMine: () => void;
+  takeTheirs: () => void;
 };
 
 const SAVE_DELAY = 600;
+const RETRY_DELAY = 4000;
 let timer: ReturnType<typeof setTimeout> | null = null;
-let inflight: Promise<void> | null = null;
+// Saves run one after another: an overlapping save would reuse the same version and be refused.
+let chain: Promise<boolean> = Promise.resolve(true);
+let saved: ProjectContent | null = null; // the content the server has
 let lastCoalesce: { key: string; at: number } | null = null;
 let onSaved: (p: Project) => void = () => {};
 
@@ -37,47 +45,63 @@ export function contentOf(p: Project): ProjectContent {
 }
 
 export const useEditor = create<Editor>((set, get) => {
-  async function doSave() {
-    const { project, content, version } = get();
-    if (!project || !content) return;
+  async function doSave(): Promise<boolean> {
+    const { project, content, version, save } = get();
+    if (!project || !content) return true;
+    if (save === "conflict") return false; // waiting for the user to choose
+    if (content === saved) {
+      if (save === "pending" || save === "error") set({ save: "saved" });
+      return true;
+    }
     set({ save: "saving" });
     try {
-      const saved = await unwrap<Project>(api.PUT("/api/projects/{project_id}", {
+      const res = await unwrap<Project>(api.PUT("/api/projects/{project_id}", {
         params: { path: { project_id: project.id } },
         body: { ...content, version },
       }));
-      const stillSame = get().content === content;
-      set({ project: saved, version: saved.version, save: stillSame ? "saved" : "pending" });
-      onSaved(saved);
+      saved = content;
+      set({ project: res, version: res.version, save: get().content === content ? "saved" : "pending" });
+      onSaved(res);
+      return true;
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        set({ save: "conflict" });
-        toast.error(e.message);
-      } else {
+        // Someone (or another tab) saved first: fetch theirs and let the user choose.
+        const latest = await unwrap<Project>(api.GET("/api/projects/{project_id}", { params: { path: { project_id: project.id } } })).catch(() => null);
+        set({ save: "conflict", latest });
+      } else if (e instanceof ApiError && e.status === 422) {
         set({ save: "error" });
-        toast.error(e instanceof Error ? `Not saved: ${e.message}` : "Not saved.");
+        toast.error(`Not saved: ${e.message}`);
+      } else {
+        // Offline or the server hiccuped: keep the edits and try again shortly.
+        set({ save: "error" });
+        if (!timer) timer = setTimeout(() => { timer = null; void enqueue(); }, RETRY_DELAY);
       }
+      return false;
     }
+  }
+
+  function enqueue(): Promise<boolean> {
+    chain = chain.then(doSave, doSave);
+    return chain;
   }
 
   function schedule() {
     if (timer) clearTimeout(timer);
-    set({ save: "pending" });
-    timer = setTimeout(async () => {
+    if (get().save !== "conflict") set({ save: "pending" });
+    timer = setTimeout(() => {
       timer = null;
-      if (inflight) await inflight;
-      inflight = doSave().finally(() => { inflight = null; });
-      await inflight;
-      if (get().save === "pending" && !timer) schedule();
+      void enqueue().then((ok) => { if (ok && get().content !== saved && !timer) schedule(); });
     }, SAVE_DELAY);
   }
 
   return {
-    project: null, content: null, version: 0, past: [], future: [], save: "idle", readOnly: false,
+    project: null, content: null, version: 0, past: [], future: [], save: "idle", readOnly: false, latest: null,
     load: (p, readOnly) => {
       if (timer) clearTimeout(timer);
       timer = null;
-      set({ project: p, content: contentOf(p), version: p.version, past: [], future: [], save: "idle", readOnly });
+      const content = contentOf(p);
+      saved = content;
+      set({ project: p, content, version: p.version, past: [], future: [], save: "idle", readOnly, latest: null });
     },
     edit: (fn, coalesce) => {
       const { content, readOnly, past } = get();
@@ -106,21 +130,37 @@ export const useEditor = create<Editor>((set, get) => {
       if (timer) clearTimeout(timer);
       timer = null;
       const prev = get().content;
+      const content = contentOf(p);
+      saved = content;
       set({
-        project: p, content: contentOf(p), version: p.version, save: "saved",
+        project: p, content, version: p.version, save: "saved", latest: null,
         past: keepHistory && prev ? [...get().past.slice(-80), prev] : get().past, future: [],
       });
     },
-    flush: async () => {
-      if (timer) {
-        clearTimeout(timer);
-        timer = null;
-        inflight = doSave().finally(() => { inflight = null; });
-      }
-      if (inflight) await inflight;
+    flush: () => {
+      if (timer) { clearTimeout(timer); timer = null; }
+      return enqueue();
+    },
+    keepMine: () => {
+      const { latest } = get();
+      if (!latest) return;
+      saved = null; // force a save of our content over theirs
+      set({ version: latest.version, project: latest, latest: null, save: "pending" });
+      void enqueue();
+    },
+    takeTheirs: () => {
+      const { latest } = get();
+      if (latest) get().serverUpdate(latest);
     },
   };
 });
+
+/** Save pending edits before an action that reads the project on the server; throws if they can't be saved. */
+export async function saveFirst(): Promise<void> {
+  if (!(await useEditor.getState().flush())) {
+    throw new Error("Your latest changes aren't saved yet, so this was stopped. Check the message at the top and try again.");
+  }
+}
 
 export function newId(): string {
   return crypto.randomUUID().replace(/-/g, "");

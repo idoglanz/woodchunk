@@ -2,7 +2,7 @@
 
 export type Anchor = "auto" | "c" | "t" | "b" | "l" | "r" | "tl" | "tr" | "bl" | "br";
 
-export type FrameParam = { name: string; mm: number };
+export type FrameParam = { name: string; mm: number; label?: string };
 export type FrameNode = { id: string; x: number | string; y: number | string; z: number | string };
 export type FrameMember = {
   id: string; a: string; b: string; item_id?: string | null; roll_deg?: number; anchor?: Anchor; name?: string;

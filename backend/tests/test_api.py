@@ -1,5 +1,8 @@
 """End-to-end API flows against a real MongoDB test database, with a fake AI client."""
 
+import asyncio
+import json
+
 import pytest
 
 from app.services.ai import client as ai_client
@@ -347,3 +350,57 @@ def test_angle_allowance():
     assert angle_allowance([], 3) == (0, 0)
     a, b = angle_allowance([EndCutSpec(miter=45), EndCutSpec()], 3)
     assert b == 0 and a == pytest.approx(3 * (2**0.5 - 1), abs=0.01)  # kerf / cos 45° - kerf
+
+
+def _body(p: dict) -> dict:
+    return {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+
+
+async def test_bad_input_is_rejected_or_contained(client):
+    tube = await find_item(client, "40 40 2 square tube", "lumber")
+    p = await new_project(client)
+    # NaN/Infinity are refused (422), never stored.
+    body = _body(p)
+    body["assemblies"] = [{"name": "A", "parts": [{"name": "x", "item_id": tube["id"], "length_mm": 1}]}]
+    raw = json.dumps(body).replace('"length_mm": 1', '"length_mm": Infinity')
+    r = await client.put(f"/api/projects/{p['id']}", content=raw, headers={**auth(USER), "content-type": "application/json"})
+    assert r.status_code == 422
+    # Typed parts can't carry frame data; angles are bounded.
+    body["assemblies"][0]["parts"][0]["cuts"] = [{"miter": 120, "bevel": 0}]
+    assert (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).status_code == 422
+    body["assemblies"][0]["parts"][0]["cuts"] = [{"miter": 45, "bevel": 0}]
+    p = (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).json()
+    assert p["assemblies"][0]["parts"][0]["cuts"] == []
+    # A frame with a hostile expression still saves; the bar on that joint is left out with a warning.
+    body = _body(p)
+    body["assemblies"] = [{"name": "F", "frame": {
+        "nodes": [{"id": "a", "x": 0}, {"id": "b", "x": "9" * 150}, {"id": "c", "x": 500}],
+        "members": [{"id": "ab", "a": "a", "b": "b", "item_id": tube["id"]},
+                    {"id": "ac", "a": "a", "b": "c", "item_id": tube["id"]}]}}]
+    r = await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))
+    assert r.status_code == 200, r.text
+    asm = r.json()["assemblies"][0]
+    assert [pt["length_mm"] for pt in asm["parts"]] == [500] and any("left out" in w for w in asm["frame_warnings"])
+
+
+async def test_status_change_is_claimed_once(client):
+    beam = await find_item(client, "44 × 100 whitewood rough", "lumber")
+    p = await new_project(client, assemblies=[{"name": "A", "parts": [{"name": "Leg", "item_id": beam["id"], "length_mm": 700}]}],
+                          extras=[{"name": "wood glue", "qty": 1, "unit_price": 20}])
+    r = await client.post(f"/api/projects/{p['id']}/status", json={"status": "bought"}, headers=auth(USER))
+    assert r.status_code == 200
+    shop = (await client.get(f"/api/projects/{p['id']}/shopping", headers=auth(USER))).json()
+    assert not any(ln["name"] == "wood glue" for g in shop["groups"] for ln in g["lines"])  # typed hardware counts as bought
+    results = await asyncio.gather(*[client.post(f"/api/projects/{p['id']}/status", json={"status": "cut"},
+                                                 headers=auth(USER)) for _ in range(3)])
+    assert sorted(r.status_code for r in results) == [200, 409, 409]
+    inv = (await client.get("/api/workshop/inventory", headers=auth(USER))).json()
+    assert len([e for e in inv if e.get("source_project_id") == p["id"]]) <= 1
+
+
+async def test_ai_cannot_edit_drawn_parts():
+    from app.models.project import Assembly, ProjectContent
+    from app.services.proposals import apply_ops
+    content = ProjectContent(assemblies=[Assembly(name="Frame", frame={"nodes": [], "members": []})])
+    new, diff = apply_ops(content, [op(action="add_part", assembly="A", name="Leg", qty=99999, length_mm=1e12)], {})
+    assert new.assemblies[0].parts == [] and diff[0].kind == "note"

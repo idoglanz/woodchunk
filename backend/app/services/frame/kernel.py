@@ -29,6 +29,11 @@ ON_LINE_MM = 0.5  # a node this close to a member's span sits on it (a T)
 AUTO_SIDE_MM = 1.0  # the frame's centre must be this far off a line to pick a side
 MIN_PLANE_COS = 0.02  # end planes nearly parallel to the axis are rejected
 VERTICAL_Z = 0.7  # members steeper than this run through at butt joints by default
+# A member this close to vertical takes its profile "up" from world Y instead of Z. Kept far from
+# normal splays (cos 30°) so a slightly splayed leg doesn't turn its section 90°.
+UPRIGHT_Z = 0.866
+STRAIGHT = 0.999  # two ends this opposed at a joint are one straight run
+MAX_COORD = 100_000.0  # 100 m: anything further out is a typo, not a frame
 
 
 # --- vectors -------------------------------------------------------------------------------------
@@ -63,9 +68,11 @@ def unit(a: Vec) -> Vec:
 
 
 def rnd(x: float, digits: int = 1) -> float:
-    """Half-up rounding, identical in Python and JS (Python's round() is banker's)."""
+    """Half away from zero, identical in Python and JS (Python's round() is banker's); symmetric, so
+    mirror-image values round alike."""
     f = 10**digits
-    v = math.floor(x * f + 0.5) / f
+    v = math.floor(abs(x) * f + 0.5) / f
+    v = -v if x < 0 else v
     return 0.0 if v == 0 else v
 
 
@@ -180,6 +187,7 @@ class FrameResult:
 
 @dataclass
 class _M:
+    label: str
     m: FrameMember
     a: Vec
     b: Vec
@@ -211,7 +219,7 @@ class _M:
 
 def member_axes(a: Vec, b: Vec, roll_deg: float) -> tuple[Vec, Vec, Vec]:
     x = unit(sub(b, a))
-    ref: Vec = (0.0, 1.0, 0.0) if abs(x[2]) > 0.999 else (0.0, 0.0, 1.0)
+    ref: Vec = (0.0, 1.0, 0.0) if abs(x[2]) > UPRIGHT_Z else (0.0, 0.0, 1.0)
     v = unit(sub(ref, scale(x, dot(ref, x))))
     u = cross(v, x)
     if roll_deg:
@@ -274,35 +282,43 @@ def solve(frame: Frame, profiles: dict[str, Profile]) -> FrameResult:
     warnings: list[str] = []
     params = {p.name: p.mm for p in frame.params}
     pos: dict[str, Vec] = {}
+    bad: set[str] = set()
     for n in frame.nodes:
         try:
-            pos[n.id] = (evaluate(n.x, params), evaluate(n.y, params), evaluate(n.z, params))
+            p = (evaluate(n.x, params), evaluate(n.y, params), evaluate(n.z, params))
+            if any(abs(c) > MAX_COORD for c in p):
+                raise ExprError("it's more than 100 m from the origin")
+            pos[n.id] = p
         except ExprError as e:
-            warnings.append(f"Node {n.id}: {e}")
-            pos[n.id] = (0.0, 0.0, 0.0)
+            warnings.append(f"A joint's position can't be worked out: {e}")
+            bad.add(n.id)
 
     ms: list[_M] = []
-    for m in frame.members:
+    for i, m in enumerate(frame.members):
+        label = m.name or f"Bar {i + 1}"
+        if m.a in bad or m.b in bad:
+            warnings.append(f"{label} is left out: one of its joints has a bad position")
+            continue
         if m.a not in pos or m.b not in pos or m.a == m.b:
-            warnings.append(f"Member {m.name or m.id} needs two different nodes")
+            warnings.append(f"{label} needs two different joints")
             continue
         a, b = pos[m.a], pos[m.b]
         if length(sub(b, a)) < 1:
-            warnings.append(f"Member {m.name or m.id} has no length")
+            warnings.append(f"{label} has no length")
             continue
         profile = profiles.get(m.item_id or "") or FALLBACK_PROFILE
         x, u, v = member_axes(a, b, m.roll_deg)
-        ms.append(_M(m, a, b, x, u, v, profile))
+        ms.append(_M(label, m, a, b, x, u, v, profile))
         if not m.item_id or m.item_id not in profiles:
-            warnings.append(f"Member {m.name or m.id} has no material")
+            warnings.append(f"{label} has no material")
 
-    if pos:
-        used = {k for mm in ms for k in (mm.m.a, mm.m.b)} or set(pos)
-        centroid = scale(
-            (sum(pos[k][0] for k in used), sum(pos[k][1] for k in used), sum(pos[k][2] for k in used)),
-            1 / len(used))
-    else:
-        centroid = (0.0, 0.0, 0.0)
+    # Sum in a fixed order so the result is identical everywhere (Python and the editor).
+    used = sorted({k for mm in ms for k in (mm.m.a, mm.m.b)})
+    centroid: Vec = (0.0, 0.0, 0.0)
+    for k in used:
+        centroid = add(centroid, pos[k])
+    if used:
+        centroid = scale(centroid, 1 / len(used))
     for mm in ms:
         _place_anchor(mm, centroid, frame.defaults.lines == "outside")
 
@@ -324,15 +340,28 @@ def solve(frame: Frame, profiles: dict[str, Profile]) -> FrameResult:
     for node_id, ends in ends_at.items():
         node = pos[node_id]
         spans = spans_at.get(node_id, [])
+        j = overrides.get(node_id)
         if spans:
             for mm, e in ends:
                 _butt_into(mm, e, node, spans, warnings)
+            if j:
+                warnings.append("A joint setting on a bar's span (a T-joint) is ignored: bars there always butt")
             continue
         if len(ends) == 1:
             continue
-        j = overrides.get(node_id)
+        # A straight run split at a joint continues: both halves end square, the rest butt into it.
+        run = _straight_pair(ends)
+        if run:
+            for mm, e in run:
+                mm.planes[e] = _square(node, mm.into(e))
+            for mm, e in ends:
+                if (mm, e) not in run:
+                    _butt_into(mm, e, node, [run[0][0], run[1][0]], warnings)
+            continue
         kind = j.kind if j else frame.defaults.corner
         through = _through(ends, j.through if j else None)
+        if j and j.through and through[0].m.id != j.through:
+            warnings.append("A joint's 'runs through' bar isn't at that joint; using the automatic choice")
         others = [x for x in ends if x is not through]
         if kind == "miter" and len(others) == 2 and len(ends) == 3:
             (m1, e1), (m2, e2) = others
@@ -342,11 +371,14 @@ def solve(frame: Frame, profiles: dict[str, Profile]) -> FrameResult:
             (m1, e1), (m2, e2) = ends
             _miter(m1, e1, m2, e2, node)
         else:
+            if kind == "miter":
+                warnings.append(f"Miters join 2 or 3 bars; {len(ends)} meet at one joint, so they butt")
             tm, te = through
             d_t = tm.into(te)
             reach = 0.0
             for mm, e in others:
-                if abs(dot(mm.into(e), d_t)) > 0.999:  # straight on: both square at the node
+                if dot(mm.into(e), d_t) > STRAIGHT:
+                    warnings.append(f"{mm.label} and {tm.label} overlap along the same line")
                     continue
                 _butt_into(mm, e, node, [tm], warnings)
                 reach = max(reach, max(dot(q, scale(d_t, -1)) for q in mm.outer()))
@@ -354,7 +386,15 @@ def solve(frame: Frame, profiles: dict[str, Profile]) -> FrameResult:
 
     results = [_measure(mm, warnings) for mm in ms]
     groups = _group(results)
-    return FrameResult(results, groups, warnings)
+    return FrameResult(results, groups, list(dict.fromkeys(warnings)))
+
+
+def _straight_pair(ends: list[tuple[_M, int]]) -> list[tuple[_M, int]] | None:
+    for i in range(len(ends)):
+        for k in range(i + 1, len(ends)):
+            if dot(ends[i][0].into(ends[i][1]), ends[k][0].into(ends[k][1])) < -STRAIGHT:
+                return [ends[i], ends[k]]
+    return None
 
 
 def _through(ends: list[tuple[_M, int]], override: str | None) -> tuple[_M, int]:
@@ -388,6 +428,7 @@ def _butt_into(mm: _M, e: int, node: Vec, targets: list[_M], warnings: list[str]
         if hit and (best is None or hit[1] > best[1]):
             best = hit
     if best is None:
+        warnings.append(f"{mm.label} meets {targets[0].label} at a very shallow angle; its end is left square")
         mm.planes[e] = _square(node, d)
     else:
         mm.planes[e] = best[0]
@@ -398,7 +439,7 @@ def _measure(mm: _M, warnings: list[str]) -> MemberResult:
     for e in (0, 1):
         p = mm.planes[e] or _square(mm.node_pos(e), mm.into(e))
         if abs(dot(p.normal, mm.x)) < MIN_PLANE_COS:
-            warnings.append(f"Member {mm.m.name or mm.m.id}: a cut runs along the bar; using a square end")
+            warnings.append(f"{mm.label}: a cut would run along the bar; its end is left square")
             p = _square(mm.node_pos(e), mm.into(e))
         planes.append(p)
 
@@ -410,7 +451,7 @@ def _measure(mm: _M, warnings: list[str]) -> MemberResult:
         lengths.append(tb - ta)
     lp, sp = max(lengths), min(lengths)
     if sp <= 0:
-        warnings.append(f"Member {mm.m.name or mm.m.id} is used up by its joints")
+        warnings.append(f"{mm.label} is used up by its joints (too short for the bars around it)")
 
     local = [(dot(p.normal, mm.x), dot(p.normal, mm.u), dot(p.normal, mm.v)) for p in planes]
     # Lay the bar so the cuts need as little blade tilt as possible; prefer the profile's top up.

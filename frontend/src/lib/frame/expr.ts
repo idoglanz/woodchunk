@@ -5,6 +5,9 @@
 
 export class ExprError extends Error {}
 
+const MAX_LENGTH = 200;
+const MAX_DEPTH = 32;
+
 type Token = { kind: "num" | "name" | "op"; value: string };
 
 function tokenize(src: string): Token[] {
@@ -20,9 +23,14 @@ function tokenize(src: string): Token[] {
 }
 
 export function evaluate(src: number | string, params: Record<string, number>): number {
-  if (typeof src === "number") return src;
+  if (typeof src === "number") {
+    if (!Number.isFinite(src)) throw new ExprError("Not a finite number");
+    return src;
+  }
+  if (src.length > MAX_LENGTH) throw new ExprError(`Expressions are limited to ${MAX_LENGTH} characters`);
   const tokens = tokenize(src.trim());
   let pos = 0;
+  let depth = 0;
   const peek = () => tokens[pos];
   const take = () => {
     if (pos >= tokens.length) throw new ExprError(`Unexpected end of "${src}"`);
@@ -51,6 +59,14 @@ export function evaluate(src: number | string, params: Record<string, number>): 
     return v;
   };
   const factor = (): number => {
+    if (++depth > MAX_DEPTH) throw new ExprError("Expression is nested too deeply");
+    try {
+      return factorInner();
+    } finally {
+      depth--;
+    }
+  };
+  const factorInner = (): number => {
     const { kind, value } = take();
     if (kind === "num") return Number(value);
     if (kind === "name") {
@@ -70,5 +86,6 @@ export function evaluate(src: number | string, params: Record<string, number>): 
   if (!tokens.length) throw new ExprError("Empty expression");
   const value = expr();
   if (pos !== tokens.length) throw new ExprError(`Unexpected "${tokens[pos].value}" in "${src}"`);
+  if (!Number.isFinite(value)) throw new ExprError(`"${src}" is not a finite number`);
   return value;
 }

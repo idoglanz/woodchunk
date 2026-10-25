@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useProjectCtx } from "@/components/project/context";
 import { Spinner } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { money, pct, plural } from "@/lib/format";
+import { costText, pct, plural } from "@/lib/format";
 
 export function SummaryBar() {
   const { plan, planFetching, id } = useProjectCtx();
@@ -14,7 +14,8 @@ export function SummaryBar() {
   const stock = [t.boards ? plural(t.boards, "board") : "", t.sheets ? plural(t.sheets, "sheet") : ""].filter(Boolean).join(" + ") || "Nothing to buy";
   return (
     <div className={cn("flex flex-wrap items-center gap-x-5 gap-y-1 text-[14px] transition-opacity duration-200", planFetching && "opacity-60")}>
-      <Stat label="Total" value={money(t.cost, plan.currency)} strong hint={t.unpriced_lines ? `${t.unpriced_lines} unpriced` : undefined} />
+      <Stat label="Total" value={costText(t.cost, plan.currency, t.unpriced_materials > 0)} strong
+        hint={t.unpriced_lines || (t.unpriced_materials && t.cost) ? "some unpriced" : undefined} />
       <Stat label="To buy" value={stock} />
       <Stat label="Waste" value={pct(t.waste_pct)} />
       <Stat label="Parts" value={String(t.parts)} />

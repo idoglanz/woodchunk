@@ -37,9 +37,9 @@ class ProfileSpec(Model):
     """Cross-section of a bar. w across, h up, t = wall (tubes, angle, channel). Round: w = h = diameter."""
 
     shape: ProfileShape
-    w: float = Field(gt=0)
-    h: float = Field(gt=0)
-    t: float = Field(default=0, ge=0)
+    w: float = Field(gt=0, le=2000)
+    h: float = Field(gt=0, le=2000)
+    t: float = Field(default=0, ge=0, le=200)
 
 
 class PricePoint(Model):

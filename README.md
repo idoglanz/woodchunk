@@ -51,9 +51,9 @@ After changing backend models, run `make types` to regenerate the frontend API t
 Three services, as in zizi-tripo:
 
 1. **MongoDB**: add Railway's MongoDB service.
-2. **backend** (root `backend/`, Dockerfile): set `MONGODB_URI`, `ENVIRONMENT=production`, `AUTH_MODE=descope`, `DESCOPE_PROJECT_ID`, `ADMIN_EMAILS`, `FRONTEND_URL`, `GOOGLE_API_KEY`.
+2. **backend** (root `backend/`, Dockerfile): set `MONGODB_URI`, `ENVIRONMENT=production`, `AUTH_MODE=descope`, `DESCOPE_PROJECT_ID`, `ADMIN_EMAILS`, `FRONTEND_URL` (comma separated when the site has more than one address, e.g. the Railway URL and a custom domain), `GOOGLE_API_KEY`.
 3. **frontend** (root `frontend/`, Dockerfile): build args `NEXT_PUBLIC_API_URL` (the backend URL) and `NEXT_PUBLIC_DESCOPE_PROJECT_ID`, plus `NEXT_PUBLIC_DESCOPE_FLOW_ID` for Woodchunk's own sign-in flow (the Descope project is shared with zizi-tripo).
 
-Each service's settings live in `backend/railway.json` and `frontend/railway.json` (Dockerfile build, health check, restart on failure). Railway reads that path from the repo root, so set each service's config file to `/backend/railway.json` or `/frontend/railway.json`. The API refuses to start with `ENVIRONMENT=production` unless `AUTH_MODE=descope` is set, so dev sign-in can't reach a public server. Add the frontend's domain to the Descope project's approved domains.
+Both app services deploy from GitHub (`main`) with root directory `/backend` or `/frontend` and watch paths `/backend/**` or `/frontend/**`, so a merge only rebuilds the service whose folder changed. Their settings (Dockerfile build, health check, restart on failure) are in `backend/railway.json` and `frontend/railway.json`; Railway reads that path from the repo root, so if you use the files, set each service's config file to `/backend/railway.json` or `/frontend/railway.json`. The API refuses to start with `ENVIRONMENT=production` unless `AUTH_MODE=descope` is set, so dev sign-in can't reach a public server. Add the frontend's domain to the Descope project's approved domains.
 
 For Descope, use a `sign-up-or-in` flow and add `email` to the session token claims. To copy the original projects to your real account after your first sign-in, run `uv run python -m scripts.import_legacy you@example.com` against the production database.

@@ -5,12 +5,12 @@ import { useFrameEdit } from "@/components/frame/use-frame-edit";
 import { ItemPicker, rememberMaterial } from "@/components/project/material-picker";
 import { useProjectCtx } from "@/components/project/context";
 import { Button } from "@/components/ui/button";
-import { Field, LengthInput, Select, TextInput } from "@/components/ui/field";
+import { Field, LengthInput, NumberInput, Select, TextInput } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
 import type { Assembly, CatalogItem } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import type { FrameResult } from "@/lib/frame/kernel";
-import { commonItem } from "@/lib/frame/edit";
+import { commonItem, moveNode, nodePositions, setMemberLength } from "@/lib/frame/edit";
 import type { Anchor, Frame } from "@/lib/frame/types";
 import { useFrameUI } from "@/lib/frame/ui";
 import { cutSummary } from "@/components/frame/cut-list";
@@ -97,11 +97,28 @@ function MemberPanel({ asm, memberId, frame, result, byId }: {
   const same = frame.members.filter((x) => x.id !== m.id && m.name && x.name === m.name);
   const upd = (fn: (x: typeof m) => void, key?: string) => editFrame((f) => { const x = f.members.find((y) => y.id === memberId); if (x) fn(x); }, key);
   const anchor = m.anchor ?? "auto";
+  const { units } = useProjectCtx();
+  const pos = nodePositions(frame);
+  const [pa, pb] = [pos.get(m.a), pos.get(m.b)];
+  const lineLength = pa && pb ? Math.round(Math.hypot(pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]) * 10) / 10 : null;
+  const select = useFrameUI((s) => s.select);
   return (
     <>
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-[15px] font-semibold">Bar</h2>
-        {solved ? <span className="tnum text-[13px] text-ink-2">{solved.lp} mm · {cutSummary(solved.ends)}</span> : null}
+        {solved ? <span className="tnum text-[13px] text-ink-2">cut {solved.lp} mm · {cutSummary(solved.ends)}</span> : null}
+      </div>
+      <div className="flex items-end gap-3">
+        <Field label="Length, joint to joint" htmlFor="member-length" className="flex-1"
+          hint="Moves the end with fewer bars on it. An end tied to a size (W, H…) changes that size.">
+          <LengthInput id="member-length" key={`${m.id}:${lineLength}`} ariaLabel="Bar length" units={units} value={lineLength}
+            onChange={(mm) => { if (mm && mm >= 1 && mm !== lineLength) editFrame((f) => setMemberLength(f, m.id, mm)); }} />
+        </Field>
+      </div>
+      <div className="-mt-2 flex items-center gap-2 text-[13px] text-ink-2">
+        Ends:
+        <Button size="sm" variant="ghost" onClick={() => select({ kind: "node", id: m.a })}>Start joint</Button>
+        <Button size="sm" variant="ghost" onClick={() => select({ kind: "node", id: m.b })}>End joint</Button>
       </div>
       <Field label="Name" htmlFor="member-name">
         <TextInput id="member-name" key={`${m.id}:${m.name ?? ""}`} defaultValue={m.name ?? ""} placeholder="Leg, rail…" className="h-9 text-[14px]"
@@ -153,10 +170,32 @@ function JointPanel({ asm, nodeId, frame, byId }: { asm: Assembly; nodeId: strin
     const i = frame.members.findIndex((x) => x.id === id);
     return frame.members[i]?.name || `Bar ${i + 1}`;
   };
+  const node = frame.nodes.find((n) => n.id === nodeId)!;
+  const at = nodePositions(frame).get(nodeId);
+  const setAxis = (i: number, v: number) => {
+    if (!at || v === at[i]) return;
+    const next = [...at] as [number, number, number];
+    next[i] = v;
+    editFrame((f) => moveNode(f, nodeId, next));
+  };
   return (
     <>
       <h2 className="text-[15px] font-semibold">Joint</h2>
-      <p className="-mt-2 text-[13px] text-ink-2">{here.length} bars meet here: {here.map((m) => label(m.id)).join(", ")}.</p>
+      <p className="-mt-2 text-[13px] text-ink-2">{here.length} {here.length === 1 ? "bar ends" : "bars meet"} here: {here.map((m) => label(m.id)).join(", ")}.</p>
+      {at ? (
+        <div className="grid grid-cols-3 gap-2">
+          {(["x", "y", "z"] as const).map((axis, i) => {
+            const src = node[axis];
+            const tied = typeof src === "string" && frame.params?.some((p) => p.name === src.trim());
+            return (
+              <Field key={axis} label={tied ? `${axis.toUpperCase()} = ${src}` : axis.toUpperCase()} htmlFor={`joint-${axis}`}>
+                <NumberInput id={`joint-${axis}`} key={`${nodeId}:${axis}:${at[i]}`} ariaLabel={`Joint ${axis.toUpperCase()}`} value={Math.round(at[i] * 10) / 10}
+                  min={-100000} decimals={1} suffix="mm" onChange={(n) => { if (n != null) setAxis(i, n); }} />
+              </Field>
+            );
+          })}
+        </div>
+      ) : null}
       <Field label="Cut">
         <Segmented label="Joint cut" value={kind} onChange={(v) => set(v === "default" ? null : { kind: v, through: joint?.through ?? null })}
           options={[{ value: "default", label: `Frame default (${frame.defaults?.corner ?? "butt"})` }, { value: "miter", label: "Miter" }, { value: "butt", label: "Butt" }]} />

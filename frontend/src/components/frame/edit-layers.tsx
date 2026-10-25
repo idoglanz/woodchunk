@@ -34,14 +34,23 @@ export function onCanvasOrPage(target: EventTarget | null): boolean {
 }
 const DRAG_STEP = 5;
 
-/** Arrows on the selected joint: drag along X, Y or Z (snapped to 5 mm), saved on release. */
+/**
+ * Arrows on the selected joint, or on both ends of the selected bar: drag along X, Y or Z
+ * (snapped to 5 mm), saved on release.
+ */
 export function NodeHandle({ frame, onMove }: { frame: Frame; onMove: (node: string, at: Vec) => void }) {
   const selected = useFrameUI((s) => s.selected);
   const tool = useFrameUI((s) => s.tool);
+  if (tool !== "select" || !selected) return null;
+  const member = selected.kind === "member" ? frame.members.find((m) => m.id === selected.id) : undefined;
+  const ids = selected.kind === "node" ? [selected.id] : member ? [member.a, member.b] : [];
+  return <>{ids.map((id) => <Handle key={id} id={id} frame={frame} onMove={onMove} />)}</>;
+}
+
+function Handle({ id, frame, onMove }: { id: string; frame: Frame; onMove: (node: string, at: Vec) => void }) {
   const drag = useFrameUI((s) => s.drag);
   const set = useFrameUI((s) => s.set);
   const mode = useFrameUI((s) => s.mode);
-  const id = selected?.kind === "node" && tool === "select" ? selected.id : null;
   // Flat views: only the two in-plane arrows, plus a square to drag freely within the plane.
   const active: [boolean, boolean, boolean] = mode === "3d" ? [true, true, true] : [0, 1, 2].map((i) => i !== FLAT[mode].normal) as [boolean, boolean, boolean];
   const base = useMemo(() => (id ? nodePositions(frame).get(id) : undefined), [frame, id]);
@@ -52,12 +61,12 @@ export function NodeHandle({ frame, onMove }: { frame: Frame; onMove: (node: str
   // camera back: drei only re-enables the controls on the arrow's own pointer-up.
   useEffect(() => () => {
     if (frameReq.current) cancelAnimationFrame(frameReq.current);
-    if (useFrameUI.getState().drag) useFrameUI.getState().set({ drag: null });
+    if (useFrameUI.getState().drag?.node === id) useFrameUI.getState().set({ drag: null });
     const controls = getState().controls as { enabled?: boolean } | null;
     if (controls && controls.enabled === false) controls.enabled = true;
   }, [id, getState]);
 
-  if (!id || !base) return null;
+  if (!base) return null;
   const at = drag?.node === id ? drag.at : base;
   return (
     <PivotControls matrix={new Matrix4().makeTranslation(...at)} autoTransform={false} fixed scale={90} lineWidth={3}

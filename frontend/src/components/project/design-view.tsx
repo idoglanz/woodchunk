@@ -12,7 +12,7 @@ import { Menu, MenuItem, MenuSeparator, Tip } from "@/components/ui/overlay";
 import { Stepper } from "@/components/ui/stepper";
 import type { Assembly, CatalogItem, HardwareLine, Part } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
-import { newId, nextLetter, useEditor } from "@/lib/editor";
+import { newAssembly, newId, newPart, nextLetter, useEditor } from "@/lib/editor";
 import { partRowId, useActivePart, usePartFocus } from "@/lib/focus";
 import { money } from "@/lib/format";
 import { useCatalog } from "@/lib/queries";
@@ -34,7 +34,7 @@ export function DesignView() {
 
   const addAssembly = () =>
     edit((d) => {
-      d.assemblies.push({ id: newId(), letter: nextLetter(d.assemblies.map((a) => a.letter)), name: `Assembly ${d.assemblies.length + 1}`, qty: 1, parts: [], hardware: [], notes: "" });
+      d.assemblies.push(newAssembly({ letter: nextLetter(d.assemblies.map((a) => a.letter)), name: `Assembly ${d.assemblies.length + 1}` }));
     });
 
   if (!content.assemblies.length) {
@@ -75,7 +75,7 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
 
   const addPart = () => upd((x) => {
     const last = x.parts[x.parts.length - 1];
-    x.parts.push({ id: newId(), name: "", item_id: last?.item_id ?? null, qty: 1, length_mm: 0, width_mm: null, grain_locked: false, notes: "" });
+    x.parts.push(newPart({ item_id: last?.item_id ?? null }));
   });
 
   const move = (dir: -1 | 1) => edit((d) => {

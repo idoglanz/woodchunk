@@ -5,13 +5,14 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 from pathlib import Path
 
 from pymongo.asynchronous.database import AsyncDatabase
 
 from app.config import get_settings
-from app.models.catalog import CatalogItem, ItemKind, LumberStock, PricePoint, SheetStock, Supplier
+from app.models.catalog import CatalogItem, ItemKind, LumberStock, PricePoint, ProfileSpec, SheetStock, Supplier
 from app.models.common import Localized, now
 from app.models.project import Assembly, HardwareLine, Member, Part, Project, Role, TemplateMeta
 from app.models.user import User, UserRole
@@ -256,3 +257,73 @@ async def import_legacy_for(db: AsyncDatabase, email: str) -> int:
     if projects:
         await db.projects.insert_many([p.to_mongo() for p in projects])
     return len(projects)
+
+
+# --- steel bars (frames) --------------------------------------------------------------------------
+
+STEEL_KG_PER_MM2_M = 0.00785  # density 7850 kg/m³: kg per metre for each mm² of section
+STEEL_SUPPLIER = "Steel (typical sizes)"
+
+# (shape, w, h, t), sold as 6 m bars. No prices: import a supplier's page to price them.
+STEEL = [
+    *[("rect_tube", s, s, t) for s, t in [(20, 1.5), (25, 2), (30, 2), (40, 2), (40, 3), (50, 2), (50, 3), (60, 3)]],
+    *[("rect_tube", w, h, t) for w, h, t in [(40, 20, 2), (50, 25, 2), (60, 40, 2), (80, 40, 2), (100, 50, 3)]],
+    *[("angle", s, s, t) for s, t in [(20, 3), (25, 3), (30, 3), (40, 4), (50, 5)]],
+    *[("flat_bar", w, t, 0) for w, t in [(20, 3), (30, 3), (40, 4), (50, 5)]],
+    *[("round_tube", d, d, t) for d, t in [(25, 2), (32, 2), (40, 2), (48, 3)]],
+    ("channel", 40, 20, 2),
+]
+
+
+def _steel_area(shape: str, w: float, h: float, t: float) -> float:
+    if shape == "rect_tube":
+        return w * h - (w - 2 * t) * (h - 2 * t)
+    if shape == "round_tube":
+        return math.pi / 4 * (w**2 - (w - 2 * t) ** 2)
+    if shape == "angle":
+        return t * (w + h - t)
+    if shape == "channel":
+        return w * t + 2 * (h - t) * t
+    return w * h
+
+
+def _steel_name(shape: str, w: float, h: float, t: float) -> Localized:
+    def f(x: float) -> str:
+        return f"{x:g}"
+    if shape == "rect_tube" and w == h:
+        return Localized(en=f"{f(w)} × {f(h)} × {f(t)} square steel tube", he=f"פרופיל מרובע {f(w)}×{f(h)}×{f(t)}")
+    if shape == "rect_tube":
+        return Localized(en=f"{f(w)} × {f(h)} × {f(t)} rectangular steel tube", he=f"פרופיל מלבני {f(w)}×{f(h)}×{f(t)}")
+    if shape == "angle":
+        return Localized(en=f"{f(w)} × {f(h)} × {f(t)} steel angle", he=f"זווית ברזל {f(w)}×{f(h)}×{f(t)}")
+    if shape == "flat_bar":
+        return Localized(en=f"{f(w)} × {f(h)} flat steel bar", he=f"פס ברזל {f(w)}×{f(h)}")
+    if shape == "round_tube":
+        return Localized(en=f"{f(w)} × {f(t)} round steel tube", he=f"צינור עגול {f(w)}×{f(t)}")
+    return Localized(en=f"{f(w)} × {f(h)} × {f(t)} steel channel", he=f"פרופיל U {f(w)}×{f(h)}×{f(t)}")
+
+
+def build_steel(supplier_id: str) -> list[CatalogItem]:
+    out = []
+    for shape, w, h, t in STEEL:
+        it = CatalogItem(
+            kind=ItemKind.lumber, supplier_id=supplier_id, name=_steel_name(shape, w, h, t), category="Steel",
+            material="steel", has_grain=False, width_mm=w, thickness_mm=h,
+            profile=ProfileSpec(shape=shape, w=w, h=h, t=t),
+            kg_per_m=round(_steel_area(shape, w, h, t) * STEEL_KG_PER_MM2_M, 2),
+            lumber_stock=[LumberStock(length_mm=6000)], tags=["steel", "metal", shape.replace("_", " ")],
+        )
+        it.refresh_search()
+        out.append(it)
+    return out
+
+
+async def seed_steel(db: AsyncDatabase) -> None:
+    """Add the steel bars once, also to catalogs seeded before frames existed."""
+    if await db.suppliers.find_one({"name": STEEL_SUPPLIER}):
+        return
+    logger.info("Seeding steel bars")
+    supplier = Supplier(name=STEEL_SUPPLIER, currency="ILS",
+                        notes="Common sizes in 6 m bars, without prices. Import your supplier's price list to price them.")
+    await db.suppliers.insert_one(supplier.to_mongo())
+    await db.catalog_items.insert_many([i.to_mongo() for i in build_steel(supplier.id)])

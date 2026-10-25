@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { api, ApiError, unwrap, type Project, type ProjectContent } from "@/lib/api/client";
+import { api, ApiError, unwrap, type Assembly, type Part, type Project, type ProjectContent } from "@/lib/api/client";
 import { toast } from "@/lib/toast";
 
 type SaveState = "idle" | "pending" | "saving" | "saved" | "error" | "conflict";
@@ -124,6 +124,17 @@ export const useEditor = create<Editor>((set, get) => {
 
 export function newId(): string {
   return crypto.randomUUID().replace(/-/g, "");
+}
+
+export function newPart(fields: Partial<Part> = {}): Part {
+  return {
+    id: newId(), name: "", item_id: null, qty: 1, length_mm: 0, width_mm: null, grain_locked: false, notes: "",
+    members: [], short_mm: null, cuts: [], face_up: "", ...fields,
+  };
+}
+
+export function newAssembly(fields: Partial<Assembly> = {}): Assembly {
+  return { id: newId(), letter: "", name: "", qty: 1, parts: [], hardware: [], notes: "", frame: null, frame_warnings: [], ...fields };
 }
 
 export function nextLetter(used: string[]): string {

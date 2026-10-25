@@ -30,6 +30,7 @@ from app.models.user import User
 from app.routers.deps import load_project, plan_for
 from app.services.ai.catalog_ai import translate_strings
 from app.services.ai.client import AIServiceError
+from app.services.frame.parts import derive_all
 from app.services.shopping import build_shopping, purchase_from
 
 router = APIRouter(prefix="/api", tags=["projects"])
@@ -75,6 +76,7 @@ async def create_project(body: ProjectCreate, user: User = Depends(current_user)
         content = _fresh_ids(ProjectContent.model_validate(tpl.model_dump(include=set(ProjectContent.model_fields))))
         content.settings = user.prefs.cutting
         content.name = body.name if body.name and body.name != "Untitled project" else tpl.name
+        content = await derive_all(get_db(), content)
     p = Project(**content.model_dump(), owner_id=user.id,
                 members=[Member(user_id=user.id, role=Role.owner, email=user.email, name=user.name)])
     await get_db().projects.insert_one(p.to_mongo())
@@ -93,7 +95,7 @@ async def save_project(project_id: str, body: ProjectUpdate, user: User = Depend
         raise HTTPException(status.HTTP_409_CONFLICT, "This project is done. Reopen it to make changes.")
     if body.version != p.version:
         raise HTTPException(status.HTTP_409_CONFLICT, "Someone else changed this project. Reload to see their changes.")
-    content = ProjectContent.model_validate(body.model_dump(exclude={"version"}))
+    content = await derive_all(get_db(), ProjectContent.model_validate(body.model_dump(exclude={"version"})))
     update = {**content.model_dump(mode="python"), "updated_at": now(), "version": p.version + 1}
     res = await get_db().projects.find_one_and_update(
         {"_id": p.id, "version": p.version}, {"$set": update}, return_document=True)
@@ -107,6 +109,7 @@ async def duplicate_project(project_id: str, user: User = Depends(current_user))
     src = await load_project(project_id, user, "view")
     content = _fresh_ids(ProjectContent.model_validate(src.model_dump(include=set(ProjectContent.model_fields))))
     content.name = f"{src.name} copy"[:120]
+    content = await derive_all(get_db(), content)
     p = Project(**content.model_dump(), owner_id=user.id,
                 members=[Member(user_id=user.id, role=Role.owner, email=user.email, name=user.name)])
     await get_db().projects.insert_one(p.to_mongo())
@@ -441,6 +444,7 @@ async def save_as_template(project_id: str, body: TemplateIn, user: User = Depen
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only admins can publish templates for everyone.")
     content = _fresh_ids(ProjectContent.model_validate(src.model_dump(include=set(ProjectContent.model_fields))))
     content.name = body.title
+    content = await derive_all(get_db(), content)
     t = Project(**content.model_dump(), owner_id=user.id, is_template=True,
                 template=TemplateMeta(title=body.title, summary=body.summary, category=body.category,
                                       public=body.public),

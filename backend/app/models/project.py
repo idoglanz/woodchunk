@@ -1,10 +1,12 @@
 from datetime import datetime
 from enum import StrEnum
 from string import ascii_uppercase
+from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 
 from app.models.common import Doc, Model, new_id, now
+from app.models.frame import Frame
 
 
 class ProjectStatus(StrEnum):
@@ -35,15 +37,27 @@ class CuttingSettings(Model):
     use_inventory: bool = True
 
 
+class EndCutSpec(Model):
+    """Saw settings for one end of a bar: miter = table rotation, bevel = blade tilt (0 = square)."""
+
+    miter: float = 0
+    bevel: float = 0
+
+
 class Part(Model):
     id: str = Field(default_factory=new_id)
     name: str = ""
     item_id: str | None = None
     qty: int = Field(default=1, ge=1, le=10000)
-    length_mm: float = Field(default=0, ge=0)
+    length_mm: float = Field(default=0, ge=0)  # bars from a frame: long point to long point
     width_mm: float | None = Field(default=None, ge=0)  # sheet parts only
     grain_locked: bool = False
     notes: str = ""
+    # Set on parts generated from the assembly's frame (read-only in the editor).
+    members: list[str] = []  # frame member ids this part is cut for
+    short_mm: float | None = None  # short point
+    cuts: list[EndCutSpec] = []  # the two ends
+    face_up: Literal["top", "side", ""] = ""
 
 
 class HardwareLine(Model):
@@ -62,6 +76,9 @@ class Assembly(Model):
     parts: list[Part] = []
     hardware: list[HardwareLine] = []
     notes: str = ""
+    # A drawn assembly: its parts are generated from this frame on every save.
+    frame: Frame | None = None
+    frame_warnings: list[str] = []
 
 
 class PurchaseLine(Model):

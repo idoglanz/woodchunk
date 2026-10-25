@@ -2814,6 +2814,24 @@
       "type": "string",
       "title": "Notes",
       "default": ""
+     },
+     "frame": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Frame-Input"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "frame_warnings": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Frame Warnings",
+      "default": []
      }
     },
     "type": "object",
@@ -2862,6 +2880,24 @@
       "type": "string",
       "title": "Notes",
       "default": ""
+     },
+     "frame": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Frame-Output"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "frame_warnings": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Frame Warnings",
+      "default": []
      }
     },
     "type": "object",
@@ -2872,7 +2908,9 @@
      "qty",
      "parts",
      "hardware",
-     "notes"
+     "notes",
+     "frame",
+     "frame_warnings"
     ],
     "title": "Assembly"
    },
@@ -3228,6 +3266,28 @@
       "title": "Has Grain",
       "default": true
      },
+     "profile": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ProfileSpec-Output"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "kg_per_m": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kg Per M"
+     },
      "unit": {
       "type": "string",
       "title": "Unit",
@@ -3270,6 +3330,8 @@
      "lumber_stock",
      "sheet_stock",
      "has_grain",
+     "profile",
+     "kg_per_m",
      "unit",
      "pack_size",
      "price"
@@ -3389,6 +3451,28 @@
       "type": "boolean",
       "title": "Has Grain",
       "default": true
+     },
+     "profile": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ProfileSpec-Input"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "kg_per_m": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kg Per M"
      },
      "unit": {
       "type": "string",
@@ -3535,6 +3619,28 @@
       "title": "Has Grain",
       "default": true
      },
+     "profile": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ProfileSpec-Output"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "kg_per_m": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kg Per M"
+     },
      "unit": {
       "type": "string",
       "title": "Unit",
@@ -3641,6 +3747,8 @@
      "lumber_stock",
      "sheet_stock",
      "has_grain",
+     "profile",
+     "kg_per_m",
      "unit",
      "pack_size",
      "price",
@@ -3977,6 +4085,515 @@
      "text"
     ],
     "title": "DiffLine"
+   },
+   "EndCutSpec-Input": {
+    "properties": {
+     "miter": {
+      "type": "number",
+      "title": "Miter",
+      "default": 0
+     },
+     "bevel": {
+      "type": "number",
+      "title": "Bevel",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "title": "EndCutSpec",
+    "description": "Saw settings for one end of a bar: miter = table rotation, bevel = blade tilt (0 = square)."
+   },
+   "EndCutSpec-Output": {
+    "properties": {
+     "miter": {
+      "type": "number",
+      "title": "Miter",
+      "default": 0
+     },
+     "bevel": {
+      "type": "number",
+      "title": "Bevel",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "miter",
+     "bevel"
+    ],
+    "title": "EndCutSpec",
+    "description": "Saw settings for one end of a bar: miter = table rotation, bevel = blade tilt (0 = square)."
+   },
+   "Frame-Input": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version",
+      "default": 1
+     },
+     "params": {
+      "items": {
+       "$ref": "#/components/schemas/FrameParam"
+      },
+      "type": "array",
+      "title": "Params",
+      "default": []
+     },
+     "defaults": {
+      "$ref": "#/components/schemas/FrameDefaults-Input",
+      "default": {
+       "corner": "butt",
+       "lines": "outside"
+      }
+     },
+     "nodes": {
+      "items": {
+       "$ref": "#/components/schemas/FrameNode-Input"
+      },
+      "type": "array",
+      "title": "Nodes",
+      "default": []
+     },
+     "members": {
+      "items": {
+       "$ref": "#/components/schemas/FrameMember-Input"
+      },
+      "type": "array",
+      "title": "Members",
+      "default": []
+     },
+     "joints": {
+      "items": {
+       "$ref": "#/components/schemas/FrameJoint-Input"
+      },
+      "type": "array",
+      "title": "Joints",
+      "default": []
+     }
+    },
+    "type": "object",
+    "title": "Frame"
+   },
+   "Frame-Output": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version",
+      "default": 1
+     },
+     "params": {
+      "items": {
+       "$ref": "#/components/schemas/FrameParam"
+      },
+      "type": "array",
+      "title": "Params",
+      "default": []
+     },
+     "defaults": {
+      "$ref": "#/components/schemas/FrameDefaults-Output",
+      "default": {
+       "corner": "butt",
+       "lines": "outside"
+      }
+     },
+     "nodes": {
+      "items": {
+       "$ref": "#/components/schemas/FrameNode-Output"
+      },
+      "type": "array",
+      "title": "Nodes",
+      "default": []
+     },
+     "members": {
+      "items": {
+       "$ref": "#/components/schemas/FrameMember-Output"
+      },
+      "type": "array",
+      "title": "Members",
+      "default": []
+     },
+     "joints": {
+      "items": {
+       "$ref": "#/components/schemas/FrameJoint-Output"
+      },
+      "type": "array",
+      "title": "Joints",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "version",
+     "params",
+     "defaults",
+     "nodes",
+     "members",
+     "joints"
+    ],
+    "title": "Frame"
+   },
+   "FrameDefaults-Input": {
+    "properties": {
+     "corner": {
+      "type": "string",
+      "enum": [
+       "miter",
+       "butt"
+      ],
+      "title": "Corner",
+      "default": "butt"
+     },
+     "lines": {
+      "type": "string",
+      "enum": [
+       "outside",
+       "centerline"
+      ],
+      "title": "Lines",
+      "default": "outside"
+     }
+    },
+    "type": "object",
+    "title": "FrameDefaults"
+   },
+   "FrameDefaults-Output": {
+    "properties": {
+     "corner": {
+      "type": "string",
+      "enum": [
+       "miter",
+       "butt"
+      ],
+      "title": "Corner",
+      "default": "butt"
+     },
+     "lines": {
+      "type": "string",
+      "enum": [
+       "outside",
+       "centerline"
+      ],
+      "title": "Lines",
+      "default": "outside"
+     }
+    },
+    "type": "object",
+    "required": [
+     "corner",
+     "lines"
+    ],
+    "title": "FrameDefaults"
+   },
+   "FrameJoint-Input": {
+    "properties": {
+     "node": {
+      "type": "string",
+      "title": "Node"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "miter",
+       "butt"
+      ],
+      "title": "Kind"
+     },
+     "through": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Through"
+     }
+    },
+    "type": "object",
+    "required": [
+     "node",
+     "kind"
+    ],
+    "title": "FrameJoint",
+    "description": "An override for how the members meeting at a node are cut."
+   },
+   "FrameJoint-Output": {
+    "properties": {
+     "node": {
+      "type": "string",
+      "title": "Node"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "miter",
+       "butt"
+      ],
+      "title": "Kind"
+     },
+     "through": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Through"
+     }
+    },
+    "type": "object",
+    "required": [
+     "node",
+     "kind",
+     "through"
+    ],
+    "title": "FrameJoint",
+    "description": "An override for how the members meeting at a node are cut."
+   },
+   "FrameMember-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "a": {
+      "type": "string",
+      "title": "A"
+     },
+     "b": {
+      "type": "string",
+      "title": "B"
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "roll_deg": {
+      "type": "number",
+      "title": "Roll Deg",
+      "default": 0
+     },
+     "anchor": {
+      "type": "string",
+      "enum": [
+       "auto",
+       "c",
+       "t",
+       "b",
+       "l",
+       "r",
+       "tl",
+       "tr",
+       "bl",
+       "br"
+      ],
+      "title": "Anchor",
+      "default": "auto"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "a",
+     "b"
+    ],
+    "title": "FrameMember"
+   },
+   "FrameMember-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "a": {
+      "type": "string",
+      "title": "A"
+     },
+     "b": {
+      "type": "string",
+      "title": "B"
+     },
+     "item_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Item Id"
+     },
+     "roll_deg": {
+      "type": "number",
+      "title": "Roll Deg",
+      "default": 0
+     },
+     "anchor": {
+      "type": "string",
+      "enum": [
+       "auto",
+       "c",
+       "t",
+       "b",
+       "l",
+       "r",
+       "tl",
+       "tr",
+       "bl",
+       "br"
+      ],
+      "title": "Anchor",
+      "default": "auto"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "a",
+     "b",
+     "item_id",
+     "roll_deg",
+     "anchor",
+     "name"
+    ],
+    "title": "FrameMember"
+   },
+   "FrameNode-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "x": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "X",
+      "default": 0
+     },
+     "y": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Y",
+      "default": 0
+     },
+     "z": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Z",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "title": "FrameNode"
+   },
+   "FrameNode-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "x": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "X",
+      "default": 0
+     },
+     "y": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Y",
+      "default": 0
+     },
+     "z": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "string"
+       }
+      ],
+      "title": "Z",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "x",
+     "y",
+     "z"
+    ],
+    "title": "FrameNode"
+   },
+   "FrameParam": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "title": "Name"
+     },
+     "mm": {
+      "type": "number",
+      "title": "Mm"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "mm"
+    ],
+    "title": "FrameParam"
    },
    "HTTPValidationError": {
     "properties": {
@@ -4756,6 +5373,43 @@
       "type": "string",
       "title": "Notes",
       "default": ""
+     },
+     "members": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Members",
+      "default": []
+     },
+     "short_mm": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Short Mm"
+     },
+     "cuts": {
+      "items": {
+       "$ref": "#/components/schemas/EndCutSpec-Input"
+      },
+      "type": "array",
+      "title": "Cuts",
+      "default": []
+     },
+     "face_up": {
+      "type": "string",
+      "enum": [
+       "top",
+       "side",
+       ""
+      ],
+      "title": "Face Up",
+      "default": ""
      }
     },
     "type": "object",
@@ -4817,6 +5471,43 @@
       "type": "string",
       "title": "Notes",
       "default": ""
+     },
+     "members": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Members",
+      "default": []
+     },
+     "short_mm": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Short Mm"
+     },
+     "cuts": {
+      "items": {
+       "$ref": "#/components/schemas/EndCutSpec-Output"
+      },
+      "type": "array",
+      "title": "Cuts",
+      "default": []
+     },
+     "face_up": {
+      "type": "string",
+      "enum": [
+       "top",
+       "side",
+       ""
+      ],
+      "title": "Face Up",
+      "default": ""
      }
     },
     "type": "object",
@@ -4828,7 +5519,11 @@
      "length_mm",
      "width_mm",
      "grain_locked",
-     "notes"
+     "notes",
+     "members",
+     "short_mm",
+     "cuts",
+     "face_up"
     ],
     "title": "Part"
    },
@@ -5105,6 +5800,89 @@
      "note"
     ],
     "title": "PricePoint"
+   },
+   "ProfileSpec-Input": {
+    "properties": {
+     "shape": {
+      "type": "string",
+      "enum": [
+       "rect",
+       "flat_bar",
+       "rect_tube",
+       "round_tube",
+       "round_bar",
+       "angle",
+       "channel"
+      ],
+      "title": "Shape"
+     },
+     "w": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "W"
+     },
+     "h": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "H"
+     },
+     "t": {
+      "type": "number",
+      "minimum": 0.0,
+      "title": "T",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "shape",
+     "w",
+     "h"
+    ],
+    "title": "ProfileSpec",
+    "description": "Cross-section of a bar. w across, h up, t = wall (tubes, angle, channel). Round: w = h = diameter."
+   },
+   "ProfileSpec-Output": {
+    "properties": {
+     "shape": {
+      "type": "string",
+      "enum": [
+       "rect",
+       "flat_bar",
+       "rect_tube",
+       "round_tube",
+       "round_bar",
+       "angle",
+       "channel"
+      ],
+      "title": "Shape"
+     },
+     "w": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "W"
+     },
+     "h": {
+      "type": "number",
+      "exclusiveMinimum": 0.0,
+      "title": "H"
+     },
+     "t": {
+      "type": "number",
+      "minimum": 0.0,
+      "title": "T",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "shape",
+     "w",
+     "h",
+     "t"
+    ],
+    "title": "ProfileSpec",
+    "description": "Cross-section of a bar. w across, h up, t = wall (tubes, angle, channel). Round: w = h = diameter."
    },
    "Project": {
     "properties": {

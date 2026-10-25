@@ -271,3 +271,38 @@ async def test_templates(client):
         q = await client.post("/api/projects", json={"template_id": t["id"]}, headers=auth(USER))
         plan = (await client.get(f"/api/projects/{q.json()['id']}/plan", headers=auth(USER))).json()
         assert not plan["unplaced"], (t["title"], plan["unplaced"])
+
+
+async def test_drawn_assembly_parts_come_from_its_frame(client):
+    tube = await find_item(client, "40 40 2 square tube", "lumber")
+    assert tube["profile"]["shape"] == "rect_tube" and tube["kg_per_m"] > 2
+    frame = {
+        "params": [{"name": "W", "mm": 900}, {"name": "D", "mm": 500}, {"name": "H", "mm": 800}],
+        "defaults": {"corner": "butt", "lines": "outside"},
+        "nodes": [{"id": f"{z}{i}", "x": x, "y": y, "z": "H" if z == "t" else 0}
+                  for z in "bt" for i, (x, y) in enumerate([(0, 0), ("W", 0), ("W", "D"), (0, "D")])],
+        "members": [
+            *[{"id": f"leg{i}", "a": f"b{i}", "b": f"t{i}", "item_id": tube["id"], "name": "Leg"} for i in range(4)],
+            *[{"id": f"rail{i}", "a": f"t{i}", "b": f"t{(i + 1) % 4}", "item_id": tube["id"], "name": "Rail"}
+              for i in range(4)],
+        ],
+    }
+    asm = {"name": "Cart frame", "qty": 1, "frame": frame,
+           "parts": [{"name": "stale", "item_id": tube["id"], "qty": 9, "length_mm": 1}]}
+    p = await new_project(client, assemblies=[asm])
+    parts = sorted((pt["name"], pt["qty"], pt["length_mm"]) for pt in p["assemblies"][0]["parts"])
+    assert parts == [("Leg", 4, 800), ("Rail", 2, 420), ("Rail", 2, 820)]  # 500 - 2 x 40, 900 - 2 x 40
+    leg = next(pt for pt in p["assemblies"][0]["parts"] if pt["name"] == "Leg")
+    assert len(leg["members"]) == 4 and leg["cuts"] == [{"miter": 0, "bevel": 0}] * 2
+    assert p["assemblies"][0]["frame_warnings"] == []
+
+    # The plan buys 6 m bars for 4 x 800 + 2 x 820 + 2 x 420 = 5680 mm (+ kerf).
+    plan = (await client.get(f"/api/projects/{p['id']}/plan", headers=auth(USER))).json()
+    lp = next(x for x in plan["lumber"] if x["item_id"] == tube["id"])
+    assert sum(b["qty"] for b in lp["buy"]) >= 1
+
+    # Change a parameter: the parts follow on save.
+    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    body["assemblies"][0]["frame"]["params"][0]["mm"] = 1200
+    p = (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).json()
+    assert sorted(pt["length_mm"] for pt in p["assemblies"][0]["parts"])[-1] == 1120

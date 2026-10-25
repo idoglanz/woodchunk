@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import db
 from app.config import get_settings
 from app.routers import admin, ai, catalog, inventory, me, projects
-from app.seed import seed_if_empty
+from app.seed import seed_if_empty, seed_steel
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -16,6 +16,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 async def lifespan(app: FastAPI):
     database = await db.connect()
     await seed_if_empty(database)
+    await seed_steel(database)
     yield
     await db.close()
 

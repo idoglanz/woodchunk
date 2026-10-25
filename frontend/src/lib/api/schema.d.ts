@@ -866,6 +866,12 @@ export interface components {
              * @default
              */
             notes: string;
+            frame?: components["schemas"]["Frame-Input"] | null;
+            /**
+             * Frame Warnings
+             * @default []
+             */
+            frame_warnings: string[];
         };
         /** Assembly */
         "Assembly-Output": {
@@ -901,6 +907,12 @@ export interface components {
              * @default
              */
             notes: string;
+            frame: components["schemas"]["Frame-Output"] | null;
+            /**
+             * Frame Warnings
+             * @default []
+             */
+            frame_warnings: string[];
         };
         /** BoardPattern */
         BoardPattern: {
@@ -1074,6 +1086,9 @@ export interface components {
              * @default true
              */
             has_grain: boolean;
+            profile: components["schemas"]["ProfileSpec-Output"] | null;
+            /** Kg Per M */
+            kg_per_m: number | null;
             /**
              * Unit
              * @default each
@@ -1149,6 +1164,9 @@ export interface components {
              * @default true
              */
             has_grain: boolean;
+            profile?: components["schemas"]["ProfileSpec-Input"] | null;
+            /** Kg Per M */
+            kg_per_m?: number | null;
             /**
              * Unit
              * @default each
@@ -1224,6 +1242,9 @@ export interface components {
              * @default true
              */
             has_grain: boolean;
+            profile: components["schemas"]["ProfileSpec-Output"] | null;
+            /** Kg Per M */
+            kg_per_m: number | null;
             /**
              * Unit
              * @default each
@@ -1439,6 +1460,269 @@ export interface components {
             kind: "add" | "change" | "remove" | "note";
             /** Text */
             text: string;
+        };
+        /**
+         * EndCutSpec
+         * @description Saw settings for one end of a bar: miter = table rotation, bevel = blade tilt (0 = square).
+         */
+        "EndCutSpec-Input": {
+            /**
+             * Miter
+             * @default 0
+             */
+            miter: number;
+            /**
+             * Bevel
+             * @default 0
+             */
+            bevel: number;
+        };
+        /**
+         * EndCutSpec
+         * @description Saw settings for one end of a bar: miter = table rotation, bevel = blade tilt (0 = square).
+         */
+        "EndCutSpec-Output": {
+            /**
+             * Miter
+             * @default 0
+             */
+            miter: number;
+            /**
+             * Bevel
+             * @default 0
+             */
+            bevel: number;
+        };
+        /** Frame */
+        "Frame-Input": {
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
+            /**
+             * Params
+             * @default []
+             */
+            params: components["schemas"]["FrameParam"][];
+            /**
+             * @default {
+             *       "corner": "butt",
+             *       "lines": "outside"
+             *     }
+             */
+            defaults: components["schemas"]["FrameDefaults-Input"];
+            /**
+             * Nodes
+             * @default []
+             */
+            nodes: components["schemas"]["FrameNode-Input"][];
+            /**
+             * Members
+             * @default []
+             */
+            members: components["schemas"]["FrameMember-Input"][];
+            /**
+             * Joints
+             * @default []
+             */
+            joints: components["schemas"]["FrameJoint-Input"][];
+        };
+        /** Frame */
+        "Frame-Output": {
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
+            /**
+             * Params
+             * @default []
+             */
+            params: components["schemas"]["FrameParam"][];
+            /**
+             * @default {
+             *       "corner": "butt",
+             *       "lines": "outside"
+             *     }
+             */
+            defaults: components["schemas"]["FrameDefaults-Output"];
+            /**
+             * Nodes
+             * @default []
+             */
+            nodes: components["schemas"]["FrameNode-Output"][];
+            /**
+             * Members
+             * @default []
+             */
+            members: components["schemas"]["FrameMember-Output"][];
+            /**
+             * Joints
+             * @default []
+             */
+            joints: components["schemas"]["FrameJoint-Output"][];
+        };
+        /** FrameDefaults */
+        "FrameDefaults-Input": {
+            /**
+             * Corner
+             * @default butt
+             * @enum {string}
+             */
+            corner: "miter" | "butt";
+            /**
+             * Lines
+             * @default outside
+             * @enum {string}
+             */
+            lines: "outside" | "centerline";
+        };
+        /** FrameDefaults */
+        "FrameDefaults-Output": {
+            /**
+             * Corner
+             * @default butt
+             * @enum {string}
+             */
+            corner: "miter" | "butt";
+            /**
+             * Lines
+             * @default outside
+             * @enum {string}
+             */
+            lines: "outside" | "centerline";
+        };
+        /**
+         * FrameJoint
+         * @description An override for how the members meeting at a node are cut.
+         */
+        "FrameJoint-Input": {
+            /** Node */
+            node: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "miter" | "butt";
+            /** Through */
+            through?: string | null;
+        };
+        /**
+         * FrameJoint
+         * @description An override for how the members meeting at a node are cut.
+         */
+        "FrameJoint-Output": {
+            /** Node */
+            node: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "miter" | "butt";
+            /** Through */
+            through: string | null;
+        };
+        /** FrameMember */
+        "FrameMember-Input": {
+            /** Id */
+            id?: string;
+            /** A */
+            a: string;
+            /** B */
+            b: string;
+            /** Item Id */
+            item_id?: string | null;
+            /**
+             * Roll Deg
+             * @default 0
+             */
+            roll_deg: number;
+            /**
+             * Anchor
+             * @default auto
+             * @enum {string}
+             */
+            anchor: "auto" | "c" | "t" | "b" | "l" | "r" | "tl" | "tr" | "bl" | "br";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
+        /** FrameMember */
+        "FrameMember-Output": {
+            /** Id */
+            id: string;
+            /** A */
+            a: string;
+            /** B */
+            b: string;
+            /** Item Id */
+            item_id: string | null;
+            /**
+             * Roll Deg
+             * @default 0
+             */
+            roll_deg: number;
+            /**
+             * Anchor
+             * @default auto
+             * @enum {string}
+             */
+            anchor: "auto" | "c" | "t" | "b" | "l" | "r" | "tl" | "tr" | "bl" | "br";
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
+        /** FrameNode */
+        "FrameNode-Input": {
+            /** Id */
+            id?: string;
+            /**
+             * X
+             * @default 0
+             */
+            x: number | string;
+            /**
+             * Y
+             * @default 0
+             */
+            y: number | string;
+            /**
+             * Z
+             * @default 0
+             */
+            z: number | string;
+        };
+        /** FrameNode */
+        "FrameNode-Output": {
+            /** Id */
+            id: string;
+            /**
+             * X
+             * @default 0
+             */
+            x: number | string;
+            /**
+             * Y
+             * @default 0
+             */
+            y: number | string;
+            /**
+             * Z
+             * @default 0
+             */
+            z: number | string;
+        };
+        /** FrameParam */
+        FrameParam: {
+            /** Name */
+            name: string;
+            /** Mm */
+            mm: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1773,6 +2057,24 @@ export interface components {
              * @default
              */
             notes: string;
+            /**
+             * Members
+             * @default []
+             */
+            members: string[];
+            /** Short Mm */
+            short_mm?: number | null;
+            /**
+             * Cuts
+             * @default []
+             */
+            cuts: components["schemas"]["EndCutSpec-Input"][];
+            /**
+             * Face Up
+             * @default
+             * @enum {string}
+             */
+            face_up: "top" | "side" | "";
         };
         /** Part */
         "Part-Output": {
@@ -1807,6 +2109,24 @@ export interface components {
              * @default
              */
             notes: string;
+            /**
+             * Members
+             * @default []
+             */
+            members: string[];
+            /** Short Mm */
+            short_mm: number | null;
+            /**
+             * Cuts
+             * @default []
+             */
+            cuts: components["schemas"]["EndCutSpec-Output"][];
+            /**
+             * Face Up
+             * @default
+             * @enum {string}
+             */
+            face_up: "top" | "side" | "";
         };
         /** PlacedPart */
         PlacedPart: {
@@ -1942,6 +2262,46 @@ export interface components {
              * @default
              */
             note: string;
+        };
+        /**
+         * ProfileSpec
+         * @description Cross-section of a bar. w across, h up, t = wall (tubes, angle, channel). Round: w = h = diameter.
+         */
+        "ProfileSpec-Input": {
+            /**
+             * Shape
+             * @enum {string}
+             */
+            shape: "rect" | "flat_bar" | "rect_tube" | "round_tube" | "round_bar" | "angle" | "channel";
+            /** W */
+            w: number;
+            /** H */
+            h: number;
+            /**
+             * T
+             * @default 0
+             */
+            t: number;
+        };
+        /**
+         * ProfileSpec
+         * @description Cross-section of a bar. w across, h up, t = wall (tubes, angle, channel). Round: w = h = diameter.
+         */
+        "ProfileSpec-Output": {
+            /**
+             * Shape
+             * @enum {string}
+             */
+            shape: "rect" | "flat_bar" | "rect_tube" | "round_tube" | "round_bar" | "angle" | "channel";
+            /** W */
+            w: number;
+            /** H */
+            h: number;
+            /**
+             * T
+             * @default 0
+             */
+            t: number;
         };
         /** Project */
         Project: {

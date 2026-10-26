@@ -4,14 +4,39 @@ import { Profile } from "@/lib/frame/kernel";
 /**
  * A to-scale end view of a material: a lumber cross-section (70 × 70 is a square,
  * 22 × 200 a thin plank), a metal bar's real section (tube, angle, channel), or a sheet seen
- * edge-on (ply layers for plywood, solid for MDF).
+ * edge-on (ply layers for plywood, solid for MDF). `sheet="top"` draws sheets from above instead:
+ * the largest size sold, with its grain. `scaleMm` draws bars to a shared scale, the box being that
+ * many millimetres (bigger sections fill it), so a list shows which sections are bigger.
  */
-export function SectionGlyph({ item, size = 30 }: { item: Pick<CatalogItem, "kind" | "thickness_mm" | "width_mm" | "has_grain" | "material" | "profile">; size?: number }) {
+export function SectionGlyph({ item, size = 30, sheet = "edge", scaleMm }: {
+  item: Pick<CatalogItem, "kind" | "thickness_mm" | "width_mm" | "has_grain" | "material" | "profile"> & Partial<Pick<CatalogItem, "sheet_stock">>;
+  size?: number; sheet?: "edge" | "top"; scaleMm?: number;
+}) {
   const pad = 2;
   const box = size - pad * 2;
+  if (item.kind === "sheet" && sheet === "top" && item.sheet_stock?.length) {
+    const big = item.sheet_stock.reduce((a, b) => (b.length_mm * b.width_mm > a.length_mm * a.width_mm ? b : a));
+    const k = box / Math.max(big.length_mm, big.width_mm);
+    const rw = Math.max(3, big.length_mm * k);
+    const rh = Math.max(3, big.width_mm * k);
+    const x = (size - rw) / 2;
+    const y = (size - rh) / 2;
+    const lines = item.has_grain ? Math.max(2, Math.round(rh / 3)) : 0;
+    return (
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" className="shrink-0">
+        <rect x={x} y={y} width={rw} height={rh} rx={0.8} fill={item.has_grain ? "var(--asm-a)" : "var(--surface-3)"} />
+        {Array.from({ length: lines }, (_, i) => {
+          const gy = y + ((i + 0.5) * rh) / lines;
+          return <path key={i} d={`M${x + 1} ${gy} Q${x + rw * 0.35} ${gy - 0.8} ${x + rw * 0.6} ${gy} T${x + rw - 1} ${gy}`}
+            fill="none" stroke="var(--asm-a-ink)" strokeOpacity={0.22} strokeWidth={0.6} />;
+        })}
+        <rect x={x} y={y} width={rw} height={rh} rx={0.8} fill="none" stroke="var(--line-strong)" strokeWidth={0.8} />
+      </svg>
+    );
+  }
   if (item.kind === "lumber" && item.profile) {
     const p = Profile.from(item.profile);
-    const k = box / Math.max(p.w, p.h);
+    const k = box / Math.max(p.w, p.h, scaleMm ?? 0);
     // Profile v is up; SVG y runs down.
     const d = p.loops().map((loop) => "M" + loop.map(([u, v]) => `${(size / 2 + u * k).toFixed(2)},${(size / 2 - v * k).toFixed(2)}`).join("L") + "Z").join("");
     return (
@@ -23,7 +48,7 @@ export function SectionGlyph({ item, size = 30 }: { item: Pick<CatalogItem, "kin
   if (item.kind === "lumber" && item.thickness_mm && item.width_mm) {
     const t = item.thickness_mm;
     const w = item.width_mm;
-    const scale = box / Math.max(t, w);
+    const scale = box / Math.max(t, w, scaleMm ?? 0);
     const rw = Math.max(2.5, w * scale);
     const rh = Math.max(2.5, t * scale);
     const x = (size - rw) / 2;

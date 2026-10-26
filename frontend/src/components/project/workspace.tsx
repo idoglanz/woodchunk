@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, CloudOff, Redo2, Share, Sparkles, Undo2 } from "lucide-react";
+import { ArrowLeft, Check, ClipboardList, CloudOff, Hammer, Redo2, Share, ShoppingCart, Sparkles, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -16,6 +16,7 @@ import { Button, IconButton, Spinner } from "@/components/ui/button";
 import { EmptyState, Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { api, ApiError, unwrap, type Project, type Schemas } from "@/lib/api/client";
+import { cn } from "@/lib/cn";
 import { hasUnsaved, setOnSaved, useEditor } from "@/lib/editor";
 import { useMediaQuery } from "@/lib/focus";
 import { relativeTime } from "@/lib/format";
@@ -85,10 +86,34 @@ function useLiveSync(id: string, enabled: boolean) {
 }
 
 const TABS = [
-  { value: "build", label: "Build" },
-  { value: "buy", label: "Buy" },
-  { value: "sheet", label: "Shop sheet" },
+  { value: "build", label: "Build", icon: Hammer },
+  { value: "buy", label: "Buy", icon: ShoppingCart },
+  { value: "sheet", label: "Shop sheet", icon: ClipboardList },
 ] as const;
+
+/**
+ * Phones: the project's views as a tab bar along the bottom, in thumb reach. Bars pinned to the
+ * bottom (the cutting plan, the shopping total) sit on top of it via --bottom-nav.
+ */
+function BottomNav({ id, tab }: { id: string; tab: string }) {
+  return (
+    <nav aria-label="Project view" className="no-print fixed inset-x-0 bottom-0 z-[35] flex border-t border-line backdrop-blur-xl sm:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)", background: "color-mix(in srgb, var(--surface) 96%, transparent)" }}>
+      {TABS.map((t) => {
+        const active = t.value === tab;
+        return (
+          <Link key={t.value} href={`/projects/${id}/${t.value}`} scroll={false} aria-current={active ? "page" : undefined}
+            className={cn("flex h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px]", active ? "font-semibold text-ink" : "font-medium text-ink-3")}>
+            <span className={cn("flex h-7 w-14 items-center justify-center rounded-full transition-colors", active && "bg-accent-soft")}>
+              <t.icon size={19} strokeWidth={active ? 2.2 : 1.8} />
+            </span>
+            {t.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
 
 export function ProjectWorkspace({ id, children }: { id: string; children: ReactNode }) {
   const project = useProject(id);
@@ -117,6 +142,9 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
       useEditor.getState().load(project.data, readOnly);
     }
   }, [project.data, me.data, readOnly]);
+
+  // A project opens at its top, whatever page (and scroll position) it was opened from.
+  useEffect(() => { window.scrollTo(0, 0); }, [id]);
 
   useEffect(() => {
     useEditor.setState({ readOnly });
@@ -180,10 +208,11 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
 
   return (
     <ProjectContext.Provider value={ctx}>
-      <div className="flex min-h-[calc(100dvh-52px)]">
+      {/* Phones have the bottom tab bar: what's pinned to the bottom sits above it, and it covers the safe area. */}
+      <div className="flex min-h-[calc(100dvh-52px)] [--bottom-nav:calc(56px_+_env(safe-area-inset-bottom))] [--bottom-safe:0px] sm:[--bottom-nav:0px] sm:[--bottom-safe:env(safe-area-inset-bottom)]">
         <div className="min-w-0 flex-1">
           {/* The full window width on every tab, so switching tabs doesn't move the page. */}
-          <div className="w-full ps-[max(16px,env(safe-area-inset-left))] pe-[max(16px,env(safe-area-inset-right))] pb-28 pt-5 sm:ps-6 sm:pe-6 lg:ps-8 lg:pe-8">
+          <div className="w-full ps-[max(16px,env(safe-area-inset-left))] pe-[max(16px,env(safe-area-inset-right))] pb-[calc(var(--bottom-nav)_+_96px)] pt-5 sm:ps-6 sm:pe-6 sm:pb-28 lg:ps-8 lg:pe-8">
             {!ready ? (
               <div className="flex flex-col gap-5"><Skeleton className="h-10 w-72" /><Skeleton className="h-9 w-96" /><Skeleton className="h-64 w-full rounded-[16px]" /></div>
             ) : (
@@ -217,7 +246,10 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-4">
-                    <Segmented label="Project view" value={tab} options={TABS.map((t) => ({ ...t, href: `/projects/${id}/${t.value}` }))} />
+                    {/* Phones switch views from the bottom tab bar instead. */}
+                    <div className="hidden sm:block">
+                      <Segmented label="Project view" value={tab} options={TABS.map((t) => ({ value: t.value, label: t.label, href: `/projects/${id}/${t.value}` }))} />
+                    </div>
                     {tab !== "build" ? <SummaryBar /> : null}
                   </div>
                 </div>
@@ -227,6 +259,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
           </div>
         </div>
         {aiOpen && ready && !aiInPanel ? <AIPanel onClose={() => setAIOpen(false)} /> : null}
+        <BottomNav id={id} tab={tab} />
       </div>
       {sharing && ed.project ? <ShareSheet open={sharing} onOpenChange={setSharing} project={ed.project} /> : null}
       {templating && ed.project ? <TemplateSheet onClose={() => setTemplating(false)} admin={me.data?.role === "admin"} /> : null}
@@ -279,7 +312,7 @@ function TitleInput() {
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
       onInput={(e) => { (e.target as HTMLInputElement).size = Math.max(8, (e.target as HTMLInputElement).value.length + 1); }}
       size={Math.max(8, name.length + 1)}
-      className="min-w-0 max-w-full rounded-lg bg-transparent px-1.5 text-[24px] font-bold leading-[1.15] tracking-[-0.02em] outline-none hover:bg-surface-2/60 focus:bg-surface-2 sm:text-[30px]" />
+      className="keep-font-size min-w-0 max-w-full rounded-lg bg-transparent px-1.5 text-[24px] font-bold leading-[1.15] tracking-[-0.02em] outline-none hover:bg-surface-2/60 focus:bg-surface-2 sm:text-[30px]" />
   );
 }
 

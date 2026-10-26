@@ -41,7 +41,8 @@ test("plan a build from scratch: build → buy", async ({ page }, info) => {
   await page.getByRole("button", { name: "Increase A1 quantity" }).click();
   await expect(qty).toHaveValue("4");
 
-  await page.getByRole("tab", { name: "Buy" }).click();
+  // Phones switch views from the bottom tab bar; wider screens from the tabs at the top.
+  await page.getByRole(info.project.name === "phone" ? "link" : "tab", { name: "Buy" }).click();
   await expect(page.getByText("50 × 100 whitewood, rough (44 × 100 net)").first()).toBeVisible();
   await page.getByRole("button", { name: "Mark as bought" }).click();
   await expect(page.getByText(/Bought on/)).toBeVisible();

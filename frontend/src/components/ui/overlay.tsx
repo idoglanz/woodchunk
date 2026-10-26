@@ -30,7 +30,7 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
               <Dialog.Title className="text-[20px] font-semibold tracking-[-0.01em]">{title}</Dialog.Title>
               {description ? <Dialog.Description className="text-[14px] text-ink-2">{description}</Dialog.Description> : <Dialog.Description className="sr-only">{title}</Dialog.Description>}
             </div>
-            <Dialog.Close aria-label="Close" className="-me-2 flex h-8 w-8 items-center justify-center rounded-full bg-surface-2 text-ink-2 hover:text-ink">
+            <Dialog.Close aria-label="Close" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2 text-ink-2 hover:text-ink sm:-me-2 sm:h-8 sm:w-8">
               <X size={16} strokeWidth={2.2} />
             </Dialog.Close>
           </div>

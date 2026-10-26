@@ -4,12 +4,16 @@ import type { LumberPlan } from "@/lib/api/client";
 import { asmColors } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { fmtMeters } from "@/lib/units";
+import type { CSSProperties } from "react";
+
+const MIN_PIECE_PX = 40; // narrowest piece that still shows its label and length
+const MAX_BARS_PX = 1600;
 
 /** Ruler with ticks every 100 mm and labels every 500 mm, spanning `max` mm. */
-export function Ruler({ max, className }: { max: number; className?: string }) {
+export function Ruler({ max, className, style }: { max: number; className?: string; style?: CSSProperties }) {
   const ticks = Math.floor(max / 100);
   return (
-    <div aria-hidden="true" className={cn("relative h-5", className)}>
+    <div aria-hidden="true" className={cn("relative h-5", className)} style={style}>
       <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${max} 20`} preserveAspectRatio="none">
         {Array.from({ length: ticks + 1 }, (_, i) => (
           <line key={i} x1={i * 100} x2={i * 100} y1={i % 5 === 0 ? 10 : 15} y2={20} stroke="var(--ink-3)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
@@ -17,7 +21,7 @@ export function Ruler({ max, className }: { max: number; className?: string }) {
         <line x1={0} x2={max} y1={20} y2={20} stroke="var(--line-strong)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
       </svg>
       {Array.from({ length: Math.floor(ticks / 5) + 1 }, (_, i) => (
-        <span key={i} className="tnum absolute top-[-3px] -translate-x-1/2 text-[10px] text-ink-3 rtl:translate-x-1/2" style={{ insetInlineStart: `${(i * 500 / max) * 100}%` }}>
+        <span key={i} className={cn("tnum absolute top-[-3px] text-[10px] text-ink-3", i > 0 && "-translate-x-1/2 rtl:translate-x-1/2")} style={{ insetInlineStart: `${(i * 500 / max) * 100}%` }}>
           {(i * 0.5).toFixed(1)}
         </span>
       ))}
@@ -33,19 +37,26 @@ export function LumberBars({ plan, labels = true, print = false, active, onPick 
 }) {
   const max = Math.max(...plan.patterns.map((p) => p.stock_length), 1);
   const dim = !!active && plan.patterns.some((pat) => pat.segments.some((s) => s.part_id === active));
+  // Wide enough that the smallest piece can show its label (on a phone a 6 m board would otherwise
+  // leave 400 mm pieces a few pixels wide): narrower screens scroll the boards sideways.
+  const shortest = Math.min(...plan.patterns.flatMap((p) => p.segments.filter((s) => s.kind === "part").map((s) => s.length)), max);
+  const minBars = print ? 0 : Math.min(MAX_BARS_PX, Math.ceil((max * MIN_PIECE_PX) / shortest));
   return (
-    <div className="flex flex-col gap-2.5">
+    // Narrow (a phone): each board's length above its bar, so the bar gets the whole width.
+    <div className="@container">
+    <div className={cn(!print && "overflow-x-auto overscroll-x-contain")}>
+    <div className="flex w-max min-w-full flex-col gap-2.5">
       <div className="flex gap-3">
-        <span className="w-[68px] shrink-0" />
-        <Ruler max={max} className="flex-1" />
+        <span className="hidden w-[68px] shrink-0 @[480px]:block" />
+        <Ruler max={max} className="flex-1" style={{ minWidth: minBars }} />
       </div>
       {plan.patterns.map((pat, i) => (
-        <div key={i} className="avoid-break flex items-center gap-3">
-          <span className="tnum flex w-[68px] shrink-0 flex-col text-[13px] leading-tight">
+        <div key={i} className="avoid-break flex flex-col gap-1 @[480px]:flex-row @[480px]:items-center @[480px]:gap-3">
+          <span className="tnum flex shrink-0 gap-1.5 text-[13px] leading-tight @[480px]:w-[68px] @[480px]:flex-col @[480px]:gap-0">
             <span className="font-semibold">{fmtMeters(pat.stock_length)}</span>
             <span className="text-ink-3">×{pat.count}{pat.source !== "buy" ? (pat.source === "inventory" ? " · yours" : " · bought") : ""}</span>
           </span>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1" style={{ minWidth: minBars }}>
             <div className={cn("flex h-11 gap-[2px] overflow-hidden rounded-[6px]", print ? "border border-black bg-black" : "bg-kerf")}
               style={{ width: `${(pat.stock_length / max) * 100}%` }}
               role="img" aria-label={`${fmtMeters(pat.stock_length)} board: ${pat.segments.filter((s) => s.kind === "part").map((s) => `${s.label} ${s.length} mm`).join(", ")}`}>
@@ -85,6 +96,8 @@ export function LumberBars({ plan, labels = true, print = false, active, onPick 
           </div>
         </div>
       ))}
+    </div>
+    </div>
     </div>
   );
 }

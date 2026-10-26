@@ -61,7 +61,7 @@ export function ShopSheetView() {
 
           <section className="flex flex-col gap-3">
             <h2 className="text-[19px] font-semibold">{t(lang, "parts")}</h2>
-            <table className="w-full border-collapse text-[14px]">
+            <table className="w-full border-collapse text-[14px] [&_td:not(:first-child)]:ps-3 [&_th:not(:first-child)]:ps-3">
               <thead>
                 <tr className="text-start text-[12px] text-ink-3">
                   <th className="py-1.5 text-start font-medium">{t(lang, "label")}</th>

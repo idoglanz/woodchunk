@@ -136,8 +136,8 @@ export function BuyView() {
           {data.suggestions.map((s) => (
             <Callout key={s.item_id} tone="ok" icon={<Lightbulb size={18} />}>{s.text}</Callout>
           ))}
-          <div className="no-print fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-line px-4 pt-3 backdrop-blur-xl sm:hidden"
-            style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))", background: "color-mix(in srgb, var(--surface) 85%, transparent)" }}>
+          <div className="no-print fixed inset-x-0 z-20 flex items-center justify-between gap-3 border-t border-line px-4 pt-3 backdrop-blur-xl sm:hidden"
+            style={{ bottom: "var(--bottom-nav, 0px)", paddingBottom: "max(12px, var(--bottom-safe, env(safe-area-inset-bottom)))", background: "color-mix(in srgb, var(--surface) 85%, transparent)" }}>
             <span className="tnum text-[13px] text-ink-2">{data.checked} / {data.count} {t(lang, "pickedUp")}</span>
             <span className="tnum text-[17px] font-semibold">{costText(data.total, data.currency, unpriced)}</span>
           </div>

@@ -130,7 +130,7 @@ export function QtyInput({ value, onChange, min = 1, max = 9999, decimals = 0, a
     onChange(n);
     c.setText(String(n));
   };
-  const btn = "flex h-9 w-7 shrink-0 items-center justify-center rounded-lg text-ink-2 hover:text-ink disabled:opacity-30";
+  const btn = "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-2 hover:text-ink disabled:opacity-30 sm:w-7";
   return (
     <div className={cn("flex h-9 items-center rounded-lg bg-surface-2 transition-shadow duration-150 focus-within:shadow-[0_0_0_2px_var(--accent)]", c.bad && "shadow-[0_0_0_1.5px_var(--kerf)]", className)}>
       <button type="button" tabIndex={-1} aria-label={`Decrease ${ariaLabel}`} disabled={disabled || value <= min} onClick={() => step(-1)} className={btn}>

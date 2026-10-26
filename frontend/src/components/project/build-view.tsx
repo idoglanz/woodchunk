@@ -105,7 +105,9 @@ function PlanDrawer({ onPick, onIssues }: { onPick: (partId: string) => void; on
   const [dragging, setDragging] = useState(false);
   const open = height > PEEK + 8;
 
-  const snaps = () => [PEEK, Math.round(window.innerHeight * 0.55), window.innerHeight - 72];
+  // Room above the phone tab bar (see BottomNav).
+  const top = () => window.innerHeight - 72 - (window.innerWidth < 640 ? 56 : 0);
+  const snaps = () => [PEEK, Math.round(window.innerHeight * 0.55), top()];
   const snapTo = (h: number) => {
     const s = snaps();
     setHeight(s.reduce((a, b) => (Math.abs(b - h) < Math.abs(a - h) ? b : a)));
@@ -122,7 +124,7 @@ function PlanDrawer({ onPick, onIssues }: { onPick: (partId: string) => void; on
     const dy = d.y - e.clientY;
     if (!d.moved && Math.abs(dy) < 6) return;
     if (!d.moved) { d.moved = true; setDragging(true); }
-    setHeight(Math.max(PEEK, Math.min(window.innerHeight - 72, d.h + dy)));
+    setHeight(Math.max(PEEK, Math.min(top(), d.h + dy)));
   };
   const onUp = () => {
     const d = drag.current;
@@ -137,9 +139,9 @@ function PlanDrawer({ onPick, onIssues }: { onPick: (partId: string) => void; on
 
   return (
     <div role="region" aria-label="Cutting plan"
-      className={cn("no-print fixed inset-x-0 bottom-0 z-30 flex flex-col rounded-t-[20px] border-t border-line bg-surface shadow-[var(--shadow-pop)]",
+      className={cn("no-print fixed inset-x-0 z-30 flex flex-col rounded-t-[20px] border-t border-line bg-surface shadow-[var(--shadow-pop)]",
         !dragging && "transition-[height] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]")}
-      style={{ height: `calc(${height}px + env(safe-area-inset-bottom))` }}>
+      style={{ bottom: "var(--bottom-nav, 0px)", height: `calc(${height}px + var(--bottom-safe, env(safe-area-inset-bottom)))` }}>
       <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
         className="flex shrink-0 cursor-grab touch-none select-none flex-col px-4 pb-2 pt-2" style={{ height: PEEK }}>
         <span aria-hidden="true" className="mx-auto mb-1.5 h-1 w-9 rounded-full bg-line-strong" />
@@ -151,7 +153,7 @@ function PlanDrawer({ onPick, onIssues }: { onPick: (partId: string) => void; on
           </button>
         </div>
       </div>
-      <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(16px,env(safe-area-inset-bottom))]", !open && "invisible")}>
+      <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(16px,var(--bottom-safe,env(safe-area-inset-bottom)))]", !open && "invisible")}>
         <div className="flex justify-end pb-3"><CuttingSettingsButton units={units} /></div>
         <PlanContent onPick={pick} />
       </div>

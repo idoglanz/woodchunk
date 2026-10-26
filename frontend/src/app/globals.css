@@ -220,6 +220,14 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .flash { animation: wc-flash 1200ms ease-out both; }
 
+/* Phones: 16 px text in fields, or iPhone Safari zooms the page when one is tapped. (Unlayered,
+   so it wins over the text-[14px] utilities; fields that are already bigger opt out.) */
+@media (max-width: 639.98px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.keep-font-size), textarea, select {
+    font-size: 16px;
+  }
+}
+
 /* Print: only the document. */
 @media print {
   @page { margin: 12mm; }

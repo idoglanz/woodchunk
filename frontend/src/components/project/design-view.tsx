@@ -212,7 +212,7 @@ const ROW = "grid gap-x-2 gap-y-1.5 grid-cols-[40px_minmax(0,1fr)_32px] [grid-te
   + "@lg:grid-cols-[40px_minmax(0,1fr)_minmax(0,1.3fr)_32px] @lg:[grid-template-areas:'chip_name_mat_del'_'._nums_nums_nums'] "
   + "@2xl:grid-cols-[34px_minmax(0,0.75fr)_minmax(0,1.5fr)_auto_28px] @2xl:[grid-template-areas:'chip_name_mat_nums_del']";
 // The width column also holds the grain toggle, so it gets the extra room for 4-digit sizes.
-const NUMS = "grid grid-cols-[96px_1fr_1fr] gap-2 @2xl:grid-cols-[88px_92px_124px]";
+const NUMS = "grid grid-cols-[112px_1fr_1fr] gap-2 @2xl:grid-cols-[88px_92px_124px]";
 
 function PartRow({ a, p, label, items, byId, problem }: {
   a: Assembly; p: Part; label: string; items: CatalogItem[]; byId: Map<string, CatalogItem>; problem?: string;
@@ -262,7 +262,7 @@ function PartRow({ a, p, label, items, byId, problem }: {
               <Tip content={p.grain_locked ? "Grain runs along the length. Won't be rotated." : "Free to rotate on the sheet. Click to lock grain direction."}>
                 <button type="button" aria-pressed={p.grain_locked} aria-label={`${label} grain lock`} disabled={readOnly}
                   onClick={() => upd((x) => { x.grain_locked = !x.grain_locked; })}
-                  className={cn("flex h-7 w-7 items-center justify-center rounded-md", p.grain_locked ? "bg-accent-soft text-ink" : "text-ink-3 hover:bg-surface-3 hover:text-ink-2")}>
+                  className={cn("flex h-8 w-8 items-center justify-center rounded-md", p.grain_locked ? "bg-accent-soft text-ink" : "text-ink-3 hover:bg-surface-3 hover:text-ink-2")}>
                   <GrainIcon />
                 </button>
               </Tip>
@@ -316,7 +316,7 @@ function HardwareList({ title, lines, items, byId, onEdit }: {
       {lines.map((h) => {
         const item = h.item_id ? byId.get(h.item_id) : undefined;
         return (
-          <div key={h.id} className="group grid grid-cols-[minmax(0,1fr)_96px_32px] items-center gap-2 rounded-xl px-2 py-1 @lg:grid-cols-[minmax(0,1fr)_96px_104px_32px]">
+          <div key={h.id} className="group grid grid-cols-[minmax(0,1fr)_112px_32px] items-center gap-2 rounded-xl px-2 py-1 @lg:grid-cols-[minmax(0,1fr)_112px_104px_32px]">
             <ItemPicker items={items} value={h.item_id} kinds={["hardware"]} ariaLabel="Hardware item" disabled={readOnly} allowFree
               placeholder={h.name || "Choose or type hardware"}
               onChange={(id, free) => upd(h.id, (x) => { if (id) { x.item_id = id; x.name = byId.get(id)?.name.en ?? x.name; } else if (free) { x.item_id = null; x.name = free; } })} />

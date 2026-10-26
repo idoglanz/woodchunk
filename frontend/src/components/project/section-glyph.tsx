@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { CatalogItem } from "@/lib/api/client";
 import { Profile } from "@/lib/frame/kernel";
 
@@ -12,6 +13,7 @@ export function SectionGlyph({ item, size = 30, sheet = "edge", scaleMm }: {
   item: Pick<CatalogItem, "kind" | "thickness_mm" | "width_mm" | "has_grain" | "material" | "profile"> & Partial<Pick<CatalogItem, "sheet_stock">>;
   size?: number; sheet?: "edge" | "top"; scaleMm?: number;
 }) {
+  const clipId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const pad = 2;
   const box = size - pad * 2;
   if (item.kind === "sheet" && sheet === "top" && item.sheet_stock?.length) {
@@ -53,7 +55,7 @@ export function SectionGlyph({ item, size = 30, sheet = "edge", scaleMm }: {
     const rh = Math.max(2.5, t * scale);
     const x = (size - rw) / 2;
     const y = (size - rh) / 2;
-    const id = `sg-${Math.round(t)}-${Math.round(w)}`;
+    const id = `sg${clipId}`;
     return (
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" className="shrink-0">
         <defs><clipPath id={id}><rect x={x} y={y} width={rw} height={rh} rx={1} /></clipPath></defs>

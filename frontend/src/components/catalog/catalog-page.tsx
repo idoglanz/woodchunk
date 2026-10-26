@@ -20,7 +20,7 @@ import { toast } from "@/lib/toast";
 
 type Kind = "all" | "lumber" | "steel" | "sheet" | "hardware";
 
-const isSteel = (it: CatalogItem) => it.kind === "lumber" && it.material === "steel";
+const isSteel = (it: CatalogItem) => it.kind === "lumber" && (it.material ?? "").toLowerCase().includes("steel");
 const SHAPE_ORDER = ["rect_tube", "round_tube", "angle", "flat_bar", "round_bar", "channel"];
 /** Wood, then steel (by shape, then size), then sheets and hardware. */
 function group(it: CatalogItem): number[] {

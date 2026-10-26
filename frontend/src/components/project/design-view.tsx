@@ -211,7 +211,8 @@ function DrawnParts({ a, byId, projectId }: { a: Assembly; byId: Map<string, Cat
 const ROW = "grid gap-x-2 gap-y-1.5 grid-cols-[40px_minmax(0,1fr)_32px] [grid-template-areas:'chip_name_del'_'mat_mat_mat'_'nums_nums_nums'] "
   + "@lg:grid-cols-[40px_minmax(0,1fr)_minmax(0,1.3fr)_32px] @lg:[grid-template-areas:'chip_name_mat_del'_'._nums_nums_nums'] "
   + "@2xl:grid-cols-[34px_minmax(0,0.75fr)_minmax(0,1.5fr)_auto_28px] @2xl:[grid-template-areas:'chip_name_mat_nums_del']";
-const NUMS = "grid grid-cols-[96px_1fr_1fr] gap-2 @2xl:grid-cols-[88px_92px_92px]";
+// The width column also holds the grain toggle, so it gets the extra room for 4-digit sizes.
+const NUMS = "grid grid-cols-[96px_1fr_1fr] gap-2 @2xl:grid-cols-[88px_92px_124px]";
 
 function PartRow({ a, p, label, items, byId, problem }: {
   a: Assembly; p: Part; label: string; items: CatalogItem[]; byId: Map<string, CatalogItem>; problem?: string;

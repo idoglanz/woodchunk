@@ -4,6 +4,7 @@ Woodworking planner: projects → assemblies (×qty) → parts cut from catalog 
 
 ## Layout
 - `backend/app/services/optimizer/`: `linear.py` (CP-SAT 1D cutting stock) and `sheet.py` (guillotine packer + `replay_cuts` validator). Pure and synchronous; change them only with tests in `backend/tests/test_linear.py` / `test_sheet.py`.
+- `backend/app/catalog_sync.py`: applies the catalog sources at startup, once per version: Noyman's lumber and sheets (`seed_data/noyman.json`, refreshed with `make noyman`) and the steel sizes. Items keep their ids; ones a source drops are retired, not deleted.
 - `backend/app/services/planner.py`: project + catalog + inventory → `PlanOut`, cached by input hash. `shopping.py` builds lists and purchase snapshots.
 - `backend/app/services/ai/`: Gemini client with a fallback chain (`client.py`), project chat/spreadsheet import (`project_chat.py`), catalog import/organize/translate (`catalog_ai.py`). AI output is always a *proposal* (`services/proposals.py`) validated against the real catalog and applied only on user action.
 - `backend/app/routers/`: REST API under `/api`. `deps.py` has access checks (`load_project(..., need)`).

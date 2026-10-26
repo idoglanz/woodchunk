@@ -73,7 +73,7 @@ async def test_plan_shop_buy_cut_cycle(client):
     assert placed == 10
     sheet = plan["sheets"][0]
     assert len(sheet["layouts"]) == 1 and sheet["layouts"][0]["cuts"]
-    assert sheet["cost"] == 650.0
+    assert sheet["cost"] == 283.2  # one 2440 × 1220 sheet of 18 mm birch at Noyman
 
     # Can't buy while something doesn't fit.
     r = await client.post(f"/api/projects/{p['id']}/status", json={"status": "bought"}, headers=auth(USER))

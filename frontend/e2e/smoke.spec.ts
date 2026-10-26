@@ -42,7 +42,7 @@ test("plan a build from scratch: build → buy", async ({ page }, info) => {
   await expect(qty).toHaveValue("4");
 
   await page.getByRole("tab", { name: "Buy" }).click();
-  await expect(page.getByText("44 × 100 whitewood, rough").first()).toBeVisible();
+  await expect(page.getByText("50 × 100 whitewood, rough (44 × 100 net)").first()).toBeVisible();
   await page.getByRole("button", { name: "Mark as bought" }).click();
   await expect(page.getByText(/Bought on/)).toBeVisible();
   await expect(page.getByText("Nothing more to buy")).toBeVisible();

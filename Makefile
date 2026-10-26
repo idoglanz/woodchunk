@@ -29,7 +29,10 @@ types:            ## Regenerate frontend API types from the backend schema
 e2e:              ## Browser smoke test (needs api + web running)
 	cd frontend && npx playwright test
 
+noyman:           ## Refresh Noyman's lumber and sheet prices into backend/seed_data/noyman.json (review the diff, then deploy)
+	cd scripts/noyman && node crawl.mjs && node sheets.mjs && python3 normalize.py ../..
+
 up:               ## Whole stack in Docker
 	docker compose up --build
 
-.PHONY: mongo api web install test lint types e2e up
+.PHONY: mongo api web install test lint types e2e noyman up

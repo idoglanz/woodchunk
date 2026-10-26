@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { Credit } from "@/components/shell/credit";
+import { initialsOf } from "@/components/ui/avatars";
 import { Logo } from "@/components/shell/logo";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/overlay";
 import { Skeleton } from "@/components/ui/misc";
@@ -17,7 +18,7 @@ const NAV = [
   { href: "/", label: "Projects", icon: LayoutGrid, match: (p: string) => p === "/" || p.startsWith("/projects") },
   { href: "/catalog", label: "Catalog", icon: LibraryBig, match: (p: string) => p.startsWith("/catalog") },
   { href: "/templates", label: "Templates", icon: Hammer, match: (p: string) => p.startsWith("/templates") },
-  { href: "/workshop", label: "Workshop", icon: Warehouse, match: (p: string) => p.startsWith("/workshop") },
+  { href: "/inventory", label: "Inventory", icon: Warehouse, match: (p: string) => p.startsWith("/inventory") },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -35,7 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const user = me.data;
-  const initials = (user?.name || user?.email || "?").split(/[\s@.]/).filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
+  const initials = initialsOf(user?.name || user?.email || "?");
 
   return (
     <div className="flex min-h-dvh flex-col">

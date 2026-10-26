@@ -197,6 +197,13 @@ class ProjectCreate(Model):
     template_id: str | None = None
 
 
+class Person(Model):
+    """Someone in a project, as project cards show them."""
+    user_id: str
+    name: str
+    role: Role
+
+
 class ProjectSummary(Model):
     id: str
     name: str
@@ -210,3 +217,4 @@ class ProjectSummary(Model):
     total_cost: float | None = None
     is_template: bool = False
     owner_name: str = ""
+    people: list[Person] = []

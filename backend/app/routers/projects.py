@@ -18,6 +18,7 @@ from app.models.plan import PlanOut, ShoppingOut
 from app.models.project import (
     Member,
     Part,
+    Person,
     Project,
     ProjectContent,
     ProjectCreate,
@@ -59,6 +60,7 @@ def _summary(p: Project, user: User) -> ProjectSummary:
         role=p.role_of(user.id) or Role.viewer, updated_at=p.updated_at, assemblies=len(p.assemblies),
         parts=sum(pt.qty * a.qty for a in p.assemblies for pt in a.parts), total_cost=p.last_total,
         is_template=p.is_template, owner_name=(owner.name or owner.email) if owner else "",
+        people=[Person(user_id=m.user_id, name=m.name or m.email, role=m.role) for m in p.members],
     )
 
 

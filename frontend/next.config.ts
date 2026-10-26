@@ -5,6 +5,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  // The Workshop page is now Inventory: old links and bookmarks still land there.
+  async redirects() {
+    return [{ source: "/workshop", destination: "/inventory", permanent: true }];
+  },
 };
 
 export default nextConfig;

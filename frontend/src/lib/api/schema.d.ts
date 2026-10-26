@@ -2279,6 +2279,17 @@ export interface components {
              */
             face_up: "top" | "side" | "";
         };
+        /**
+         * Person
+         * @description Someone in a project, as project cards show them.
+         */
+        Person: {
+            /** User Id */
+            user_id: string;
+            /** Name */
+            name: string;
+            role: components["schemas"]["Role"];
+        };
         /** PlacedPart */
         PlacedPart: {
             /** Label */
@@ -2616,6 +2627,11 @@ export interface components {
              * @default
              */
             owner_name: string;
+            /**
+             * People
+             * @default []
+             */
+            people: components["schemas"]["Person"][];
         };
         /** ProjectUpdate */
         ProjectUpdate: {

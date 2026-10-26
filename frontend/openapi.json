@@ -6022,6 +6022,29 @@
     ],
     "title": "Part"
    },
+   "Person": {
+    "properties": {
+     "user_id": {
+      "type": "string",
+      "title": "User Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "role": {
+      "$ref": "#/components/schemas/Role"
+     }
+    },
+    "type": "object",
+    "required": [
+     "user_id",
+     "name",
+     "role"
+    ],
+    "title": "Person",
+    "description": "Someone in a project, as project cards show them."
+   },
    "PlacedPart": {
     "properties": {
      "label": {
@@ -6678,6 +6701,14 @@
       "type": "string",
       "title": "Owner Name",
       "default": ""
+     },
+     "people": {
+      "items": {
+       "$ref": "#/components/schemas/Person"
+      },
+      "type": "array",
+      "title": "People",
+      "default": []
      }
     },
     "type": "object",
@@ -6693,7 +6724,8 @@
      "parts",
      "total_cost",
      "is_template",
-     "owner_name"
+     "owner_name",
+     "people"
     ],
     "title": "ProjectSummary"
    },

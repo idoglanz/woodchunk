@@ -119,7 +119,7 @@ export function PlanContent({ wide, onPick }: { wide?: boolean; onPick: (partId:
 
 function BuyLine({ lines, sheet }: { lines: LumberPlan["buy"]; sheet?: boolean }) {
   const groups = (["buy", "purchased", "inventory"] as const).map((src) => ({ src, items: lines.filter((b) => b.source === src) })).filter((g) => g.items.length);
-  const verb = { buy: "Buy", purchased: "Bought", inventory: "From your workshop" } as const;
+  const verb = { buy: "Buy", purchased: "Bought", inventory: "From your inventory" } as const;
   return (
     <span className="tnum text-[14px] text-ink-2">
       {groups.map((g, gi) => (
@@ -189,7 +189,7 @@ function SheetLayoutBlock({ lay, index, total, hasGrain, wide, onPick }: {
   const listId = useId();
   return (
     <div className="flex flex-col gap-3">
-      {total > 1 ? <p className="text-[13px] font-medium text-ink-2">Sheet {index + 1} of {total} · {pct(lay.used_pct)} used{lay.source !== "buy" ? " · from your workshop" : ""}</p> : null}
+      {total > 1 ? <p className="text-[13px] font-medium text-ink-2">Sheet {index + 1} of {total} · {pct(lay.used_pct)} used{lay.source !== "buy" ? " · from your inventory" : ""}</p> : null}
       <SheetDiagram layout={lay} hasGrain={hasGrain} highlight={hl} active={hl ? null : active} onPick={onPick} />
       {lay.cuts.length ? (
         <div className="flex flex-col gap-1">

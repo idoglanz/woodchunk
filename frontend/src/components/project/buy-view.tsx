@@ -65,7 +65,7 @@ export function BuyView() {
     ? <Button variant="primary" icon={<ShoppingBag size={16} />} loading={status.pending} disabled={readOnly || !!plan?.unplaced.length} onClick={() => status.set("bought", "Marked as bought. Prices are locked in.")}>Mark as bought</Button>
     : pStatus === "bought"
       ? (data?.count ? <Button variant="primary" loading={status.pending} disabled={readOnly} onClick={() => status.set("bought", "Extra stock marked as bought.")}>Mark extra as bought</Button>
-        : <Button variant="primary" loading={status.pending} disabled={readOnly} onClick={() => status.set("cut", "Marked as cut. Leftovers are in your workshop.")}>Mark as cut</Button>)
+        : <Button variant="primary" loading={status.pending} disabled={readOnly} onClick={() => status.set("cut", "Marked as cut. Leftovers are in your inventory.")}>Mark as cut</Button>)
       : null;
 
   return (

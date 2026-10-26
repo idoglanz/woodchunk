@@ -16,7 +16,7 @@ import { qk, useCatalog, useInventory, useMe } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 import { fmtDims, type Units } from "@/lib/units";
 
-export function WorkshopPage() {
+export function InventoryPage() {
   const inv = useInventory();
   const me = useMe();
   const qc = useQueryClient();
@@ -36,10 +36,10 @@ export function WorkshopPage() {
   return (
     <Page>
       <div className="flex flex-col gap-8">
-        <PageTitle title="Workshop" subtitle="Boards, sheets and offcuts you already own. New plans use them first, for free."
+        <PageTitle title="Inventory" subtitle="Boards, sheets and offcuts you already own. New plans use them first, for free."
           actions={<Button variant="primary" icon={<Plus size={16} />} onClick={() => setAdding(true)}>Add stock</Button>} />
         {inv.isLoading ? <Skeleton className="h-64 rounded-[16px]" /> : !inv.data?.length ? (
-          <Card><EmptyState title="Your workshop is empty" text="When you mark a project as cut, its usable leftovers appear here. You can also add wood you already have."
+          <Card><EmptyState title="Your inventory is empty" text="When you mark a project as cut, its usable leftovers appear here. You can also add wood you already have."
             action={<Button icon={<Plus size={16} />} onClick={() => setAdding(true)}>Add stock</Button>} /></Card>
         ) : [...groups.entries()].map(([name, list]) => (
           <section key={name} className="flex flex-col gap-2">
@@ -80,7 +80,7 @@ function AddStock({ units, onClose }: { units: Units; onClose: () => void }) {
     try {
       await unwrap(api.POST("/api/workshop/inventory", { body: { item_id: itemId, kind, length_mm: length, width_mm: item?.kind === "sheet" ? width : null, qty, note: "" } }));
       void qc.invalidateQueries({ queryKey: qk.inventory });
-      toast.info(`Added ${plural(qty, "piece")} to your workshop`);
+      toast.info(`Added ${plural(qty, "piece")} to your inventory`);
       onClose();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't add it.");

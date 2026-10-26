@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { NewProjectSheet } from "@/components/home/new-project";
 import { Page } from "@/components/shell/app-shell";
+import { Avatars } from "@/components/ui/avatars";
 import { Button, IconButton } from "@/components/ui/button";
 import { Card, EmptyState, PageTitle, Skeleton, StatusPill } from "@/components/ui/misc";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/overlay";
 import { Segmented } from "@/components/ui/segmented";
 import type { ProjectSummary } from "@/lib/api/client";
 import { moneyShort, plural, relativeTime } from "@/lib/format";
-import { useProjectAction, useProjects } from "@/lib/queries";
+import { useMe, useProjectAction, useProjects } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 
 export function ProjectsHome() {
@@ -60,6 +61,8 @@ function ProjectCard({ p }: { p: ProjectSummary }) {
   const router = useRouter();
   const act = useProjectAction();
   const owner = p.role === "owner";
+  const me = useMe();
+  const others = p.people.filter((x) => x.user_id !== me.data?.id);
   return (
     <Card as="article" className="group relative flex flex-col gap-4 p-5 transition-shadow duration-200 hover:shadow-[var(--shadow-pop)]">
       <Link href={`/projects/${p.id}/build`} className="absolute inset-0 rounded-[16px]" aria-label={`Open ${p.name}`} />
@@ -84,7 +87,10 @@ function ProjectCard({ p }: { p: ProjectSummary }) {
       </div>
       <div className="mt-auto flex items-end justify-between gap-3">
         <div className="flex flex-col gap-2">
-          <StatusPill status={p.status} />
+          <div className="flex items-center gap-2.5">
+            <StatusPill status={p.status} />
+            <Avatars people={others} size={22} ring="var(--surface)" />
+          </div>
           <span className="text-[12px] text-ink-3">{plural(p.parts, "part")} · {relativeTime(p.updated_at)}{p.role !== "owner" ? ` · shared by ${p.owner_name}` : ""}</span>
         </div>
         <span className="tnum text-[22px] font-semibold tracking-[-0.01em]">{p.total_cost ? moneyShort(p.total_cost) : ""}</span>

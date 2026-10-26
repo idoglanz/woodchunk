@@ -29,7 +29,7 @@ export function SheetDiagram({ layout, hasGrain, highlight, print = false, activ
         aria-label={`${W} × ${L} sheet with ${layout.parts.length} parts`}>
         {layout.offcuts.map((r, i) => (
           <div key={`o${i}`} className="@container absolute flex items-center justify-center border-[1.5px] border-dashed border-line-strong bg-surface text-ink-2"
-            style={{ left: x(r.x), top: y(r.y), width: x(r.w), height: y(r.h) }} title={`Offcut ${Math.round(r.w)} × ${Math.round(r.h)} → workshop`}>
+            style={{ left: x(r.x), top: y(r.y), width: x(r.w), height: y(r.h) }} title={`Offcut ${Math.round(r.w)} × ${Math.round(r.h)} → inventory`}>
             <span className="tnum hidden text-[11px] font-medium @min-[90px]:inline">{Math.round(Math.max(r.w, r.h))} × {Math.round(Math.min(r.w, r.h))} keep</span>
           </div>
         ))}

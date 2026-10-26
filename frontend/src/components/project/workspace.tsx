@@ -11,6 +11,7 @@ import { MoreMenu, TemplateSheet } from "@/components/project/more-menu";
 import { ShareSheet } from "@/components/project/share";
 import { StatusMenu } from "@/components/project/status-menu";
 import { SummaryBar } from "@/components/project/summary-bar";
+import { Avatars } from "@/components/ui/avatars";
 import { Button, IconButton, Spinner } from "@/components/ui/button";
 import { EmptyState, Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
@@ -106,6 +107,8 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
   const aiInPanel = tab === "build" && desktop;
 
   const role = project.data?.members.find((m) => m.user_id === me.data?.id)?.role;
+  // Everyone else in the project: shown as avatars beside Share.
+  const others = (project.data?.members ?? []).filter((m) => m.user_id !== me.data?.id);
   const readOnly = !project.data || project.data.status === "done" || (role === "viewer" && me.data?.role !== "admin");
 
   useEffect(() => {
@@ -202,6 +205,12 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
                         <IconButton label="Undo (⌘Z)" size="sm" disabled={!ed.past.length} onClick={ed.undo}><Undo2 size={17} /></IconButton>
                         <IconButton label="Redo (⇧⌘Z)" size="sm" disabled={!ed.future.length} onClick={ed.redo}><Redo2 size={17} /></IconButton>
                       </> : null}
+                      {others.length ? (
+                        <button type="button" onClick={() => setSharing(true)} className="me-1 rounded-full"
+                          aria-label={`Shared with ${others.map((m) => m.name || m.email).join(", ")}`}>
+                          <Avatars people={others.map((m) => ({ user_id: m.user_id, name: m.name || m.email }))} size={26} />
+                        </button>
+                      ) : null}
                       {role ? <Button size="sm" variant="ghost" icon={<Share size={15} />} onClick={() => setSharing(true)}>{role === "owner" ? "Share" : "People"}</Button> : null}
                       <Button size="sm" variant={aiOpen ? "secondary" : "ghost"} icon={<Sparkles size={15} />} onClick={() => setAIOpen((o) => !o)} aria-pressed={aiOpen}>Ask</Button>
                       <MoreMenu owner={role === "owner"} onTemplate={() => setTemplating(true)} />

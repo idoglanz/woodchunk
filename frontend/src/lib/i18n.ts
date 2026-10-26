@@ -7,7 +7,7 @@ const WORDS = {
     sheets: "Sheets", hardware: "Hardware", parts: "Parts", buy: "Buy", board: "Board", sheet: "Sheet", cutOrder: "Cut order",
     rip: "Rip", crosscut: "Crosscut", at: "at", offcut: "Offcut", waste: "waste", kerf: "Saw width", label: "Label",
     part: "Part", qty: "Qty", length: "Length", width: "Width", material: "Material", assembly: "Assembly",
-    pickedUp: "picked up", grain: "Grain", fromWorkshop: "From your workshop", alreadyBought: "Already bought", each: "each",
+    pickedUp: "picked up", grain: "Grain", fromWorkshop: "From your inventory", alreadyBought: "Already bought", each: "each",
     printed: "Printed", supplier: "Supplier", keep: "keep", cuts: "Cuts", piece: "piece",
     ends: "Ends", square: "square", bevel: "bevel", onSide: "on its side", shortPoint: "short",
   },

@@ -45,7 +45,7 @@ Every color is a CSS variable defined in `frontend/src/app/globals.css`. Compone
 | E | `#E3D7F5` / ink | `#3B2A5E` / `#EADFFF` |
 | F | `#F7D3DD` / ink | `#5C2133` / `#FFDCE6` |
 
-Waste is a fine diagonal hatch on `--surface-2`. A **kept offcut** is `--surface` with a 1.5 px dashed `--line-strong` border and a "→ Workshop" label.
+Waste is a fine diagonal hatch on `--surface-2`. A **kept offcut** is `--surface` with a 1.5 px dashed `--line-strong` border and a "→ inventory" label.
 
 ## Typography
 

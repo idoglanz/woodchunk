@@ -105,8 +105,11 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
               <Button variant="primary" icon={<Link2 size={16} />} loading={busy} onClick={makeLink}>Create invite link</Button>
             </div>
             {fresh ? (
-              <input readOnly value={fresh} aria-label="New invite link" onFocus={(e) => e.target.select()}
-                className="h-10 w-full rounded-xl bg-surface-2 px-3 font-mono text-[13px] text-ink outline-none focus:shadow-[0_0_0_2px_var(--accent)]" />
+              <div className="flex items-center gap-1 rounded-xl bg-surface-2 p-1 ps-3">
+                <input readOnly value={fresh} aria-label="New invite link" onFocus={(e) => e.target.select()}
+                  className="h-8 min-w-0 flex-1 bg-transparent font-mono text-[13px] text-ink outline-none" />
+                <Button size="sm" icon={<Copy size={14} />} onClick={() => copy(fresh.slice(fresh.lastIndexOf("/") + 1))}>Copy</Button>
+              </div>
             ) : null}
             {links.length ? (
               <ul className="flex flex-col rounded-xl bg-surface-2 px-3">
@@ -153,7 +156,7 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
         </section>
 
         <p className="text-[12px] leading-relaxed text-ink-3">
-          Plans use {isOwner ? "your" : `${owner?.name || "the owner"}'s`} workshop stock first, and marking the project as cut updates it.
+          Plans use {isOwner ? "your" : `${owner?.name || "the owner"}'s`} inventory first, and marking the project as cut updates it.
         </p>
 
         {!isOwner && project.members.some((m) => m.user_id === me.data?.id) ? (

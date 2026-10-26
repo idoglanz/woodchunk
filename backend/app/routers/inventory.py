@@ -62,7 +62,7 @@ async def patch_inventory(entry_id: str, body: InventoryPatch, user: User = Depe
     d = await get_db().inventory.find_one_and_update({"_id": entry_id, "owner_id": user.id}, {"$set": changes},
                                                      return_document=True)
     if d is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not in your workshop.")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not in your inventory.")
     return (await _out([InventoryEntry.from_mongo(d)]))[0]
 
 

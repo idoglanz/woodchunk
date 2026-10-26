@@ -45,7 +45,7 @@ export function StatusMenu() {
         </MenuItem>
       ) : null}
       {status === "bought" ? <>
-        <MenuItem onSelect={() => s.set("cut", "Marked as cut. Leftovers are in your workshop.")}>Mark as cut</MenuItem>
+        <MenuItem onSelect={() => s.set("cut", "Marked as cut. Leftovers are in your inventory.")}>Mark as cut</MenuItem>
         <MenuItem onSelect={() => s.set("bought", "Extra stock marked as bought.")}>Mark extra stock as bought</MenuItem>
         <MenuSeparator />
         <MenuItem onSelect={() => s.set("planning")}>Back to planning</MenuItem>

@@ -66,7 +66,7 @@ export function CuttingSettingsForm({ value, onChange, units }: { value: Cutting
       <div className="flex flex-col gap-4 border-t border-line pt-4">
         <Switch label="Rotate sheet parts" description="Parts without a grain lock may turn 90°." checked={value.allow_rotation}
           onChange={(v) => onChange((s) => { s.allow_rotation = v; })} />
-        <Switch label="Use my workshop stock first" description="Offcuts and boards you own cost nothing." checked={value.use_inventory}
+        <Switch label="Use my inventory first" description="Offcuts and boards you own cost nothing." checked={value.use_inventory}
           onChange={(v) => onChange((s) => { s.use_inventory = v; })} />
       </div>
     </div>

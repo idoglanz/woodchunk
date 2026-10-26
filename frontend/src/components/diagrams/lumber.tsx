@@ -52,7 +52,7 @@ export function LumberBars({ plan, labels = true, print = false, active, onPick 
               {pat.segments.map((s, j) => {
                 const angled = (s.cuts ?? []).map((e) => !!(e.miter || e.bevel));
                 const ends = angled.some(Boolean) ? ` · ends ${s.cuts.map((e) => (e.miter || e.bevel ? `${e.miter}°${e.bevel ? ` + ${e.bevel}° bevel` : ""}` : "square")).join(" / ")}` : "";
-                const title = s.kind === "part" ? `${s.label} ${s.name} · ${s.length} mm${ends}` : s.kind === "offcut" ? `Offcut ${Math.round(s.length)} mm → workshop` : `Waste ${Math.round(s.length)} mm`;
+                const title = s.kind === "part" ? `${s.label} ${s.name} · ${s.length} mm${ends}` : s.kind === "offcut" ? `Offcut ${Math.round(s.length)} mm → inventory` : `Waste ${Math.round(s.length)} mm`;
                 if (s.kind === "waste") return <div key={j} title={title} className="hatch min-w-[2px] bg-surface-2" style={{ flex: `${s.length} 1 0` }} />;
                 if (s.kind === "offcut") {
                   return (

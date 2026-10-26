@@ -3,11 +3,11 @@
 Describe what you're building and Woodchunk tells you exactly what to buy, from whom, for how much, and how to cut every board and sheet with the least waste.
 
 - **Design**: projects hold assemblies (a table, two sawhorses ×2…) made of parts cut from catalog materials, plus hardware.
-- **Plan**: optimal lumber cutting (CP-SAT, proven cheapest when it says *Optimal*), guillotine sheet layouts with a numbered cut order, saw-width (kerf) settings for sheets and lumber, carry limit, trims, grain lock, and reuse of your workshop offcuts.
+- **Plan**: optimal lumber cutting (CP-SAT, proven cheapest when it says *Optimal*), guillotine sheet layouts with a numbered cut order, saw-width (kerf) settings for sheets and lumber, carry limit, trims, grain lock, and reuse of the offcuts in your inventory.
 - **Buy**: a shopping list grouped by supplier that you tick off on your phone, in English or Hebrew, plus CSV and copy-as-text.
 - **Shop sheet**: a printable cut list and diagrams (English or Hebrew, RTL).
 - **AI (Gemini)**: describe a build or a change in English or Hebrew and apply the suggested edits; import supplier price lists from a URL, PDF, photo, CSV/XLSX or pasted text; tidy the catalog; translate exports.
-- **Also**: one shared catalog with price history and a review queue, templates, a workshop inventory, sharing by invite link, light and dark themes.
+- **Also**: one shared catalog with price history and a review queue, templates, an inventory of the wood you own, sharing by invite link, light and dark themes.
 
 Design guide: [`docs/DESIGN.md`](docs/DESIGN.md) · Product plan: [`docs/REBUILD_PLAN.md`](docs/REBUILD_PLAN.md)
 

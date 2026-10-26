@@ -33,9 +33,10 @@ export function StatusMenu() {
   const blocked = !!plan?.unplaced.length;
   return (
     <Menu align="start" trigger={
-      <button type="button" className="inline-flex items-center gap-1 rounded-full" aria-label="Project status">
-        <StatusPill status={status} className="pe-1.5" />
-        <ChevronDown size={14} className="-ms-2 me-1 text-ink-3" />
+      <button type="button" className="group rounded-full" aria-label="Project status">
+        <StatusPill status={status} className="h-7 gap-1.5 pe-2 transition-colors group-hover:bg-surface-3 group-hover:text-ink">
+          <ChevronDown size={13} className="text-ink-3" />
+        </StatusPill>
       </button>
     }>
       {status === "planning" ? (

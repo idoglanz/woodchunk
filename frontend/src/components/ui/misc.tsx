@@ -40,12 +40,13 @@ const STATUS: Record<string, { label: string; dot: string }> = {
   done: { label: "Done", dot: "bg-ok" },
 };
 
-export function StatusPill({ status, className }: { status: string; className?: string }) {
+export function StatusPill({ status, className, children }: { status: string; className?: string; children?: ReactNode }) {
   const s = STATUS[status] ?? STATUS.planning;
   return (
     <span className={cn("inline-flex h-6 items-center gap-1.5 rounded-full bg-surface-2 px-2.5 text-[12px] font-semibold text-ink-2", className)}>
       <span className={cn("h-[7px] w-[7px] rounded-full", s.dot)} />
       {s.label}
+      {children}
     </span>
   );
 }

@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { api, ApiError, unwrap, type Assembly, type Part, type Project, type ProjectContent } from "@/lib/api/client";
-import { merge3, type Conflict } from "@/lib/merge";
+import { equal, merge3, type Conflict } from "@/lib/merge";
 import { toast } from "@/lib/toast";
 
 type SaveState = "idle" | "pending" | "saving" | "saved" | "error" | "conflict";
@@ -95,8 +95,10 @@ export const useEditor = create<Editor>((set, get) => {
           return false;
         }
         saved = theirs;
-        // Undo steps were taken before their changes: going back would drop them.
-        set({ project: latest, version: latest.version, content: merged.value, past: [], future: [], save: "pending" });
+        // Undo steps were taken before their changes: going back would drop them. When theirs
+        // already has everything, there's nothing left to save.
+        const content = equal(merged.value, theirs) ? theirs : merged.value;
+        set({ project: latest, version: latest.version, content, past: [], future: [], save: "pending" });
         onSaved(latest);
         return doSave(tries - 1);
       } else if (e instanceof ApiError && e.status === 422) {

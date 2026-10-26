@@ -51,6 +51,13 @@ describe("three-way merge", () => {
     expect(conflicts).toEqual([{ path: ["assemblies", "Frame", "parts", "Leg"] }]);
   });
 
+  it("merges lists keyed by name, like a frame's sizes", () => {
+    const sizes = (w: number, h: number) => ({ params: [{ name: "W", mm: w }, { name: "H", mm: h }] });
+    const { value, conflicts } = merge3(sizes(1200, 750), sizes(1400, 750), sizes(1200, 900));
+    expect(conflicts).toEqual([]);
+    expect(value).toEqual(sizes(1400, 900));
+  });
+
   it("follows my reordering when they didn't reorder", () => {
     const base = project([part("a"), part("b"), part("c")]);
     const mine = project([part("c"), part("a"), part("b")]);

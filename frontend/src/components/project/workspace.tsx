@@ -3,7 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, CloudOff, Redo2, Share, Sparkles, Undo2 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AIPanel } from "@/components/project/ai-panel";
 import { ProjectContext, useProjectCtx } from "@/components/project/context";
@@ -14,12 +14,13 @@ import { SummaryBar } from "@/components/project/summary-bar";
 import { Button, IconButton, Spinner } from "@/components/ui/button";
 import { EmptyState, Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
-import { api, unwrap, type Project, type Schemas } from "@/lib/api/client";
+import { api, ApiError, unwrap, type Project, type Schemas } from "@/lib/api/client";
 import { hasUnsaved, setOnSaved, useEditor } from "@/lib/editor";
 import { useMediaQuery } from "@/lib/focus";
 import { relativeTime } from "@/lib/format";
 import type { Conflict } from "@/lib/merge";
 import { qk, useMe, usePlan, useProject } from "@/lib/queries";
+import { toast } from "@/lib/toast";
 import type { Units } from "@/lib/units";
 
 const SYNC_EVERY_MS = 8000;
@@ -31,24 +32,41 @@ const SYNC_EVERY_MS = 8000;
  */
 function useLiveSync(id: string, enabled: boolean) {
   const qc = useQueryClient();
-  const checks = useRef<number | null>(null);
+  const router = useRouter();
+  const seen = useRef<{ checks: number; members: number } | null>(null);
   useEffect(() => {
     if (!enabled) return;
     let busy = false;
+    let gone = false;
+    const fetchProject = () => unwrap<Project>(api.GET("/api/projects/{project_id}", { params: { path: { project_id: id } } }));
     const check = async () => {
-      if (busy || document.visibilityState !== "visible") return;
+      if (busy || gone || document.visibilityState !== "visible") return;
       busy = true;
       try {
         const s = await unwrap<Schemas["SyncOut"]>(api.GET("/api/projects/{project_id}/sync", { params: { path: { project_id: id } } }));
-        if (checks.current !== null && s.checks_rev !== checks.current) void qc.invalidateQueries({ queryKey: ["shopping", id] });
-        checks.current = s.checks_rev;
+        // Compare with the last check, or on the first one with the project as this page loaded it.
+        const loaded = useEditor.getState().project;
+        const last = seen.current ?? (loaded ? { checks: loaded.checks_rev, members: loaded.members_rev } : null);
+        seen.current = { checks: s.checks_rev, members: s.members_rev };
+        if (last && s.checks_rev !== last.checks) void qc.invalidateQueries({ queryKey: ["shopping", id] });
         if (s.version > useEditor.getState().version && !hasUnsaved()) {
-          const p = await unwrap<Project>(api.GET("/api/projects/{project_id}", { params: { path: { project_id: id } } }));
+          const p = await fetchProject();
           useEditor.getState().remoteUpdate(p);
           qc.setQueryData(qk.project(p.id), p);
+        } else if (last && s.members_rev !== last.members) {
+          // Someone joined, left or changed access (maybe ours: the page turns read-only or editable).
+          const p = await fetchProject();
+          useEditor.getState().membersUpdate(p);
+          qc.setQueryData<Project>(qk.project(p.id), (old) => (old ? { ...old, members: p.members } : p));
         }
-      } catch {
-        // Offline or signed out: the next check tries again.
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) {
+          // Removed from the project (or it was deleted): nothing more to sync.
+          gone = true;
+          toast.info("You no longer have access to this project.");
+          router.replace("/");
+        }
+        // Otherwise offline or signed out: the next check tries again.
       } finally {
         busy = false;
       }
@@ -62,7 +80,7 @@ function useLiveSync(id: string, enabled: boolean) {
       document.removeEventListener("visibilitychange", onShow);
       window.removeEventListener("focus", onShow);
     };
-  }, [id, enabled, qc]);
+  }, [id, enabled, qc, router]);
 }
 
 const TABS = [

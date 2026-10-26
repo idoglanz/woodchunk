@@ -26,6 +26,8 @@ type Editor = {
   serverUpdate: (p: Project, keepHistory?: boolean) => void;
   /** Someone else saved and nothing here is unsaved: show their version (undo can't reach past it). */
   remoteUpdate: (p: Project) => void;
+  /** Who's in the project changed: take the new members, leaving the content (and unsaved edits) alone. */
+  membersUpdate: (p: Project) => void;
   /** Save now; resolves false if the project couldn't be saved (callers should stop). */
   flush: () => Promise<boolean>;
   keepMine: () => void;
@@ -38,8 +40,9 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 // Saves run one after another: an overlapping save would reuse the same version and be refused.
 let chain: Promise<boolean> = Promise.resolve(true);
 let saved: ProjectContent | null = null; // the content the server has
-// After a clash: everything combined, with the clashing fields taken from theirs or from ours.
-let resolved: { theirs: ProjectContent; mine: ProjectContent } | null = null;
+// After a clash: the version both sides started from, so the choice combines everything else,
+// including edits made while the choice was on screen.
+let clashBase: ProjectContent | null = null;
 let lastCoalesce: { key: string; at: number } | null = null;
 let onSaved: (p: Project) => void = () => {};
 
@@ -90,7 +93,7 @@ export const useEditor = create<Editor>((set, get) => {
         const theirs = contentOf(latest);
         const merged = merge3(saved, get().content!, theirs);
         if (merged.conflicts.length) {
-          resolved = { theirs: merged.value, mine: merge3(saved, theirs, get().content!).value };
+          clashBase = saved;
           set({ save: "conflict", latest, conflicts: merged.conflicts });
           return false;
         }
@@ -101,7 +104,8 @@ export const useEditor = create<Editor>((set, get) => {
         set({ project: latest, version: latest.version, content, past: [], future: [], save: "pending" });
         onSaved(latest);
         return doSave(tries - 1);
-      } else if (e instanceof ApiError && e.status === 422) {
+      } else if (e instanceof ApiError && (e.status === 422 || e.status === 403 || e.status === 404)) {
+        // Invalid, or no longer allowed (access changed, removed): retrying won't help.
         set({ save: "error" });
         toast.error(`Not saved: ${e.message}`);
       } else {
@@ -132,7 +136,7 @@ export const useEditor = create<Editor>((set, get) => {
     load: (p, readOnly) => {
       if (timer) clearTimeout(timer);
       timer = null;
-      resolved = null;
+      clashBase = null;
       const content = contentOf(p);
       saved = content;
       set({ project: p, content, version: p.version, past: [], future: [], save: "idle", readOnly, latest: null, conflicts: [] });
@@ -182,31 +186,37 @@ export const useEditor = create<Editor>((set, get) => {
       return enqueue();
     },
     keepMine: () => {
-      const { latest } = get();
-      if (!latest) return;
-      if (resolved) {
+      const { latest, content } = get();
+      if (!latest || !content) return;
+      if (clashBase) {
         // Everything combined, our values where we both changed something.
-        saved = contentOf(latest);
-        set({ project: latest, version: latest.version, content: resolved.mine, latest: null, conflicts: [], past: [], future: [], save: "pending" });
+        const theirs = contentOf(latest);
+        saved = theirs;
+        set({ project: latest, version: latest.version, content: merge3(clashBase, theirs, content).value, latest: null, conflicts: [], past: [], future: [], save: "pending" });
       } else {
         saved = null; // force a save of our content over theirs
         set({ version: latest.version, project: latest, latest: null, conflicts: [], save: "pending" });
       }
-      resolved = null;
+      clashBase = null;
       void enqueue();
     },
     takeTheirs: () => {
-      const { latest } = get();
-      if (!latest) return;
-      if (resolved) {
+      const { latest, content } = get();
+      if (!latest || !content) return;
+      if (clashBase) {
         // Everything combined, their values where we both changed something.
-        saved = contentOf(latest);
-        set({ project: latest, version: latest.version, content: resolved.theirs, latest: null, conflicts: [], past: [], future: [], save: "pending" });
-        resolved = null;
+        const theirs = contentOf(latest);
+        saved = theirs;
+        set({ project: latest, version: latest.version, content: merge3(clashBase, content, theirs).value, latest: null, conflicts: [], past: [], future: [], save: "pending" });
+        clashBase = null;
         void enqueue();
       } else {
         get().serverUpdate(latest);
       }
+    },
+    membersUpdate: (p) => {
+      const { project } = get();
+      if (project && project.id === p.id) set({ project: { ...project, members: p.members } });
     },
   };
 });

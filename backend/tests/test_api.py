@@ -296,13 +296,18 @@ async def test_collaboration(client):
 
     # Changing someone's access: the viewer becomes an editor; the owner can't be changed.
     me = (await client.get("/api/me", headers=auth(viewer))).json()
+    before = (await client.get(f"/api/projects/{pid}/sync", headers=auth(viewer))).json()
+    assert before["role"] == "viewer"
     r = await client.put(f"/api/projects/{pid}/members/{me['id']}", json={"role": "editor"}, headers=auth(USER))
     assert next(m for m in r.json()["members"] if m["user_id"] == me["id"])["role"] == "editor"
+    now_ = (await client.get(f"/api/projects/{pid}/sync", headers=auth(viewer))).json()
+    assert now_["role"] == "editor" and now_["members_rev"] == before["members_rev"] + 1
     owner = (await client.get("/api/me", headers=auth(USER))).json()
     assert (await client.put(f"/api/projects/{pid}/members/{owner['id']}", json={"role": "viewer"}, headers=auth(USER))).status_code == 409
     # A member can leave.
     r = await client.delete(f"/api/projects/{pid}/members/{me['id']}", headers=auth(viewer))
     assert r.status_code == 200 and all(m["user_id"] != me["id"] for m in r.json()["members"])
+    assert (await client.get(f"/api/projects/{pid}/sync", headers=auth(viewer))).status_code == 404
 
 
 async def test_templates(client):

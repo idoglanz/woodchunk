@@ -168,6 +168,7 @@ class Project(Doc, ProjectContent):
     updated_by: str = ""
     updated_by_name: str = ""
     checks_rev: int = 0
+    members_rev: int = 0  # bumped when someone joins, leaves or changes access
 
     def role_of(self, user_id: str) -> Role | None:
         for m in self.members:

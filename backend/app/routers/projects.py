@@ -190,14 +190,26 @@ class SyncOut(Model):
     updated_by: str
     updated_by_name: str
     checks_rev: int
+    members_rev: int
+    role: Role | None  # the caller's access now
+
+
+SYNC_FIELDS = ["members", "version", "updated_at", "updated_by", "updated_by_name", "checks_rev", "members_rev",
+               "is_template", "template.public"]
 
 
 @router.get("/projects/{project_id}/sync", response_model=SyncOut)
 async def project_sync(project_id: str, user: User = Depends(current_user)):
-    """Cheap check for open copies: has anyone saved, or ticked the shopping list, since?"""
-    p = await load_project(project_id, user, "view")
-    return SyncOut(version=p.version, updated_at=p.updated_at, updated_by=p.updated_by,
-                   updated_by_name=p.updated_by_name, checks_rev=p.checks_rev)
+    """Cheap check for open copies, polled often: has anyone saved, ticked the shopping list or
+    changed who's in the project since? Reads only these fields, with load_project's access rule."""
+    d = await get_db().projects.find_one({"_id": project_id}, SYNC_FIELDS)
+    role = next((Role(m["role"]) for m in (d or {}).get("members", []) if m["user_id"] == user.id), None)
+    public = bool(d and d.get("is_template") and (d.get("template") or {}).get("public"))
+    if d is None or (role is None and not user.is_admin and not public):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found.")
+    return SyncOut(version=d.get("version", 1), updated_at=d.get("updated_at") or now(), updated_by=d.get("updated_by", ""),
+                   updated_by_name=d.get("updated_by_name", ""), checks_rev=d.get("checks_rev", 0),
+                   members_rev=d.get("members_rev", 0), role=role)
 
 
 class StatusIn(Model):
@@ -468,12 +480,15 @@ async def accept_invite(token: str, user: User = Depends(current_user)):
     if role is None:
         m = Member(user_id=user.id, role=Role(inv["role"]), email=user.email, name=user.name)
         doc = await db.projects.find_one_and_update({"_id": p.id, "members.user_id": {"$ne": user.id}},
-                                                    {"$push": {"members": m.model_dump()}}, return_document=True) or doc
+                                                    {"$push": {"members": m.model_dump()}, "$inc": {"members_rev": 1}},
+                                                    return_document=True) or doc
         await db.invites.update_one({"_id": inv["_id"]}, {"$addToSet": {"joined": user.id}})
     elif role == Role.viewer and inv["role"] == Role.editor:
         # A viewer who opens an editor link is upgraded (never the other way round).
         doc = await db.projects.find_one_and_update({"_id": p.id, "members.user_id": user.id},
-                                                    {"$set": {"members.$.role": Role.editor}}, return_document=True)
+                                                    {"$set": {"members.$.role": Role.editor}, "$inc": {"members_rev": 1}},
+                                                    return_document=True)
+        await db.invites.update_one({"_id": inv["_id"]}, {"$addToSet": {"joined": user.id}})
     return Project.from_mongo(doc)
 
 
@@ -490,7 +505,8 @@ async def set_member_role(project_id: str, member_id: str, body: MemberRoleIn, u
     if current == Role.owner:
         raise HTTPException(status.HTTP_409_CONFLICT, "The owner's access can't be changed.")
     doc = await get_db().projects.find_one_and_update({"_id": p.id, "members.user_id": member_id},
-                                                      {"$set": {"members.$.role": body.role}}, return_document=True)
+                                                      {"$set": {"members.$.role": body.role}, "$inc": {"members_rev": 1}},
+                                                      return_document=True)
     return Project.from_mongo(doc)
 
 
@@ -502,7 +518,7 @@ async def remove_member(project_id: str, member_id: str, user: User = Depends(cu
     if p.role_of(member_id) == Role.owner:
         raise HTTPException(status.HTTP_409_CONFLICT, "The owner can't be removed.")
     doc = await get_db().projects.find_one_and_update(
-        {"_id": p.id}, {"$pull": {"members": {"user_id": member_id}}}, return_document=True)
+        {"_id": p.id}, {"$pull": {"members": {"user_id": member_id}}, "$inc": {"members_rev": 1}}, return_document=True)
     return Project.from_mongo(doc)
 
 

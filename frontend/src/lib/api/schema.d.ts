@@ -241,7 +241,8 @@ export interface paths {
         };
         /**
          * Project Sync
-         * @description Cheap check for open copies: has anyone saved, or ticked the shopping list, since?
+         * @description Cheap check for open copies, polled often: has anyone saved, ticked the shopping list or
+         *     changed who's in the project since? Reads only these fields, with load_project's access rule.
          */
         get: operations["project_sync_api_projects__project_id__sync_get"];
         put?: never;
@@ -2556,6 +2557,11 @@ export interface components {
              * @default 0
              */
             checks_rev: number;
+            /**
+             * Members Rev
+             * @default 0
+             */
+            members_rev: number;
         };
         /** ProjectCreate */
         ProjectCreate: {
@@ -3012,6 +3018,9 @@ export interface components {
             updated_by_name: string;
             /** Checks Rev */
             checks_rev: number;
+            /** Members Rev */
+            members_rev: number;
+            role: components["schemas"]["Role"] | null;
         };
         /** TemplateIn */
         TemplateIn: {

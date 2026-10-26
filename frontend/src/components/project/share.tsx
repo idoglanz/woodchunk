@@ -35,17 +35,23 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
   });
   const [role, setRole] = useState<Role>("editor");
   const [busy, setBusy] = useState(false);
+  const [fresh, setFresh] = useState<string | null>(null); // the link just made, shown to copy by hand too
 
+  // Only who's in the project changed: the content (and any unsaved edits) stays as it is.
   const updated = (p: Project) => {
-    useEditor.getState().serverUpdate(p);
-    qc.setQueryData(qk.project(p.id), p);
+    useEditor.getState().membersUpdate(p);
+    qc.setQueryData<Project>(qk.project(p.id), (old) => (old ? { ...old, members: p.members } : p));
   };
-  const copy = (token: string) => navigator.clipboard.writeText(linkUrl(token)).then(() => toast.info("Invite link copied")).catch(() => {});
+  // Some browsers refuse the clipboard after a network wait: then the link is on screen to copy.
+  const copy = (token: string) => navigator.clipboard.writeText(linkUrl(token))
+    .then(() => toast.info("Invite link copied"))
+    .catch(() => toast.info("Copy the link below to share it"));
 
   const makeLink = async () => {
     setBusy(true);
     try {
       const inv = await unwrap<{ token: string }>(api.POST("/api/projects/{project_id}/invites", { params: { path: { project_id: project.id } }, body: { role } }));
+      setFresh(linkUrl(inv.token));
       await qc.invalidateQueries({ queryKey: invitesKey });
       await copy(inv.token);
     } catch (e) {
@@ -94,10 +100,14 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
         {isOwner ? (
           <section className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <Segmented label="Access for a new link" value={role} onChange={setRole}
+              <Segmented label="Access for a new link" value={role} onChange={(v) => { setRole(v); setFresh(null); }}
                 options={[{ value: "editor", label: "Can edit" }, { value: "viewer", label: "Can view" }]} />
               <Button variant="primary" icon={<Link2 size={16} />} loading={busy} onClick={makeLink}>Create invite link</Button>
             </div>
+            {fresh ? (
+              <input readOnly value={fresh} aria-label="New invite link" onFocus={(e) => e.target.select()}
+                className="h-10 w-full rounded-xl bg-surface-2 px-3 font-mono text-[13px] text-ink outline-none focus:shadow-[0_0_0_2px_var(--accent)]" />
+            ) : null}
             {links.length ? (
               <ul className="flex flex-col rounded-xl bg-surface-2 px-3">
                 {links.map((l) => (

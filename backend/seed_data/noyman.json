@@ -1,0 +1,2531 @@
+{
+ "supplier": {
+  "name": "Noyman (נוימן)",
+  "url": "https://www.noyman-wood.co.il/",
+  "notes": "Prices and lengths from the website, as listed (website orders). Lumber is priced per metre."
+ },
+ "source_date": "2026-10-26",
+ "items": [
+  {
+   "sku": "10021510",
+   "kind": "lumber",
+   "name_en": "25 × 50 pine, planed (20 × 45 net)",
+   "name_he": "אורן 25/50 (20/45 נטו) מוקצע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-2550-2045-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1000",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/Q122460_2072023145349_350_350.jpg",
+   "category": "boards",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 20,
+   "width_mm": 45,
+   "price_per_m": 3.98,
+   "lengths_m": [
+    3.3,
+    3.6,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:10"
+   ]
+  },
+  {
+   "sku": "25001098",
+   "kind": "lumber",
+   "name_en": "27 × 52 pine shade rail, planed (20 × 45 net)",
+   "name_he": "אורן 27/52 הצללה למסילות",
+   "url": "https://www.noyman-wood.co.il/%d7%94%d7%a6%d7%9c%d7%9c%d7%94-%d7%9c%d7%9e%d7%a1%d7%99%d7%9c%d7%95%d7%aa-%d7%90%d7%95%d7%a8%d7%9f-2550-2045-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1002",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/N403786_2072023145045_350_350.jpg",
+   "category": "boards",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed",
+    "shade rail"
+   ],
+   "thickness_mm": 20,
+   "width_mm": 45,
+   "price_per_m": 3.98,
+   "lengths_m": [
+    4.2,
+    4.5
+   ],
+   "replaces": [
+    "lumber:12"
+   ]
+  },
+  {
+   "sku": "10026316",
+   "kind": "lumber",
+   "name_en": "27 × 80 pine, planed (20 × 70 net)",
+   "name_he": "אורן 27/80 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-2575-2070-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1003",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/E125191_2072023144819_350_350.jpg",
+   "category": "boards",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 20,
+   "width_mm": 70,
+   "price_per_m": 5.86,
+   "lengths_m": [
+    3.6,
+    4.2,
+    5.1
+   ],
+   "replaces": [
+    "lumber:13"
+   ]
+  },
+  {
+   "sku": "10021515",
+   "kind": "lumber",
+   "name_en": "27 × 105 pine, planed (20 × 95 net)",
+   "name_he": "אורן 27/105 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-25100-2095-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1004",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/U176873_2072023144711_350_350.jpg",
+   "category": "boards",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 20,
+   "width_mm": 95,
+   "price_per_m": 7.36,
+   "lengths_m": [
+    3.0,
+    3.3,
+    3.6,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:14"
+   ]
+  },
+  {
+   "sku": "10021504",
+   "kind": "lumber",
+   "name_en": "27 × 105 pine, planed, treated (20 × 95 net)",
+   "name_he": "אורן 27/105 שימור לגדר",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-25100-2095-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1005",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/Z612313_2072023144615_350_350.jpg",
+   "category": "boards",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 20,
+   "width_mm": 95,
+   "price_per_m": 7.03,
+   "lengths_m": [
+    3.6,
+    3.9,
+    4.2,
+    5.1
+   ],
+   "replaces": [
+    "lumber:15"
+   ]
+  },
+  {
+   "sku": "10021704",
+   "kind": "lumber",
+   "name_en": "27 × 130 pine shiplap, planed, treated (20 × 120 net)",
+   "name_he": "מרועף אורן 27/130 שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%9e%d7%a8%d7%95%d7%a2%d7%a3-%d7%90%d7%95%d7%a8%d7%9f-25125-20120-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1006",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/R156670_207202314426_350_350.jpg",
+   "category": "cladding",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed",
+    "shiplap"
+   ],
+   "thickness_mm": 20,
+   "width_mm": 120,
+   "price_per_m": 10.77,
+   "lengths_m": [
+    4.2,
+    4.8
+   ],
+   "replaces": [
+    "lumber:16"
+   ]
+  },
+  {
+   "sku": "10021912",
+   "kind": "lumber",
+   "name_en": "27 × 160 pine, planed (20 × 145 net)",
+   "name_he": "אורן 27/160 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-25150-20145-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1007",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/Q405617_2072023143939_350_350.jpg",
+   "category": "boards",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 20,
+   "width_mm": 145,
+   "price_per_m": 11.21,
+   "lengths_m": [
+    3.3,
+    3.6,
+    3.9,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:17"
+   ]
+  },
+  {
+   "sku": "10026210",
+   "kind": "lumber",
+   "name_en": "27 × 160 pine, planed, treated (20 × 145 net)",
+   "name_he": "אורן 27/160 מוקצע שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-25150-20145-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1008",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/V277993_2072023143818_350_350.jpg",
+   "category": "boards",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 20,
+   "width_mm": 145,
+   "price_per_m": 11.72,
+   "lengths_m": [
+    3.3,
+    3.6,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:18"
+   ]
+  },
+  {
+   "sku": "10021904",
+   "kind": "lumber",
+   "name_en": "27 × 160 pine log cladding, planed, treated (20 × 145 net)",
+   "name_he": "לוג אורן 27/160 שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%9c%d7%95%d7%92-%d7%90%d7%95%d7%a8%d7%9f-25150-20145-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1010",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/J919015_2072023141844_350_350.jpg",
+   "category": "cladding",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "log cladding",
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 20,
+   "width_mm": 145,
+   "price_per_m": 12.49,
+   "lengths_m": [
+    3.6,
+    4.8
+   ],
+   "replaces": [
+    "lumber:19"
+   ]
+  },
+  {
+   "sku": "10021900",
+   "kind": "lumber",
+   "name_en": "27 × 160 pine cladding, planed, treated (20 × 145 net)",
+   "name_he": "ציפוי נגיעה אורן 27/160 שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%a6%d7%99%d7%a4%d7%95%d7%99-%d7%a0%d7%92%d7%99%d7%a2%d7%94-%d7%90%d7%95%d7%a8%d7%9f-25150-20145-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1011",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/W666070_228202313557_350_350.jpg",
+   "category": "cladding",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "cladding",
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 20,
+   "width_mm": 145,
+   "price_per_m": 12.74,
+   "lengths_m": [
+    3.6,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4
+   ],
+   "replaces": [
+    "lumber:20"
+   ]
+  },
+  {
+   "sku": "10022917",
+   "kind": "lumber",
+   "name_en": "27 × 210 pine, planed (20 × 195 net)",
+   "name_he": "אורן 27/210 מוקצע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-25200-20195-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1012",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/X506203_2072023141248_350_350.jpg",
+   "category": "boards",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 20,
+   "width_mm": 195,
+   "price_per_m": 16.06,
+   "lengths_m": [
+    5.1
+   ],
+   "replaces": [
+    "lumber:21"
+   ]
+  },
+  {
+   "sku": "10023530",
+   "kind": "lumber",
+   "name_en": "40 × 40 pine, planed (32 × 32 net)",
+   "name_he": "אורן 40/40 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-3838-3232-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1015",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/W160012_2072023135347_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 32,
+   "width_mm": 32,
+   "price_per_m": 5.66,
+   "lengths_m": [
+    4.2
+   ],
+   "replaces": [
+    "lumber:23"
+   ]
+  },
+  {
+   "sku": "10021573",
+   "kind": "lumber",
+   "name_en": "40 × 55 pine, planed (32 × 45 net)",
+   "name_he": "אורן 40/55 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-3850-3245-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1018",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/E381188_2072023134614_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 32,
+   "width_mm": 45,
+   "price_per_m": 6.23,
+   "lengths_m": [
+    3.9,
+    4.2,
+    4.8,
+    5.1
+   ],
+   "replaces": [
+    "lumber:25"
+   ]
+  },
+  {
+   "sku": "10022901",
+   "kind": "lumber",
+   "name_en": "40 × 80 pine, planed (32 × 70 net)",
+   "name_he": "אורן 40/80 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-3875-3270-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1019",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/I512963_2072023134339_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 32,
+   "width_mm": 70,
+   "price_per_m": 8.5,
+   "lengths_m": [
+    3.3,
+    3.6,
+    4.2,
+    4.5,
+    5.1,
+    5.4
+   ],
+   "replaces": [
+    "lumber:26"
+   ]
+  },
+  {
+   "sku": "10022903",
+   "kind": "lumber",
+   "name_en": "40 × 80 pine, planed, treated (32 × 70 net)",
+   "name_he": "אורן 40/80 מוקצע שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-3875-3270-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8---i1020",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/U199517_2072023134117_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 32,
+   "width_mm": 70,
+   "price_per_m": 8.87,
+   "lengths_m": [
+    4.2,
+    4.5,
+    5.1
+   ],
+   "replaces": [
+    "lumber:27"
+   ]
+  },
+  {
+   "sku": "10021711",
+   "kind": "lumber",
+   "name_en": "40 × 105 pine, planed (32 × 95 net)",
+   "name_he": "אורן 40/105 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-38100-3295-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1022",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/M332360_2072023143614_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 32,
+   "width_mm": 95,
+   "price_per_m": 11.15,
+   "lengths_m": [
+    3.0,
+    3.3,
+    4.2,
+    4.8,
+    5.1
+   ],
+   "replaces": [
+    "lumber:28"
+   ]
+  },
+  {
+   "sku": "10024000",
+   "kind": "lumber",
+   "name_en": "40 × 105 pine, planed, treated (32 × 95 net)",
+   "name_he": "אורן 40/105 מוקצע שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-38100-3295-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1023",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/Y169839_207202314350_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 32,
+   "width_mm": 95,
+   "price_per_m": 11.65,
+   "lengths_m": [
+    3.6,
+    4.2,
+    5.1
+   ],
+   "replaces": [
+    "lumber:29"
+   ]
+  },
+  {
+   "sku": "10023531",
+   "kind": "lumber",
+   "name_en": "40 × 160 pine, planed (32 × 145 net)",
+   "name_he": "אורן 40/160 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-38150-32145-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1024",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/E359017_2072023133551_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 32,
+   "width_mm": 145,
+   "price_per_m": 16.24,
+   "lengths_m": [
+    3.3,
+    3.6,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:30"
+   ]
+  },
+  {
+   "sku": "10023511",
+   "kind": "lumber",
+   "name_en": "40 × 160 pine, planed, treated (32 × 145 net)",
+   "name_he": "אורן 40/160 מוקצע שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-38150-32145-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1025",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/R573250_2072023133441_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 32,
+   "width_mm": 145,
+   "price_per_m": 16.61,
+   "lengths_m": [
+    3.0,
+    3.3,
+    3.6,
+    3.9,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:31"
+   ]
+  },
+  {
+   "sku": "10023501",
+   "kind": "lumber",
+   "name_en": "40 × 160 pine log cladding, planed, treated (32 × 145 net)",
+   "name_he": "לוג אורן 40/160 שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%9c%d7%95%d7%92-%d7%90%d7%95%d7%a8%d7%9f-38150-32145-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1028",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/J765084_2072023124146_350_350.jpg",
+   "category": "cladding",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "log cladding",
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 32,
+   "width_mm": 145,
+   "price_per_m": 18.12,
+   "lengths_m": [
+    5.1
+   ],
+   "replaces": [
+    "lumber:32"
+   ]
+  },
+  {
+   "sku": "10031063",
+   "kind": "lumber",
+   "name_en": "40 × 210 pine, planed (32 × 195 net)",
+   "name_he": "אורן 40/210 מוקצע פ.ע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-38200-32195-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1029",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/K841973_2072023123910_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 32,
+   "width_mm": 195,
+   "price_per_m": 22.3,
+   "lengths_m": [
+    3.3,
+    3.6,
+    5.1
+   ],
+   "replaces": [
+    "lumber:33"
+   ]
+  },
+  {
+   "sku": "10026216",
+   "kind": "lumber",
+   "name_en": "40 × 210 pine, planed, treated (32 × 195 net)",
+   "name_he": "אורן 40/210 מוקצע שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-38200-32195-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1030",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/T759972_10820238631_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 32,
+   "width_mm": 195,
+   "price_per_m": 23.29,
+   "lengths_m": [
+    5.1
+   ],
+   "replaces": [
+    "lumber:34"
+   ]
+  },
+  {
+   "sku": "10024412",
+   "kind": "lumber",
+   "name_en": "52 × 52 pine, planed (45 × 45 net)",
+   "name_he": "אורן 52/52 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-5050-4545-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1032",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/F658730_2072023123238_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 45,
+   "width_mm": 45,
+   "price_per_m": 7.34,
+   "lengths_m": [
+    3.3,
+    3.6,
+    4.2,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:35"
+   ]
+  },
+  {
+   "sku": "10024429",
+   "kind": "lumber",
+   "name_en": "52 × 52 pine, planed, treated (45 × 45 net)",
+   "name_he": "אורן 52/52 מוקצע שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-5050-4545-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1033",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/T389001_2072023123116_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 45,
+   "width_mm": 45,
+   "price_per_m": 7.5,
+   "lengths_m": [
+    3.6,
+    4.2,
+    4.8,
+    5.1,
+    5.4
+   ],
+   "replaces": [
+    "lumber:36"
+   ]
+  },
+  {
+   "sku": "10021512",
+   "kind": "lumber",
+   "name_en": "52 × 80 pine, planed (45 × 70 net)",
+   "name_he": "אורן 52/80 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-5075-4570-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1034",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/Y320046_2072023122812_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 45,
+   "width_mm": 70,
+   "price_per_m": 11.29,
+   "lengths_m": [
+    4.2,
+    4.8
+   ],
+   "replaces": [
+    "lumber:37"
+   ]
+  },
+  {
+   "sku": "10024001",
+   "kind": "lumber",
+   "name_en": "52 × 80 pine, planed, treated (45 × 70 net)",
+   "name_he": "אורן 52/80 מוקצע שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-5075-4570-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1035",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/X734170_2072023122649_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 45,
+   "width_mm": 70,
+   "price_per_m": 11.54,
+   "lengths_m": [
+    3.0,
+    3.9,
+    4.2,
+    4.8,
+    5.1,
+    5.4
+   ],
+   "replaces": [
+    "lumber:38"
+   ]
+  },
+  {
+   "sku": "10026310",
+   "kind": "lumber",
+   "name_en": "52 × 105 pine, planed (45 × 95 net)",
+   "name_he": "אורן 52/105 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-50100-4595-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1036",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/V382592_2072023122145_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 45,
+   "width_mm": 95,
+   "price_per_m": 14.17,
+   "lengths_m": [
+    3.3,
+    3.6,
+    3.9,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:39"
+   ]
+  },
+  {
+   "sku": "10024405",
+   "kind": "lumber",
+   "name_en": "52 × 105 pine, planed, treated (45 × 95 net)",
+   "name_he": "אורן 52/105 מוקצע שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-50100-4595-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1037",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/V70138_2072023122023_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 45,
+   "width_mm": 95,
+   "price_per_m": 14.5,
+   "lengths_m": [
+    3.3,
+    3.6,
+    3.9,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:40"
+   ]
+  },
+  {
+   "sku": "10024513",
+   "kind": "lumber",
+   "name_en": "52 × 160 pine, planed (45 × 145 net)",
+   "name_he": "אורן 52/160 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-50150-45145-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1039",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/V741051_207202312659_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 45,
+   "width_mm": 145,
+   "price_per_m": 21.6,
+   "lengths_m": [
+    3.3,
+    3.6,
+    3.9,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    5.7,
+    6.0
+   ],
+   "replaces": [
+    "lumber:41"
+   ]
+  },
+  {
+   "sku": "10024503",
+   "kind": "lumber",
+   "name_en": "52 × 160 pine, planed, treated (45 × 145 net)",
+   "name_he": "אורן 52/160 מוקצע שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-50150-45145-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1040",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/X160729_207202312511_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 45,
+   "width_mm": 145,
+   "price_per_m": 22.09,
+   "lengths_m": [
+    3.0,
+    3.3,
+    3.6,
+    3.9,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:42"
+   ]
+  },
+  {
+   "sku": "10024550",
+   "kind": "lumber",
+   "name_en": "52 × 210 pine, planed (45 × 195 net)",
+   "name_he": "אורן 52/210 מוקצע פע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-50200-45195-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1041",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/X791894_207202311525_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 45,
+   "width_mm": 195,
+   "price_per_m": 28.35,
+   "lengths_m": [
+    3.0,
+    3.3,
+    3.6,
+    3.9,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:43"
+   ]
+  },
+  {
+   "sku": "10025106",
+   "kind": "lumber",
+   "name_en": "52 × 210 pine, planed, treated (45 × 195 net)",
+   "name_he": "אורן 52/210 מוקצע שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-50200-45195-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1042",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/U898781_1082023873_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 45,
+   "width_mm": 195,
+   "price_per_m": 28.99,
+   "lengths_m": [
+    3.3,
+    3.6,
+    3.9,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:44"
+   ]
+  },
+  {
+   "sku": "10025050",
+   "kind": "lumber",
+   "name_en": "80 × 80 pine, planed (70 × 70 net)",
+   "name_he": "אורן 80/80 מוקצע פ.ע",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-7575-7070-%d7%a0%d7%98%d7%95--%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-i1043",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/L834298_2072023113224_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 70,
+   "width_mm": 70,
+   "price_per_m": 17.75,
+   "lengths_m": [
+    4.5,
+    4.8,
+    5.1,
+    5.4
+   ],
+   "replaces": [
+    "lumber:45"
+   ]
+  },
+  {
+   "sku": "10026308",
+   "kind": "lumber",
+   "name_en": "80 × 80 pine, planed, treated (70 × 70 net)",
+   "name_he": "אורן 80/80 מוקצע שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-7575-7070-%d7%a0%d7%98%d7%95--%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8-i1044",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/G840615_1972023155816_350_350.jpg",
+   "category": "beams",
+   "material": "pine",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 70,
+   "width_mm": 70,
+   "price_per_m": 18.12,
+   "lengths_m": [
+    4.5,
+    4.8,
+    5.1
+   ],
+   "replaces": [
+    "lumber:46"
+   ]
+  },
+  {
+   "sku": "10031065",
+   "kind": "lumber",
+   "name_en": "14 × 150 pine tongue & groove, planed",
+   "name_he": "ציפוי 14 מ\"מ( רוחב 15 עובי 14 )",
+   "url": "https://www.noyman-wood.co.il/%d7%a6%d7%99%d7%a4%d7%95%d7%99-14-%d7%9e%d7%9e-%d7%a8%d7%95%d7%97%d7%91-15-%d7%a2%d7%95%d7%91%d7%99-14---%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-i1046",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/K684716_2072023105945_350_350.jpg",
+   "category": "cladding",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed",
+    "tongue & groove"
+   ],
+   "thickness_mm": 14,
+   "width_mm": 150,
+   "price_per_m": 8.13,
+   "lengths_m": [
+    3.6,
+    4.2,
+    4.8,
+    5.1,
+    5.4
+   ],
+   "replaces": [
+    "lumber:48"
+   ]
+  },
+  {
+   "sku": "10031000",
+   "kind": "lumber",
+   "name_en": "12 × 100 pine tongue & groove, planed",
+   "name_he": "ציפוי 12 מ\"מ (רוחב 10 עובי 12)",
+   "url": "https://www.noyman-wood.co.il/%d7%a6%d7%99%d7%a4%d7%95%d7%99-12-%d7%9e%d7%9e-%d7%a0%d7%95%d7%98%d7%a4%d7%93%d7%a8-%d7%a8%d7%95%d7%97%d7%91-10-%d7%a2%d7%95%d7%91%d7%99-12-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1045",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/I931206_207202311128_350_350.jpg",
+   "category": "cladding",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "planed",
+    "tongue & groove"
+   ],
+   "thickness_mm": 12,
+   "width_mm": 100,
+   "price_per_m": 4.77,
+   "lengths_m": [
+    4.2,
+    4.8,
+    5.7
+   ],
+   "replaces": [
+    "lumber:47"
+   ]
+  },
+  {
+   "sku": "10031096",
+   "kind": "lumber",
+   "name_en": "26 × 140 thermo pine, planed",
+   "name_he": "אורן טרמו 26/140",
+   "url": "https://www.noyman-wood.co.il/%d7%90%d7%95%d7%a8%d7%9f-%d7%98%d7%a8%d7%9e%d7%95-26140-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1013",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/Y460122_207202314856_350_350.jpg",
+   "category": "boards",
+   "material": "thermo pine",
+   "treatment": "planed",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 26,
+   "width_mm": 140,
+   "price_per_m": 28.32,
+   "lengths_m": [
+    3.6,
+    4.2,
+    5.1
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "10021903",
+   "kind": "lumber",
+   "name_en": "27 × 160 pine decking, planed (20 × 145 net)",
+   "name_he": "גלריה אורן 27/160 מוקצע",
+   "url": "https://www.noyman-wood.co.il/%d7%92%d7%9c%d7%a8%d7%99%d7%94-%d7%90%d7%95%d7%a8%d7%9f-25150-20145-%d7%a0%d7%98%d7%95---%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-i1009",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/M977303_2072023142217_350_350.jpg",
+   "category": "decking",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "decking",
+    "planed"
+   ],
+   "thickness_mm": 20,
+   "width_mm": 145,
+   "price_per_m": 11.47,
+   "lengths_m": [
+    3.6,
+    3.9,
+    4.2,
+    4.8,
+    5.1,
+    5.4
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "10023513",
+   "kind": "lumber",
+   "name_en": "40 × 160 pine decking, planed (32 × 145 net)",
+   "name_he": "גלריה אורן 40/160",
+   "url": "https://www.noyman-wood.co.il/%d7%92%d7%9c%d7%a8%d7%99%d7%94-%d7%90%d7%95%d7%a8%d7%9f-38150-32145-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1027",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/S949532_2072023141711_350_350.jpg",
+   "category": "decking",
+   "material": "pine",
+   "treatment": "planed",
+   "tags": [
+    "decking",
+    "planed"
+   ],
+   "thickness_mm": 32,
+   "width_mm": 145,
+   "price_per_m": 16.24,
+   "lengths_m": [
+    3.3,
+    3.6,
+    3.9,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "10011499",
+   "kind": "lumber",
+   "name_en": "25 × 160 whitewood decking, planed (22 × 150 net)",
+   "name_he": "לבן 25/160 גלריה",
+   "url": "https://www.noyman-wood.co.il/%d7%92%d7%9c%d7%a8%d7%99%d7%94-%d7%9c%d7%91%d7%9f-22150--%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-i1053",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/Z437478_3820237311_350_350.jpg",
+   "category": "decking",
+   "material": "whitewood",
+   "treatment": "planed",
+   "tags": [
+    "decking",
+    "planed"
+   ],
+   "thickness_mm": 22,
+   "width_mm": 150,
+   "price_per_m": 10.62,
+   "lengths_m": [
+    3.6,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "10031068",
+   "kind": "lumber",
+   "name_en": "50 × 250 glulam beam, planed (45 × 235 net)",
+   "name_he": "דו שכבתי 50/250 מוקצע למדרגות",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%95-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-50250-45235-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1062",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/X522912_2372023152522_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 45,
+   "width_mm": 235,
+   "price_per_m": 47.2,
+   "lengths_m": [
+    5.0,
+    6.0,
+    7.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "10026220",
+   "kind": "lumber",
+   "name_en": "80 × 160 glulam beam, planed (68 × 135 net)",
+   "name_he": "דו שכבתי 80/160",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%95-%d7%a9%d7%9b%d7%91%d7%aa%d7%99--75145-68135-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1063",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/X219720_2372023152430_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 68,
+   "width_mm": 135,
+   "price_per_m": 38.7,
+   "lengths_m": [
+    2.5,
+    3.5,
+    4.0,
+    4.5,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "10026230",
+   "kind": "lumber",
+   "name_en": "80 × 210 glulam beam, planed (68 × 180 net)",
+   "name_he": "דו שכבתי 80/210",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%95-%d7%a9%d7%9b%d7%91%d7%aa%d7%99--75190-68180-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1064",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/S618783_2372023152337_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 68,
+   "width_mm": 180,
+   "price_per_m": 51.62,
+   "lengths_m": [
+    3.0,
+    4.0,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001156",
+   "kind": "lumber",
+   "name_en": "100 × 100 glulam beam, planed (85 × 85 net)",
+   "name_he": "דו שכבתי 100/100(85/85 נטו) מוקצע",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%95-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-100100-8585-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1065",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/P12154_2372023152213_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 85,
+   "width_mm": 85,
+   "price_per_m": 34.4,
+   "lengths_m": [
+    2.5,
+    3.0,
+    3.5,
+    4.0,
+    4.5,
+    5.0,
+    5.5,
+    6.0,
+    7.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001103",
+   "kind": "lumber",
+   "name_en": "100 × 150 glulam beam, planed (85 × 135 net)",
+   "name_he": "דו שכבתי 100/150 (85/135 נטו)מוקצע",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%95-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-100150-85135-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1066",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/L992821_2372023152121_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 85,
+   "width_mm": 135,
+   "price_per_m": 51.6,
+   "lengths_m": [
+    2.5,
+    3.0,
+    4.0,
+    4.5,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001158",
+   "kind": "lumber",
+   "name_en": "100 × 200 glulam beam, planed (85 × 180 net)",
+   "name_he": "דו שכבתי 100/200(85/180 נטו) מוקצע",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%95-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-10020085180-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1067",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/Y424172_2372023152029_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 85,
+   "width_mm": 180,
+   "price_per_m": 68.79,
+   "lengths_m": [
+    2.5,
+    3.0,
+    4.0,
+    4.5,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001070",
+   "kind": "lumber",
+   "name_en": "150 × 150 glulam beam, planed (135 × 135 net)",
+   "name_he": "דו שכבתי 150/150(135/135 נטו)מוקצע",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%95-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-150150135135-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1068",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/I441064_2372023151932_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 135,
+   "width_mm": 135,
+   "price_per_m": 77.39,
+   "lengths_m": [
+    2.5,
+    3.0,
+    3.5,
+    4.0,
+    4.5,
+    5.0,
+    6.0,
+    6.5,
+    7.0,
+    8.0,
+    9.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001080",
+   "kind": "lumber",
+   "name_en": "150 × 200 glulam beam, planed (135 × 180 net)",
+   "name_he": "דו שכבתי 150/200(135/180 נטו)מוקצע",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%95-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-150200135180-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1069",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/D17815_2372023151720_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 135,
+   "width_mm": 180,
+   "price_per_m": 103.19,
+   "lengths_m": [
+    3.0,
+    3.5,
+    4.0,
+    4.5,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    12.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001015",
+   "kind": "lumber",
+   "name_en": "200 × 200 glulam beam, planed (180 × 180 net)",
+   "name_he": "דו שכבתי 200/200 (180/180)מוקצע",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%95-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-200200-180180-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1070",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/K92034_2372023151621_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 180,
+   "width_mm": 180,
+   "price_per_m": 137.59,
+   "lengths_m": [
+    2.5,
+    3.0,
+    3.5,
+    4.5,
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001134",
+   "kind": "lumber",
+   "name_en": "100 × 250 glulam beam, planed (85 × 235 net)",
+   "name_he": "תלת שכבתי 100/250(85/235 נטו)",
+   "url": "https://www.noyman-wood.co.il/%d7%aa%d7%9c%d7%aa-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-100250-85235-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1071",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/P413689_2372023161944_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 85,
+   "width_mm": 235,
+   "price_per_m": 106.2,
+   "lengths_m": [
+    3.0,
+    4.0,
+    5.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0,
+    12.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001101",
+   "kind": "lumber",
+   "name_en": "150 × 250 glulam beam, planed (135 × 235 net)",
+   "name_he": "תלת שכבתי 150/250(135/235 נטו)",
+   "url": "https://www.noyman-wood.co.il/%d7%aa%d7%9c%d7%aa-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-150250-135235-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1072",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/T901391_2372023161831_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 135,
+   "width_mm": 235,
+   "price_per_m": 115.05,
+   "lengths_m": [
+    5.0,
+    6.0,
+    7.0,
+    7.5,
+    9.0,
+    10.0,
+    12.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001086",
+   "kind": "lumber",
+   "name_en": "150 × 300 glulam beam, planed (135 × 280 net)",
+   "name_he": "תלת שכבתי 150/300(135/280 נטו)",
+   "url": "https://www.noyman-wood.co.il/%d7%aa%d7%9c%d7%aa-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-150300-135280-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1073",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/R169182_2372023161736_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 135,
+   "width_mm": 280,
+   "price_per_m": 191.16,
+   "lengths_m": [
+    3.5,
+    4.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0,
+    12.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001136",
+   "kind": "lumber",
+   "name_en": "200 × 250 glulam beam, planed (180 × 235 net)",
+   "name_he": "תלת שכבתי 200/250 (180/235)מוקצע",
+   "url": "https://www.noyman-wood.co.il/%d7%aa%d7%9c%d7%aa-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-200250-180235-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1074",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/V725930_2372023161641_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 180,
+   "width_mm": 235,
+   "price_per_m": 212.4,
+   "lengths_m": [
+    3.5,
+    4.5,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0,
+    12.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001122",
+   "kind": "lumber",
+   "name_en": "200 × 300 glulam beam, planed (180 × 280 net)",
+   "name_he": "תלת שכבתי 200/300(180/280 נטו)",
+   "url": "https://www.noyman-wood.co.il/%d7%aa%d7%9c%d7%aa-%d7%a9%d7%9b%d7%91%d7%aa%d7%99--200300-180280-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1075",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/I481606_2372023161559_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 180,
+   "width_mm": 280,
+   "price_per_m": 254.88,
+   "lengths_m": [
+    4.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0,
+    12.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001181",
+   "kind": "lumber",
+   "name_en": "100 × 300 glulam beam, planed (90 × 280 net)",
+   "name_he": "רב שכבתי 100/300 (90/280 נטו)",
+   "url": "https://www.noyman-wood.co.il/%d7%a8%d7%91-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-100300-90280-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1076",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/J201302_2372023161445_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 90,
+   "width_mm": 280,
+   "price_per_m": 188.19,
+   "lengths_m": [
+    3.0,
+    3.5,
+    4.0,
+    6.0,
+    7.0,
+    8.0,
+    10.0,
+    12.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001185",
+   "kind": "lumber",
+   "name_en": "250 × 250 glulam beam, planed (240 × 240 net)",
+   "name_he": "רב שכבתי 250/250 (240/240 נטו)",
+   "url": "https://www.noyman-wood.co.il/%d7%a8%d7%91-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-250250-240240-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1077",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/V211159_2372023161217_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 240,
+   "width_mm": 240,
+   "price_per_m": 392.06,
+   "lengths_m": [
+    2.5,
+    3.0,
+    4.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "25001186",
+   "kind": "lumber",
+   "name_en": "300 × 300 glulam beam, planed (280 × 280 net)",
+   "name_he": "רב שכבתי 300/300 (280/280 נטו)",
+   "url": "https://www.noyman-wood.co.il/%d7%a8%d7%91-%d7%a9%d7%9b%d7%91%d7%aa%d7%99-300300-280280-%d7%a0%d7%98%d7%95---i1078",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/G816384_2372023161042_350_350.jpg",
+   "category": "beams",
+   "material": "glulam spruce",
+   "treatment": "planed",
+   "tags": [
+    "glulam",
+    "planed"
+   ],
+   "thickness_mm": 280,
+   "width_mm": 280,
+   "price_per_m": 564.56,
+   "lengths_m": [
+    2.5,
+    3.0,
+    4.5,
+    6.0,
+    7.0,
+    8.0
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "10011350",
+   "kind": "lumber",
+   "name_en": "25 × 50 whitewood, treated (22 × 50 net)",
+   "name_he": "לבן 25/50 שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%9c%d7%91%d7%9f-2250-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1047",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/D669015_2372023125012_350_350.jpg",
+   "category": "boards",
+   "material": "whitewood",
+   "treatment": "treated",
+   "tags": [
+    "outdoor"
+   ],
+   "thickness_mm": 22,
+   "width_mm": 50,
+   "price_per_m": 3.32,
+   "lengths_m": [
+    4.2,
+    4.8,
+    5.1,
+    5.4,
+    5.7
+   ],
+   "replaces": [
+    "lumber:0"
+   ]
+  },
+  {
+   "sku": "10011399",
+   "kind": "lumber",
+   "name_en": "25 × 100 whitewood, treated (22 × 100 net)",
+   "name_he": "לבן 25/100 שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%9c%d7%91%d7%9f-22100-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1049",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/P519478_218202311858_350_350.jpg",
+   "category": "boards",
+   "material": "whitewood",
+   "treatment": "treated",
+   "tags": [
+    "outdoor"
+   ],
+   "thickness_mm": 22,
+   "width_mm": 100,
+   "price_per_m": 6.64,
+   "lengths_m": [
+    3.9,
+    4.2,
+    4.5,
+    5.1
+   ],
+   "replaces": [
+    "lumber:1"
+   ]
+  },
+  {
+   "sku": "10011381",
+   "kind": "lumber",
+   "name_en": "25 × 100 whitewood, rough (22 × 100 net)",
+   "name_he": "לבן 25/100 גולמי",
+   "url": "https://www.noyman-wood.co.il/%d7%9c%d7%91%d7%9f-22100-%d7%92%d7%95%d7%9c%d7%9e%d7%99----i1050",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/O143517_237202313922_350_350.jpg",
+   "category": "boards",
+   "material": "whitewood",
+   "treatment": "rough",
+   "tags": [],
+   "thickness_mm": 22,
+   "width_mm": 100,
+   "price_per_m": 6.34,
+   "lengths_m": [
+    3.0,
+    3.3,
+    3.6,
+    3.9
+   ],
+   "replaces": [
+    "lumber:2"
+   ]
+  },
+  {
+   "sku": "10011456",
+   "kind": "lumber",
+   "name_en": "25 × 130 whitewood, planed (18 × 125 net)",
+   "name_he": "לבן 25/130 מוקצע",
+   "url": "https://www.noyman-wood.co.il/%d7%9c%d7%91%d7%9f-22130-18125-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2----i1051",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/J315880_228202313743_350_350.jpg",
+   "category": "boards",
+   "material": "whitewood",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 18,
+   "width_mm": 125,
+   "price_per_m": 8.63,
+   "lengths_m": [
+    4.5
+   ],
+   "replaces": [
+    "lumber:3"
+   ]
+  },
+  {
+   "sku": "10011339",
+   "kind": "lumber",
+   "name_en": "25 × 160 whitewood, treated (22 × 150 net)",
+   "name_he": "לבן 25/160 שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%9c%d7%91%d7%9f-22160-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1052",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/M359994_22820231389_350_350.jpg",
+   "category": "boards",
+   "material": "whitewood",
+   "treatment": "treated",
+   "tags": [
+    "outdoor"
+   ],
+   "thickness_mm": 22,
+   "width_mm": 150,
+   "price_per_m": 9.91,
+   "lengths_m": [
+    5.1,
+    6.0
+   ],
+   "replaces": [
+    "lumber:4"
+   ]
+  },
+  {
+   "sku": "10011311",
+   "kind": "lumber",
+   "name_en": "25 × 210 whitewood, planed (18 × 195 net)",
+   "name_he": "לבן 25/210 מוקצע",
+   "url": "https://www.noyman-wood.co.il/%d7%9c%d7%91%d7%9f-22200--18195-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2---i1055",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/W695_23720231332_350_350.jpg",
+   "category": "boards",
+   "material": "whitewood",
+   "treatment": "planed",
+   "tags": [
+    "planed"
+   ],
+   "thickness_mm": 18,
+   "width_mm": 195,
+   "price_per_m": 14.56,
+   "lengths_m": [
+    5.4,
+    5.7
+   ],
+   "replaces": [
+    "lumber:5"
+   ]
+  },
+  {
+   "sku": "10011400",
+   "kind": "lumber",
+   "name_en": "25 × 210 whitewood, planed, treated (18 × 195 net)",
+   "name_he": "לבן 25/210 מוקצע ישר שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%9c%d7%91%d7%9f-22200-18195-%d7%a0%d7%98%d7%95-%d7%9e%d7%95%d7%a7%d7%a6%d7%a2-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1056",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/Y234292_237202313159_350_350.jpg",
+   "category": "boards",
+   "material": "whitewood",
+   "treatment": "planed, treated",
+   "tags": [
+    "outdoor",
+    "planed"
+   ],
+   "thickness_mm": 18,
+   "width_mm": 195,
+   "price_per_m": 14.87,
+   "lengths_m": [
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:6"
+   ]
+  },
+  {
+   "sku": "10011367",
+   "kind": "lumber",
+   "name_en": "50 × 100 whitewood, rough (44 × 100 net)",
+   "name_he": "לבן 50/100 גולמי",
+   "url": "https://www.noyman-wood.co.il/%d7%9c%d7%91%d7%9f-44100-%d7%92%d7%95%d7%9c%d7%9e%d7%99----i1058",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/M526833_2372023125115_350_350.jpg",
+   "category": "beams",
+   "material": "whitewood",
+   "treatment": "rough",
+   "tags": [],
+   "thickness_mm": 44,
+   "width_mm": 100,
+   "price_per_m": 12.69,
+   "lengths_m": [
+    3.0,
+    3.3,
+    3.6,
+    3.9,
+    5.4,
+    5.7
+   ],
+   "replaces": [
+    "lumber:7"
+   ]
+  },
+  {
+   "sku": "10011457",
+   "kind": "lumber",
+   "name_en": "50 × 100 whitewood, treated (44 × 100 net)",
+   "name_he": "לבן 50/100 שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%9c%d7%91%d7%9f-44100-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1059",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/J502434_237202312481_350_350.jpg",
+   "category": "beams",
+   "material": "whitewood",
+   "treatment": "treated",
+   "tags": [
+    "outdoor"
+   ],
+   "thickness_mm": 44,
+   "width_mm": 100,
+   "price_per_m": 13.28,
+   "lengths_m": [
+    3.3,
+    3.6,
+    4.2,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:8"
+   ]
+  },
+  {
+   "sku": "10011340",
+   "kind": "lumber",
+   "name_en": "50 × 160 whitewood, treated (44 × 150 net)",
+   "name_he": "לבן 50/160 שימור",
+   "url": "https://www.noyman-wood.co.il/%d7%9c%d7%91%d7%9f-44150-%d7%a9%d7%99%d7%9e%d7%95%d7%a8----i1060",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/I563164_2372023124659_350_350.jpg",
+   "category": "beams",
+   "material": "whitewood",
+   "treatment": "treated",
+   "tags": [
+    "outdoor"
+   ],
+   "thickness_mm": 44,
+   "width_mm": 150,
+   "price_per_m": 19.82,
+   "lengths_m": [
+    3.3,
+    3.9,
+    4.2,
+    4.5,
+    4.8,
+    5.1,
+    5.4,
+    6.0
+   ],
+   "replaces": [
+    "lumber:9"
+   ]
+  },
+  {
+   "sku": "73001426+73001428+73001442+73001443+73001444+73001445+73001446+73001447+73001448+73001449+73001450+73001451+73001452+73001453+73001454+73001455+73001456+73001457+73001458+73001540+73001541+73001543+73003074+73111102",
+   "kind": "sheet",
+   "name_en": "18 mm pine panel (edge-glued)",
+   "name_he": "פלטה אורן 18 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%a4%d7%9c%d7%98%d7%94-%d7%90%d7%95%d7%a8%d7%9f-18-%d7%9e%d7%9e----i1079",
+   "image": "",
+   "category": "panels",
+   "material": "pine panel",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 18.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 800.0,
+     "width_mm": 250.0,
+     "price": 44.84
+    },
+    {
+     "length_mm": 1000.0,
+     "width_mm": 200.0,
+     "price": 38
+    },
+    {
+     "length_mm": 800.0,
+     "width_mm": 300.0,
+     "price": 53.1
+    },
+    {
+     "length_mm": 1200.0,
+     "width_mm": 250.0,
+     "price": 64.9
+    },
+    {
+     "length_mm": 800.0,
+     "width_mm": 400.0,
+     "price": 70.8
+    },
+    {
+     "length_mm": 1200.0,
+     "width_mm": 300.0,
+     "price": 76.7
+    },
+    {
+     "length_mm": 1500.0,
+     "width_mm": 250.0,
+     "price": 82.6
+    },
+    {
+     "length_mm": 1000.0,
+     "width_mm": 400.0,
+     "price": 76
+    },
+    {
+     "length_mm": 1500.0,
+     "width_mm": 300.0,
+     "price": 100.3
+    },
+    {
+     "length_mm": 800.0,
+     "width_mm": 600.0,
+     "price": 106.2
+    },
+    {
+     "length_mm": 1200.0,
+     "width_mm": 400.0,
+     "price": 106.2
+    },
+    {
+     "length_mm": 1250.0,
+     "width_mm": 400.0,
+     "price": 100
+    },
+    {
+     "length_mm": 2000.0,
+     "width_mm": 250.0,
+     "price": 112.1
+    },
+    {
+     "length_mm": 1200.0,
+     "width_mm": 500.0,
+     "price": 129.8
+    },
+    {
+     "length_mm": 1500.0,
+     "width_mm": 400.0,
+     "price": 129.8
+    },
+    {
+     "length_mm": 2000.0,
+     "width_mm": 300.0,
+     "price": 129.8
+    },
+    {
+     "length_mm": 1200.0,
+     "width_mm": 600.0,
+     "price": 153.4
+    },
+    {
+     "length_mm": 1500.0,
+     "width_mm": 500.0,
+     "price": 165.2
+    },
+    {
+     "length_mm": 2000.0,
+     "width_mm": 400.0,
+     "price": 177
+    },
+    {
+     "length_mm": 1500.0,
+     "width_mm": 600.0,
+     "price": 194.7
+    },
+    {
+     "length_mm": 2000.0,
+     "width_mm": 500.0,
+     "price": 212.4
+    },
+    {
+     "length_mm": 2000.0,
+     "width_mm": 600.0,
+     "price": 271.4
+    },
+    {
+     "length_mm": 3000.0,
+     "width_mm": 600.0,
+     "price": 354
+    },
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 454.3
+    }
+   ],
+   "replaces": [
+    "sheet:pine:18"
+   ]
+  },
+  {
+   "sku": "73001423+73001805",
+   "kind": "sheet",
+   "name_en": "28 mm pine panel (edge-glued)",
+   "name_he": "פלטה אורן 28 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%a4%d7%9c%d7%98%d7%94-%d7%90%d7%95%d7%a8%d7%9f-18-%d7%9e%d7%9e----i1079",
+   "image": "",
+   "category": "panels",
+   "material": "pine panel",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 28.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 3000.0,
+     "width_mm": 800.0,
+     "price": 625.4
+    },
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 708
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "פלטה אורן-38",
+   "kind": "sheet",
+   "name_en": "38 mm pine panel (edge-glued)",
+   "name_he": "פלטה אורן 38 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%a4%d7%9c%d7%98%d7%94-%d7%90%d7%95%d7%a8%d7%9f-18-%d7%9e%d7%9e----i1079",
+   "image": "",
+   "category": "panels",
+   "material": "pine panel",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 38.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 1180.0
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001000",
+   "kind": "sheet",
+   "name_en": "4 mm sandwich plywood",
+   "name_he": "דיקט סנדוויץ׳ 4 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%a1%d7%a0%d7%93%d7%95%d7%95%d7%99%d7%a5---i3624",
+   "image": "",
+   "category": "plywood",
+   "material": "sandwich plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 4.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 70.8
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001001",
+   "kind": "sheet",
+   "name_en": "6 mm sandwich plywood",
+   "name_he": "דיקט סנדוויץ׳ 6 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%a1%d7%a0%d7%93%d7%95%d7%95%d7%99%d7%a5---i3624",
+   "image": "",
+   "category": "plywood",
+   "material": "sandwich plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 6.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 100.3
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001002",
+   "kind": "sheet",
+   "name_en": "8 mm sandwich plywood",
+   "name_he": "דיקט סנדוויץ׳ 8 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%a1%d7%a0%d7%93%d7%95%d7%95%d7%99%d7%a5---i3624",
+   "image": "",
+   "category": "plywood",
+   "material": "sandwich plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 8.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 129.8
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001147",
+   "kind": "sheet",
+   "name_en": "12 mm sandwich plywood",
+   "name_he": "דיקט סנדוויץ׳ 12 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%a1%d7%a0%d7%93%d7%95%d7%95%d7%99%d7%a5---i3624",
+   "image": "",
+   "category": "plywood",
+   "material": "sandwich plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 12.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 141.6
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001005",
+   "kind": "sheet",
+   "name_en": "17 mm sandwich plywood",
+   "name_he": "דיקט סנדוויץ׳ 17 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%a1%d7%a0%d7%93%d7%95%d7%95%d7%99%d7%a5---i3624",
+   "image": "",
+   "category": "plywood",
+   "material": "sandwich plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 17.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 188.8
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001503",
+   "kind": "sheet",
+   "name_en": "4 mm birch plywood",
+   "name_he": "דיקט ליבנה 4 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%9c%d7%99%d7%91%d7%a0%d7%94-%d7%91%d7%99%d7%a8%d7%a5---i3626",
+   "image": "",
+   "category": "plywood",
+   "material": "birch plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 4.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 141.6
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73003098",
+   "kind": "sheet",
+   "name_en": "6 mm birch plywood",
+   "name_he": "דיקט ליבנה 6 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%9c%d7%99%d7%91%d7%a0%d7%94-%d7%91%d7%99%d7%a8%d7%a5---i3626",
+   "image": "",
+   "category": "plywood",
+   "material": "birch plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 6.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 194.7
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73002105",
+   "kind": "sheet",
+   "name_en": "8 mm birch plywood",
+   "name_he": "דיקט ליבנה 8 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%9c%d7%99%d7%91%d7%a0%d7%94-%d7%91%d7%99%d7%a8%d7%a5---i3626",
+   "image": "",
+   "category": "plywood",
+   "material": "birch plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 8.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 206.5
+    }
+   ],
+   "replaces": [
+    "sheet:birch:8"
+   ]
+  },
+  {
+   "sku": "73001319",
+   "kind": "sheet",
+   "name_en": "12 mm birch plywood",
+   "name_he": "דיקט ליבנה 12 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%9c%d7%99%d7%91%d7%a0%d7%94-%d7%91%d7%99%d7%a8%d7%a5---i3626",
+   "image": "",
+   "category": "plywood",
+   "material": "birch plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 12.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 241.9
+    }
+   ],
+   "replaces": [
+    "sheet:birch:12"
+   ]
+  },
+  {
+   "sku": "73001765",
+   "kind": "sheet",
+   "name_en": "16 mm birch plywood",
+   "name_he": "דיקט ליבנה 16 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%9c%d7%99%d7%91%d7%a0%d7%94-%d7%91%d7%99%d7%a8%d7%a5---i3626",
+   "image": "",
+   "category": "plywood",
+   "material": "birch plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 16.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 259.6
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001764",
+   "kind": "sheet",
+   "name_en": "18 mm birch plywood",
+   "name_he": "דיקט ליבנה 18 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%9c%d7%99%d7%91%d7%a0%d7%94-%d7%91%d7%99%d7%a8%d7%a5---i3626",
+   "image": "",
+   "category": "plywood",
+   "material": "birch plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 18.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 283.2
+    }
+   ],
+   "replaces": [
+    "sheet:birch:18"
+   ]
+  },
+  {
+   "sku": "73003127",
+   "kind": "sheet",
+   "name_en": "24 mm birch plywood",
+   "name_he": "דיקט ליבנה 24 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%9c%d7%99%d7%91%d7%a0%d7%94-%d7%91%d7%99%d7%a8%d7%a5---i3626",
+   "image": "",
+   "category": "plywood",
+   "material": "birch plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 24.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 413
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73003050",
+   "kind": "sheet",
+   "name_en": "30 mm birch plywood",
+   "name_he": "דיקט ליבנה 30 מ״מ",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%9c%d7%99%d7%91%d7%a0%d7%94-%d7%91%d7%99%d7%a8%d7%a5---i3626",
+   "image": "",
+   "category": "plywood",
+   "material": "birch plywood",
+   "treatment": "",
+   "tags": [],
+   "thickness_mm": 30.0,
+   "has_grain": true,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 513.3
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001229",
+   "kind": "sheet",
+   "name_en": "5 mm plywood, white Formica one side",
+   "name_he": "דיקט 5 מ\"מ + פורמיקה *1",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%a1%d7%a0%d7%93%d7%95%d7%95%d7%99%d7%a5--%d7%a4%d7%95%d7%a8%d7%9e%d7%99%d7%99%d7%a7%d7%94-%d7%9c%d7%91%d7%a0%d7%94----i3625",
+   "image": "",
+   "category": "panels",
+   "material": "formica plywood",
+   "treatment": "",
+   "tags": [
+    "formica"
+   ],
+   "thickness_mm": 5.0,
+   "has_grain": false,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 141.6
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001012",
+   "kind": "sheet",
+   "name_en": "12 mm plywood, white Formica both sides",
+   "name_he": "דיקט 12 מ\"מ + פורמיקה * 2",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%a1%d7%a0%d7%93%d7%95%d7%95%d7%99%d7%a5--%d7%a4%d7%95%d7%a8%d7%9e%d7%99%d7%99%d7%a7%d7%94-%d7%9c%d7%91%d7%a0%d7%94----i3625",
+   "image": "",
+   "category": "panels",
+   "material": "formica plywood",
+   "treatment": "",
+   "tags": [
+    "formica"
+   ],
+   "thickness_mm": 12.0,
+   "has_grain": false,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 259.6
+    }
+   ],
+   "replaces": [
+    "sheet:laminate:12"
+   ]
+  },
+  {
+   "sku": "73001014",
+   "kind": "sheet",
+   "name_en": "17 mm plywood, white Formica one side",
+   "name_he": "דיקט 17 מ\"מ + פורמיקה * 1",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%a1%d7%a0%d7%93%d7%95%d7%95%d7%99%d7%a5--%d7%a4%d7%95%d7%a8%d7%9e%d7%99%d7%99%d7%a7%d7%94-%d7%9c%d7%91%d7%a0%d7%94----i3625",
+   "image": "",
+   "category": "panels",
+   "material": "formica plywood",
+   "treatment": "",
+   "tags": [
+    "formica"
+   ],
+   "thickness_mm": 17.0,
+   "has_grain": false,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 259.6
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001013",
+   "kind": "sheet",
+   "name_en": "17 mm plywood, white Formica both sides",
+   "name_he": "דיקט 17 מ\"מ + פורמיקה * 2",
+   "url": "https://www.noyman-wood.co.il/%d7%93%d7%99%d7%a7%d7%98-%d7%a1%d7%a0%d7%93%d7%95%d7%95%d7%99%d7%a5--%d7%a4%d7%95%d7%a8%d7%9e%d7%99%d7%99%d7%a7%d7%94-%d7%9c%d7%91%d7%a0%d7%94----i3625",
+   "image": "",
+   "category": "panels",
+   "material": "formica plywood",
+   "treatment": "",
+   "tags": [
+    "formica"
+   ],
+   "thickness_mm": 17.0,
+   "has_grain": false,
+   "sheet_stock": [
+    {
+     "length_mm": 2440.0,
+     "width_mm": 1220.0,
+     "price": 295
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001351",
+   "kind": "sheet",
+   "name_en": "17 mm OSB",
+   "name_he": "OSB פלטה 17 מ\"מ",
+   "url": "https://www.noyman-wood.co.il/OSB--17-%d7%9e%d7%9e-244122---i1140",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/X615395_278202311372_350_350.jpg",
+   "category": "panels",
+   "material": "OSB",
+   "treatment": "",
+   "tags": [
+    "osb"
+   ],
+   "thickness_mm": 17.0,
+   "has_grain": false,
+   "sheet_stock": [
+    {
+     "length_mm": 2440,
+     "width_mm": 1220,
+     "price": 131.37
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001350",
+   "kind": "sheet",
+   "name_en": "14 mm OSB",
+   "name_he": "OSB פלטה 14 מ\"מ",
+   "url": "https://www.noyman-wood.co.il/14-%d7%9e%d7%9e-OSB---i1139",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/G245080_2782023113640_350_350.jpg",
+   "category": "panels",
+   "material": "OSB",
+   "treatment": "",
+   "tags": [
+    "osb"
+   ],
+   "thickness_mm": 14.0,
+   "has_grain": false,
+   "sheet_stock": [
+    {
+     "length_mm": 2440,
+     "width_mm": 1220,
+     "price": 108.19
+    }
+   ],
+   "replaces": []
+  },
+  {
+   "sku": "73001349",
+   "kind": "sheet",
+   "name_en": "10 mm OSB",
+   "name_he": "OSB פלטה 10 מ\"מ",
+   "url": "https://www.noyman-wood.co.il/OSB--10-%d7%9e%d7%9e-244122---i1138",
+   "image": "https://www.noyman-wood.co.il/ProductsImages/thumbs/N942071_2782023113242_350_350.jpg",
+   "category": "panels",
+   "material": "OSB",
+   "treatment": "",
+   "tags": [
+    "osb"
+   ],
+   "thickness_mm": 10.0,
+   "has_grain": false,
+   "sheet_stock": [
+    {
+     "length_mm": 2440,
+     "width_mm": 1220,
+     "price": 73.76
+    }
+   ],
+   "replaces": []
+  }
+ ],
+ "retire_legacy": [
+  "lumber:11",
+  "lumber:22",
+  "lumber:24"
+ ]
+}

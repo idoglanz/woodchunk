@@ -232,6 +232,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Project Sync
+         * @description Cheap check for open copies, polled often: has anyone saved, ticked the shopping list or
+         *     changed who's in the project since? Reads only these fields, with load_project's access rule.
+         */
+        get: operations["project_sync_api_projects__project_id__sync_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/status": {
         parameters: {
             query?: never;
@@ -307,11 +328,35 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List Invites
+         * @description The project's links that still work, newest first.
+         */
+        get: operations["list_invites_api_projects__project_id__invites_get"];
         put?: never;
         /** Create Invite */
         post: operations["create_invite_api_projects__project_id__invites_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/invites/{invite_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Invite
+         * @description The link stops working; people who already joined stay.
+         */
+        delete: operations["revoke_invite_api_projects__project_id__invites__invite_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -359,7 +404,8 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /** Set Member Role */
+        put: operations["set_member_role_api_projects__project_id__members__member_id__put"];
         post?: never;
         /** Remove Member */
         delete: operations["remove_member_api_projects__project_id__members__member_id__delete"];
@@ -1973,6 +2019,27 @@ export interface components {
              */
             role: "editor" | "viewer";
         };
+        /** InviteLink */
+        InviteLink: {
+            /** Id */
+            id: string;
+            /** Token */
+            token: string;
+            /** Role */
+            role: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Joined */
+            joined: number;
+        };
         /** InviteOut */
         InviteOut: {
             /** Token */
@@ -2091,6 +2158,14 @@ export interface components {
              * @default
              */
             name: string;
+        };
+        /** MemberRoleIn */
+        MemberRoleIn: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "editor" | "viewer";
         };
         /** OrganizeIn */
         OrganizeIn: {
@@ -2467,6 +2542,26 @@ export interface components {
              * @default 1
              */
             version: number;
+            /**
+             * Updated By
+             * @default
+             */
+            updated_by: string;
+            /**
+             * Updated By Name
+             * @default
+             */
+            updated_by_name: string;
+            /**
+             * Checks Rev
+             * @default 0
+             */
+            checks_rev: number;
+            /**
+             * Members Rev
+             * @default 0
+             */
+            members_rev: number;
         };
         /** ProjectCreate */
         ProjectCreate: {
@@ -2907,6 +3002,25 @@ export interface components {
              * @default
              */
             notes: string;
+        };
+        /** SyncOut */
+        SyncOut: {
+            /** Version */
+            version: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Updated By */
+            updated_by: string;
+            /** Updated By Name */
+            updated_by_name: string;
+            /** Checks Rev */
+            checks_rev: number;
+            /** Members Rev */
+            members_rev: number;
+            role: components["schemas"]["Role"] | null;
         };
         /** TemplateIn */
         TemplateIn: {
@@ -3735,6 +3849,37 @@ export interface operations {
             };
         };
     };
+    project_sync_api_projects__project_id__sync_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_status_api_projects__project_id__status_post: {
         parameters: {
             query?: never;
@@ -3871,6 +4016,37 @@ export interface operations {
             };
         };
     };
+    list_invites_api_projects__project_id__invites_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteLink"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_invite_api_projects__project_id__invites_post: {
         parameters: {
             query?: never;
@@ -3894,6 +4070,36 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InviteOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_invite_api_projects__project_id__invites__invite_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                invite_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -3947,6 +4153,42 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_member_role_api_projects__project_id__members__member_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberRoleIn"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

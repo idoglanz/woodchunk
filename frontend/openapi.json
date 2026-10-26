@@ -1034,6 +1034,54 @@
     }
    }
   },
+  "/api/projects/{project_id}/sync": {
+   "get": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Project Sync",
+    "description": "Cheap check for open copies, polled often: has anyone saved, ticked the shopping list or\nchanged who's in the project since? Reads only these fields, with load_project's access rule.",
+    "operationId": "project_sync_api_projects__project_id__sync_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SyncOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/projects/{project_id}/status": {
    "post": {
     "tags": [
@@ -1329,6 +1377,106 @@
       }
      }
     }
+   },
+   "get": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "List Invites",
+    "description": "The project's links that still work, newest first.",
+    "operationId": "list_invites_api_projects__project_id__invites_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/InviteLink"
+         },
+         "title": "Response List Invites Api Projects  Project Id  Invites Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/projects/{project_id}/invites/{invite_id}": {
+   "delete": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Revoke Invite",
+    "description": "The link stops working; people who already joined stay.",
+    "operationId": "revoke_invite_api_projects__project_id__invites__invite_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "invite_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Invite Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
    }
   },
   "/api/invites/{token}": {
@@ -1426,6 +1574,70 @@
    }
   },
   "/api/projects/{project_id}/members/{member_id}": {
+   "put": {
+    "tags": [
+     "projects"
+    ],
+    "summary": "Set Member Role",
+    "operationId": "set_member_role_api_projects__project_id__members__member_id__put",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "project_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Project Id"
+      }
+     },
+     {
+      "name": "member_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Member Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MemberRoleIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Project"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
    "delete": {
     "tags": [
      "projects"
@@ -5276,6 +5488,46 @@
     "type": "object",
     "title": "InviteIn"
    },
+   "InviteLink": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "token": {
+      "type": "string",
+      "title": "Token"
+     },
+     "role": {
+      "type": "string",
+      "title": "Role"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Expires At"
+     },
+     "joined": {
+      "type": "integer",
+      "title": "Joined"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "token",
+     "role",
+     "created_at",
+     "expires_at",
+     "joined"
+    ],
+    "title": "InviteLink"
+   },
    "InviteOut": {
     "properties": {
      "token": {
@@ -5518,6 +5770,23 @@
      "name"
     ],
     "title": "Member"
+   },
+   "MemberRoleIn": {
+    "properties": {
+     "role": {
+      "type": "string",
+      "enum": [
+       "editor",
+       "viewer"
+      ],
+      "title": "Role"
+     }
+    },
+    "type": "object",
+    "required": [
+     "role"
+    ],
+    "title": "MemberRoleIn"
    },
    "OrganizeIn": {
     "properties": {
@@ -6265,6 +6534,26 @@
       "type": "integer",
       "title": "Version",
       "default": 1
+     },
+     "updated_by": {
+      "type": "string",
+      "title": "Updated By",
+      "default": ""
+     },
+     "updated_by_name": {
+      "type": "string",
+      "title": "Updated By Name",
+      "default": ""
+     },
+     "checks_rev": {
+      "type": "integer",
+      "title": "Checks Rev",
+      "default": 0
+     },
+     "members_rev": {
+      "type": "integer",
+      "title": "Members Rev",
+      "default": 0
      }
     },
     "type": "object",
@@ -6287,7 +6576,11 @@
      "template",
      "created_at",
      "updated_at",
-     "version"
+     "version",
+     "updated_by",
+     "updated_by_name",
+     "checks_rev",
+     "members_rev"
     ],
     "title": "Project"
    },
@@ -7312,6 +7605,56 @@
      "name"
     ],
     "title": "SupplierIn"
+   },
+   "SyncOut": {
+    "properties": {
+     "version": {
+      "type": "integer",
+      "title": "Version"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     },
+     "updated_by": {
+      "type": "string",
+      "title": "Updated By"
+     },
+     "updated_by_name": {
+      "type": "string",
+      "title": "Updated By Name"
+     },
+     "checks_rev": {
+      "type": "integer",
+      "title": "Checks Rev"
+     },
+     "members_rev": {
+      "type": "integer",
+      "title": "Members Rev"
+     },
+     "role": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Role"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "version",
+     "updated_at",
+     "updated_by",
+     "updated_by_name",
+     "checks_rev",
+     "members_rev",
+     "role"
+    ],
+    "title": "SyncOut"
    },
    "TemplateIn": {
     "properties": {

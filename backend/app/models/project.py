@@ -163,6 +163,12 @@ class Project(Doc, ProjectContent):
     created_at: datetime = Field(default_factory=now)
     updated_at: datetime = Field(default_factory=now)
     version: int = 1
+    # Who made the latest change (shown to collaborators), and a counter of shopping ticks, which
+    # don't change the version: open copies watch both to refresh.
+    updated_by: str = ""
+    updated_by_name: str = ""
+    checks_rev: int = 0
+    members_rev: int = 0  # bumped when someone joins, leaves or changes access
 
     def role_of(self, user_id: str) -> Role | None:
         for m in self.members:

@@ -262,6 +262,54 @@ async def test_sharing_and_permissions(client):
     assert (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(other))).status_code == 403
 
 
+async def test_collaboration(client):
+    """Who saved, a cheap sync check, viewers ticking the list, and the owner managing links and people."""
+    p = await new_project(client, name="Together")
+    pid, editor, viewer = p["id"], "editor@test.dev", "viewer@test.dev"
+    links = {}
+    for who, role in ((editor, "editor"), (viewer, "viewer")):
+        inv = (await client.post(f"/api/projects/{pid}/invites", json={"role": role}, headers=auth(USER))).json()
+        assert (await client.post(f"/api/invites/{inv['token']}/accept", headers=auth(who))).status_code == 200
+        links[role] = inv["token"]
+
+    # An editor's save is attributed to them, and the sync check says so.
+    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    saved = (await client.put(f"/api/projects/{pid}", json={**body, "name": "Together v2"}, headers=auth(editor))).json()
+    sync = (await client.get(f"/api/projects/{pid}/sync", headers=auth(USER))).json()
+    assert sync["version"] == saved["version"] and sync["updated_by_name"] == "Editor"
+
+    # Viewers can tick the shopping list (not edit); a tick moves the sync counter, not the version.
+    r = await client.put(f"/api/projects/{pid}/shopping/checked", json={"key": "x", "checked": True}, headers=auth(viewer))
+    assert r.status_code == 204
+    after = (await client.get(f"/api/projects/{pid}/sync", headers=auth(viewer))).json()
+    assert after["checks_rev"] == sync["checks_rev"] + 1 and after["version"] == sync["version"]
+    outsider = await client.put(f"/api/projects/{pid}/shopping/checked", json={"key": "x", "checked": False}, headers=auth("stranger@test.dev"))
+    assert outsider.status_code == 404
+
+    # The owner sees the links that still work, with who joined, and can revoke one.
+    listed = (await client.get(f"/api/projects/{pid}/invites", headers=auth(USER))).json()
+    assert {(i["role"], i["joined"]) for i in listed} == {("editor", 1), ("viewer", 1)}
+    assert (await client.get(f"/api/projects/{pid}/invites", headers=auth(editor))).status_code == 403
+    viewer_link = next(i for i in listed if i["role"] == "viewer")
+    assert (await client.delete(f"/api/projects/{pid}/invites/{viewer_link['id']}", headers=auth(USER))).status_code == 204
+    assert (await client.get(f"/api/invites/{links['viewer']}", headers=auth("late@test.dev"))).status_code == 404
+
+    # Changing someone's access: the viewer becomes an editor; the owner can't be changed.
+    me = (await client.get("/api/me", headers=auth(viewer))).json()
+    before = (await client.get(f"/api/projects/{pid}/sync", headers=auth(viewer))).json()
+    assert before["role"] == "viewer"
+    r = await client.put(f"/api/projects/{pid}/members/{me['id']}", json={"role": "editor"}, headers=auth(USER))
+    assert next(m for m in r.json()["members"] if m["user_id"] == me["id"])["role"] == "editor"
+    now_ = (await client.get(f"/api/projects/{pid}/sync", headers=auth(viewer))).json()
+    assert now_["role"] == "editor" and now_["members_rev"] == before["members_rev"] + 1
+    owner = (await client.get("/api/me", headers=auth(USER))).json()
+    assert (await client.put(f"/api/projects/{pid}/members/{owner['id']}", json={"role": "viewer"}, headers=auth(USER))).status_code == 409
+    # A member can leave.
+    r = await client.delete(f"/api/projects/{pid}/members/{me['id']}", headers=auth(viewer))
+    assert r.status_code == 200 and all(m["user_id"] != me["id"] for m in r.json()["members"])
+    assert (await client.get(f"/api/projects/{pid}/sync", headers=auth(viewer))).status_code == 404
+
+
 async def test_templates(client):
     tpls = (await client.get("/api/templates", headers=auth(USER))).json()
     bench = next(t for t in tpls if t["title"].startswith("Workbench"))

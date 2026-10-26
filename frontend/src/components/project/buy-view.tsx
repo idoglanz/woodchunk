@@ -30,6 +30,9 @@ export function BuyView() {
   const status = useSetStatus();
   const data = shop.data;
   const unpriced = !!data?.groups.some((g) => g.lines.some((l) => l.total == null));
+  // Ticking is shared progress at the store: anyone in the project can tick, viewers too.
+  const member = !!me && (me.role === "admin" || !!project?.members.some((m) => m.user_id === me.id));
+  const canTick = member && project?.status !== "done";
 
   const toggle = async (key: string, checked: boolean) => {
     const k = qk.shopping(id, version, lang, tr.dataUpdatedAt);
@@ -111,7 +114,7 @@ export function BuyView() {
                 {g.lines.map((l) => (
                   <li key={l.key} className="border-t border-line first:border-t-0">
                     <label className="flex min-h-[56px] cursor-pointer items-center gap-3.5 px-5 py-2.5">
-                      <input type="checkbox" checked={l.checked} disabled={readOnly} onChange={(e) => toggle(l.key, e.target.checked)}
+                      <input type="checkbox" checked={l.checked} disabled={!canTick} onChange={(e) => toggle(l.key, e.target.checked)}
                         className="peer sr-only" />
                       <span aria-hidden="true" className={cn("flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent",
                         l.checked ? "border-ink bg-ink text-surface" : "border-line-strong")}>

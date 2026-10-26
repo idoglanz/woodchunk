@@ -8,6 +8,32 @@ import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
+/**
+ * A screen of its own on phones (a picker with a long list and a search): the whole viewport, so
+ * the keyboard opening can't push it out of view the way it does a floating dropdown.
+ */
+export function FullScreen({ open, onOpenChange, title, children }: {
+  open: boolean; onOpenChange: (o: boolean) => void; title: string; children: ReactNode;
+}) {
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Content aria-describedby={undefined}
+          className="animate-sheet fixed inset-0 z-50 flex flex-col bg-surface outline-none"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+          <div className="flex shrink-0 items-center justify-between gap-3 px-4 pb-1 pt-3">
+            <Dialog.Title className="text-[18px] font-semibold tracking-[-0.01em]">{title}</Dialog.Title>
+            <Dialog.Close aria-label="Close" className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-ink-2">
+              <X size={16} strokeWidth={2.2} />
+            </Dialog.Close>
+          </div>
+          {children}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
 /** Centered dialog on desktop, bottom sheet on phones. */
 export function Sheet({ open, onOpenChange, title, description, children, footer, wide }: {
   open: boolean; onOpenChange: (o: boolean) => void; title: string; description?: string; children: ReactNode;

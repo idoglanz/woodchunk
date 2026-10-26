@@ -23,6 +23,7 @@ import { relativeTime } from "@/lib/format";
 import type { Conflict } from "@/lib/merge";
 import { qk, useMe, usePlan, useProject } from "@/lib/queries";
 import { toast } from "@/lib/toast";
+import { useTypingOnPhone } from "@/lib/typing";
 import type { Units } from "@/lib/units";
 
 const SYNC_EVERY_MS = 8000;
@@ -96,6 +97,7 @@ const TABS = [
  * bottom (the cutting plan, the shopping total) sit on top of it via --bottom-nav.
  */
 function BottomNav({ id, tab }: { id: string; tab: string }) {
+  if (useTypingOnPhone()) return null; // the keyboard is up: out of its way
   return (
     <nav aria-label="Project view" className="no-print fixed inset-x-0 bottom-0 z-[35] flex border-t border-line backdrop-blur-xl sm:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)", background: "color-mix(in srgb, var(--surface) 96%, transparent)" }}>

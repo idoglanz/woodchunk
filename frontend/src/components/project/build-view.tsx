@@ -10,6 +10,7 @@ import { PlanContent, PlanSummary } from "@/components/project/plan-view";
 import { Button, IconButton } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { revealPart, useMediaQuery, usePartFocus } from "@/lib/focus";
+import { useTypingOnPhone } from "@/lib/typing";
 
 /**
  * Parts and the cutting plan on one screen. Desktop: parts on the left, the live layout in a
@@ -136,6 +137,9 @@ function PlanDrawer({ onPick, onIssues }: { onPick: (partId: string) => void; on
   };
 
   const pick = (partId: string) => { setHeight(PEEK); onPick(partId); };
+  // Typing a size on a phone: the keyboard is up, so the drawer gets out of the way.
+  const typing = useTypingOnPhone();
+  if (typing) return null;
 
   return (
     <div role="region" aria-label="Cutting plan"

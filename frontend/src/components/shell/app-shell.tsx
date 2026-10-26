@@ -4,6 +4,7 @@ import { Hammer, LayoutGrid, LibraryBig, LogOut, Settings, Shield, Warehouse } f
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import { Credit } from "@/components/shell/credit";
 import { Logo } from "@/components/shell/logo";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/overlay";
 import { Skeleton } from "@/components/ui/misc";
@@ -78,6 +79,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="flex-1">{children}</main>
+      {/* The frame editor fills the window: no footer under it. */}
+      {pathname.includes("/frame/") ? null : <Credit />}
     </div>
   );
 }

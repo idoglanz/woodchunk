@@ -166,19 +166,23 @@ def _steel_area(shape: str, w: float, h: float, t: float) -> float:
 def _steel_name(shape: str, w: float, h: float, t: float) -> Localized:
     def f(x: float) -> str:
         return f"{x:g}"
+
+    def ltr(text: str) -> str:
+        # Sizes keep their order inside Hebrew text ("20×20×1.5", not "1.5×20×20").
+        return f"\u2066{text}\u2069"
     if shape == "rect_tube" and w == h:
-        return Localized(en=f"{f(w)} × {f(h)} × {f(t)} square steel tube", he=f"פרופיל מרובע {f(w)}×{f(h)}×{f(t)}")
+        return Localized(en=f"{f(w)} × {f(h)} × {f(t)} square steel tube", he=f"פרופיל מרובע {ltr(f'{f(w)}×{f(h)}×{f(t)}')}")
     if shape == "rect_tube":
-        return Localized(en=f"{f(w)} × {f(h)} × {f(t)} rectangular steel tube", he=f"פרופיל מלבני {f(w)}×{f(h)}×{f(t)}")
+        return Localized(en=f"{f(w)} × {f(h)} × {f(t)} rectangular steel tube", he=f"פרופיל מלבני {ltr(f'{f(w)}×{f(h)}×{f(t)}')}")
     if shape == "angle":
-        return Localized(en=f"{f(w)} × {f(h)} × {f(t)} steel angle", he=f"זווית ברזל {f(w)}×{f(h)}×{f(t)}")
+        return Localized(en=f"{f(w)} × {f(h)} × {f(t)} steel angle", he=f"זווית ברזל {ltr(f'{f(w)}×{f(h)}×{f(t)}')}")
     if shape == "flat_bar":
-        return Localized(en=f"{f(w)} × {f(h)} flat steel bar", he=f"פס ברזל {f(w)}×{f(h)}")
+        return Localized(en=f"{f(w)} × {f(h)} flat steel bar", he=f"פס ברזל {ltr(f'{f(w)}×{f(h)}')}")
     if shape == "round_tube":
-        return Localized(en=f"{f(w)} × {f(t)} round steel tube", he=f"צינור עגול {f(w)}×{f(t)}")
+        return Localized(en=f"{f(w)} × {f(t)} round steel tube", he=f"צינור עגול {ltr(f'{f(w)}×{f(t)}')}")
     if shape == "round_bar":
         return Localized(en=f"{f(w)} mm round steel bar", he=f"ברזל עגול {f(w)} מ״מ")
-    return Localized(en=f"{f(w)} × {f(h)} × {f(t)} steel channel", he=f"פרופיל U {f(w)}×{f(h)}×{f(t)}")
+    return Localized(en=f"{f(w)} × {f(h)} × {f(t)} steel channel", he=f"פרופיל U {ltr(f'{f(w)}×{f(h)}×{f(t)}')}")
 
 
 def build_steel(supplier_id: str) -> list[CatalogItem]:
@@ -199,7 +203,8 @@ def build_steel(supplier_id: str) -> list[CatalogItem]:
 async def sync_steel(db: AsyncDatabase) -> None:
     """Add sizes that are missing (matched by section) and retire ones no longer listed. Names,
     weights and tags follow the list; prices someone entered are kept."""
-    digest = await _pending(db, "catalog:steel", STEEL)
+    # Names are part of the data: renaming a size re-applies the list too.
+    digest = await _pending(db, "catalog:steel", [[*row, *_steel_name(*row).model_dump().values()] for row in STEEL])
     if not digest:
         return
     logger.info("Updating the steel sizes")

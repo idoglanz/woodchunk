@@ -6,6 +6,7 @@ import { useDeferredValue, useState } from "react";
 import { ImportSheet } from "@/components/catalog/import-sheet";
 import { ItemEditor } from "@/components/catalog/item-editor";
 import { itemDetail } from "@/components/project/material-picker";
+import { SectionGlyph } from "@/components/project/section-glyph";
 import { Page } from "@/components/shell/app-shell";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
@@ -17,7 +18,19 @@ import { relativeTime } from "@/lib/format";
 import { useCatalog, useItemStatus, useMe, useSuppliers } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 
-type Kind = "all" | "lumber" | "sheet" | "hardware";
+type Kind = "all" | "lumber" | "steel" | "sheet" | "hardware";
+
+const isSteel = (it: CatalogItem) => it.kind === "lumber" && (it.material ?? "").toLowerCase().includes("steel");
+const SHAPE_ORDER = ["rect_tube", "round_tube", "angle", "flat_bar", "round_bar", "channel"];
+/** Wood, then steel (by shape, then size), then sheets and hardware. */
+function group(it: CatalogItem): number[] {
+  if (isSteel(it)) {
+    const p = it.profile;
+    const square = p?.shape === "rect_tube" && p.w === p.h ? 0 : 1;
+    return [1, SHAPE_ORDER.indexOf(p?.shape ?? ""), p?.shape === "rect_tube" ? square : 0, p?.w ?? 0, p?.h ?? 0, p?.t ?? 0];
+  }
+  return [{ lumber: 0, sheet: 2, hardware: 3 }[it.kind]];
+}
 
 export function CatalogPage() {
   const me = useMe();
@@ -29,7 +42,8 @@ export function CatalogPage() {
   const [importing, setImporting] = useState(false);
   const [organizing, setOrganizing] = useState(false);
   const dq = useDeferredValue(q);
-  const items = useCatalog({ q: dq, kind: kind === "all" ? null : kind, supplier_id: supplier || null });
+  // Steel bars are lumber (bars sold by length) made of steel: their own tab.
+  const items = useCatalog({ q: dq, kind: kind === "all" ? null : kind === "steel" ? "lumber" : kind, supplier_id: supplier || null });
   const suggested = useCatalog({ status: "suggested" }, admin);
   const suppliers = useSuppliers();
   const status = useItemStatus();
@@ -47,7 +61,11 @@ export function CatalogPage() {
     }
   };
 
-  const list = (items.data ?? []).filter((i) => i.status !== "suggested" || admin);
+  const list = (items.data ?? [])
+    .filter((i) => (i.status !== "suggested" || admin) && (kind === "steel" ? isSteel(i) : kind === "lumber" ? !isSteel(i) : true))
+    .map((it, i) => ({ it, key: [...group(it), i] }))
+    .sort((a, b) => { for (let k = 0; k < Math.max(a.key.length, b.key.length); k++) if ((a.key[k] ?? 0) !== (b.key[k] ?? 0)) return (a.key[k] ?? 0) - (b.key[k] ?? 0); return 0; })
+    .map((x) => x.it);
 
   return (
     <Page>
@@ -85,7 +103,8 @@ export function CatalogPage() {
               className="ring-on-parent h-10 w-full rounded-xl bg-surface ps-10 pe-3 text-[15px] shadow-[var(--shadow-card)] outline-none placeholder:text-ink-3 focus:shadow-[0_0_0_2px_var(--accent)] dark:border dark:border-line" />
           </div>
           <Segmented label="Kind" value={kind} onChange={setKind} options={[
-            { value: "all", label: "All" }, { value: "lumber", label: "Lumber" }, { value: "sheet", label: "Sheets" }, { value: "hardware", label: "Hardware" }]} />
+            { value: "all", label: "All" }, { value: "lumber", label: "Lumber" }, { value: "steel", label: "Steel" }, { value: "sheet", label: "Sheets" },
+            { value: "hardware", label: "Hardware" }]} />
           {suppliers.data && suppliers.data.length > 1 ? (
             <Select aria-label="Supplier" value={supplier} onChange={(e) => setSupplier(e.target.value)} className="w-auto bg-surface">
               <option value="">All suppliers</option>
@@ -106,9 +125,12 @@ export function CatalogPage() {
                 <li key={it.id}>
                   <button type="button" onClick={() => setEditing(it)}
                     className="grid w-full grid-cols-1 gap-1 px-5 py-3 text-start transition-colors hover:bg-surface-2/60 md:grid-cols-[minmax(0,2fr)_minmax(0,1.6fr)_minmax(0,1fr)_120px] md:items-center md:gap-4">
-                    <span className="flex min-w-0 flex-col">
-                      <span className="flex items-center gap-2"><span className="truncate">{it.name.en}</span>{it.status === "suggested" ? <Badge tone="warn">Suggested</Badge> : null}</span>
-                      {it.name.he ? <span dir="rtl" lang="he" className="max-w-full self-start truncate text-[13px] text-ink-2">{it.name.he}</span> : null}
+                    <span className="flex min-w-0 items-center gap-3">
+                      <SectionGlyph item={it} size={40} sheet="top" scaleMm={100} />
+                      <span className="flex min-w-0 flex-col">
+                        <span className="flex items-center gap-2"><span className="truncate">{it.name.en}</span>{it.status === "suggested" ? <Badge tone="warn">Suggested</Badge> : null}</span>
+                        {it.name.he ? <span dir="rtl" lang="he" className="max-w-full self-start truncate text-[13px] text-ink-2">{it.name.he}</span> : null}
+                      </span>
                     </span>
                     <span className="tnum truncate text-[14px] text-ink-2">{itemDetail(it)}</span>
                     <span className="truncate text-[14px] text-ink-2">{it.supplier_name || "—"}</span>

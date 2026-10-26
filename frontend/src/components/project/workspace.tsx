@@ -127,9 +127,11 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
                       className="-ms-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 hover:bg-surface-2 hover:text-ink"><ArrowLeft size={19} /></Link>
                     <div className="order-last flex min-w-0 basis-full items-center gap-3 sm:order-none sm:basis-auto">
                       <TitleInput />
-                      <StatusMenu />
+                      {/* Phones: the title has its own row, with the status beside it. Wider: with the actions. */}
+                      <span className="shrink-0 sm:hidden"><StatusMenu /></span>
                     </div>
                     <div className="ms-auto flex items-center gap-1.5">
+                      <span className="me-1.5 hidden sm:inline-flex"><StatusMenu /></span>
                       <SaveIndicator />
                       {!readOnly ? <>
                         <IconButton label="Undo (⌘Z)" size="sm" disabled={!ed.past.length} onClick={ed.undo}><Undo2 size={17} /></IconButton>

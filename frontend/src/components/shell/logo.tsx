@@ -1,9 +1,18 @@
+import { useId } from "react";
+
+const RINGS = [7, 14, 21.5, 29.5, 38];
+
+/** End grain: growth rings on a tape-yellow tile. */
 export function Logo({ size = 26 }: { size?: number }) {
+  const clip = `logo${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
-      <rect width="64" height="64" rx="15" fill="var(--ink)" />
-      <rect x="10" y="22" width="44" height="20" rx="4" fill="var(--accent)" />
-      <path d="M18 22v8M26 22v5M34 22v8M42 22v5M50 22v8" stroke="#1d1d1f" strokeWidth="2.5" strokeLinecap="round" />
+      <defs><clipPath id={clip}><rect width="64" height="64" rx="15" /></clipPath></defs>
+      <rect width="64" height="64" rx="15" fill="var(--accent)" />
+      <g clipPath={`url(#${clip})`} fill="none" stroke="var(--accent-ink)" strokeWidth="2.4">
+        {RINGS.map((r) => <circle key={r} cx="22" cy="44" r={r} />)}
+      </g>
+      <circle cx="22" cy="44" r="2.2" fill="var(--accent-ink)" />
     </svg>
   );
 }

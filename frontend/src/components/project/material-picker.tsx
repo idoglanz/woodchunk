@@ -3,10 +3,11 @@
 import { Check, ChevronDown, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SectionGlyph } from "@/components/project/section-glyph";
-import { Pop } from "@/components/ui/overlay";
+import { FullScreen, Pop } from "@/components/ui/overlay";
 import { Segmented } from "@/components/ui/segmented";
 import type { CatalogItem } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
+import { useMediaQuery } from "@/lib/focus";
 import { searchItems } from "@/lib/material-search";
 
 const RECENT_KEY = "wc.recentMaterials";
@@ -43,6 +44,7 @@ export function ItemPicker({ items, value, onChange, kinds, placeholder = "Choos
   kinds: CatalogItem["kind"][]; placeholder?: string; disabled?: boolean; ariaLabel: string; className?: string; allowFree?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const phone = useMediaQuery("(max-width: 639.98px)");
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const [tab, setTab] = useState<CatalogItem["kind"] | null>(null);
@@ -57,7 +59,9 @@ export function ItemPicker({ items, value, onChange, kinds, placeholder = "Choos
     return k && kinds.includes(k) ? k : kinds[0];
   })();
 
-  const shown = results.filter((i) => i.kind === kind);
+  // Not searching: wood before steel (searching keeps the best matches first).
+  const steel = (i: CatalogItem) => i.kind === "lumber" && (i.material ?? "").toLowerCase().includes("steel");
+  const shown = results.filter((i) => i.kind === kind).sort((a, b) => (q ? 0 : Number(steel(a)) - Number(steel(b))));
   const recent = q ? [] : readRecent().map((id) => shown.find((i) => i.id === id)).filter(Boolean) as CatalogItem[];
   const rest = recent.length ? shown.filter((i) => !recent.includes(i)) : shown;
   const flat = [...recent, ...rest];
@@ -93,20 +97,21 @@ export function ItemPicker({ items, value, onChange, kinds, placeholder = "Choos
     </button>
   );
 
-  return (
-    <Pop open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setQ(""); setTab(null); } setActive(0); }} align="start" className="w-[min(92vw,440px)] p-0"
-      trigger={
-        <button type="button" disabled={disabled} aria-label={ariaLabel}
-          className={cn("flex h-9 w-full min-w-0 items-center gap-1.5 rounded-lg bg-surface-2 px-2 text-start text-[14px] transition-colors hover:bg-surface-3 disabled:opacity-60", className)}>
-          {current && current.kind !== "hardware" ? <SectionGlyph item={current} size={20} /> : null}
-          <span className={cn("min-w-0 flex-1 truncate", !current && "text-ink-3")}>{current ? current.name.en : placeholder}</span>
-          <ChevronDown size={14} className="shrink-0 text-ink-3" />
-        </button>
-      }>
-      <div className="flex flex-col gap-2 border-b border-line px-3 pb-2.5 pt-1">
+  const openChange = (o: boolean) => { setOpen(o); if (!o) { setQ(""); setTab(null); } setActive(0); };
+  const trigger = (
+    <button type="button" disabled={disabled} aria-label={ariaLabel} onClick={phone ? () => openChange(true) : undefined}
+      className={cn("flex h-9 w-full min-w-0 items-center gap-1.5 rounded-lg bg-surface-2 px-2 text-start text-[14px] transition-colors hover:bg-surface-3 disabled:opacity-60", className)}>
+      {current && current.kind !== "hardware" ? <SectionGlyph item={current} size={20} /> : null}
+      <span className={cn("min-w-0 flex-1 truncate", !current && "text-ink-3")}>{current ? current.name.en : placeholder}</span>
+      <ChevronDown size={14} className="shrink-0 text-ink-3" />
+    </button>
+  );
+  const body = <>
+      <div className="flex shrink-0 flex-col gap-2 border-b border-line px-3 pb-2.5 pt-1">
         <div className="mt-1.5 flex h-10 items-center gap-2.5 rounded-[10px] bg-surface-2 px-3 transition-shadow duration-150 focus-within:shadow-[0_0_0_2px_var(--accent)]">
           <Search size={15} className="shrink-0 text-ink-3" />
-          <input autoFocus value={q} onChange={(e) => { setQ(e.target.value); setActive(0); }}
+          {/* Phones don't jump into the search: the keyboard would cover the list (and the recent picks). */}
+          <input autoFocus={!phone} value={q} onChange={(e) => { setQ(e.target.value); setActive(0); }}
             placeholder={allowFree ? "Search or type a name" : kind === "sheet" ? "Search, e.g. 18 birch" : "Search, e.g. 44x100 treated"}
             aria-label="Search catalog" className="ring-on-parent h-10 min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-3"
             onKeyDown={(e) => {
@@ -125,7 +130,7 @@ export function ItemPicker({ items, value, onChange, kinds, placeholder = "Choos
             options={kinds.map((k) => ({ value: k, label: q ? `${KIND_LABEL[k]} ${results.filter((i) => i.kind === k).length}` : KIND_LABEL[k] }))} />
         ) : null}
       </div>
-      <div ref={listRef} className="max-h-[min(60vh,440px)] overflow-y-auto p-1.5">
+      <div ref={listRef} className={cn("overflow-y-auto overscroll-contain p-1.5", phone ? "min-h-0 flex-1" : "max-h-[min(60vh,440px)]")}>
         {recent.length ? <p className="px-2 pb-1 pt-1.5 text-[12px] font-medium text-ink-3">Recent</p> : null}
         <div className="flex flex-col">{recent.map((it, i) => row(it, i))}</div>
         {recent.length && rest.length ? <p className="px-2 pb-1 pt-2.5 text-[12px] font-medium text-ink-3">All {KIND_LABEL[kind].toLowerCase()}</p> : null}
@@ -146,6 +151,18 @@ export function ItemPicker({ items, value, onChange, kinds, placeholder = "Choos
           </div>
         ) : null}
       </div>
+  </>;
+
+  // Phones: a screen of its own (a dropdown there ends up under the keyboard or off-screen).
+  if (phone) {
+    return <>
+      {trigger}
+      <FullScreen open={open} onOpenChange={openChange} title={placeholder}>{body}</FullScreen>
+    </>;
+  }
+  return (
+    <Pop open={open} onOpenChange={openChange} align="start" className="w-[min(92vw,440px)] p-0" trigger={trigger}>
+      {body}
     </Pop>
   );
 }

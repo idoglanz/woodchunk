@@ -46,11 +46,35 @@ function numbersOf(it: CatalogItem): Set<string> {
   return out;
 }
 
+const pairCache = new WeakMap<CatalogItem, Set<string>>();
+
+/** Sizes written as a pair in the item's names ("52 × 52", "25/100"), both ways round. */
+function pairsOf(it: CatalogItem): Set<string> {
+  const hit = pairCache.get(it);
+  if (hit) return hit;
+  const out = new Set<string>();
+  for (const name of [it.name.en, it.name.he]) {
+    for (const m of name.matchAll(/(\d+(?:\.\d+)?)\s*[×x*/]\s*(\d+(?:\.\d+)?)/g)) {
+      const [a, b] = [String(Number(m[1])), String(Number(m[2]))];
+      out.add(`${a}x${b}`);
+      out.add(`${b}x${a}`);
+    }
+  }
+  pairCache.set(it, out);
+  return out;
+}
+
 /** Score an item for the query; null means it doesn't match. Higher is better. */
 export function scoreItem(it: CatalogItem, tokens: Token[]): number | null {
   if (!tokens.length) return 0;
   const nums = numbersOf(it);
   let score = 0;
+  // Two numbers in a row that are one of its sizes ("52 52" → 52 × 52) beat each number alone.
+  const pairs = pairsOf(it);
+  for (let i = 0; i + 1 < tokens.length; i++) {
+    const [a, b] = [tokens[i], tokens[i + 1]];
+    if (a.kind === "num" && b.kind === "num" && pairs.has(`${a.value}x${b.value}`)) score += 6;
+  }
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
     const last = i === tokens.length - 1;

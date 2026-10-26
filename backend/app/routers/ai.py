@@ -12,7 +12,7 @@ from app.models.catalog import CatalogItem, CatalogItemBase, ItemStatus, PricePo
 from app.models.common import Localized, Model, new_id, now
 from app.models.project import Project, ProjectContent, ProjectStatus
 from app.models.user import User
-from app.routers.deps import load_project, plan_for
+from app.routers.deps import edited_by, load_project, plan_for
 from app.services.ai import project_chat
 from app.services.ai.catalog_ai import CatalogImport, ImportProposalItem, extract, match_items, organize, to_catalog
 from app.services.ai.client import AIServiceError, get_ai
@@ -178,7 +178,7 @@ async def apply_proposal(proposal_id: str, user: User = Depends(current_user)):
     new_content = await derive_all(db, new_content)
     res = await db.projects.find_one_and_update(
         {"_id": p.id, "version": p.version},
-        {"$set": {**new_content.model_dump(mode="python"), "version": p.version + 1, "updated_at": now()}},
+        {"$set": {**new_content.model_dump(mode="python"), "version": p.version + 1, "updated_at": now(), **edited_by(user)}},
         return_document=True)
     if res is None:
         raise HTTPException(status.HTTP_409_CONFLICT, "The project changed at the same moment. Try again.")

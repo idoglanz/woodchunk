@@ -32,6 +32,11 @@ async def load_project(project_id: str, user: User, need: Need = "view") -> Proj
     return p
 
 
+def edited_by(user: User) -> dict:
+    """Fields recording who made a project's latest change."""
+    return {"updated_by": user.id, "updated_by_name": user.name or user.email}
+
+
 def project_item_ids(p: Project) -> set[str]:
     ids = {pt.item_id for a in p.assemblies for pt in a.parts if pt.item_id}
     ids |= {h.item_id for a in p.assemblies for h in a.hardware if h.item_id}

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AIPanel } from "@/components/project/ai-panel";
-import { ProjectContext } from "@/components/project/context";
+import { ProjectContext, useProjectCtx } from "@/components/project/context";
 import { MoreMenu, TemplateSheet } from "@/components/project/more-menu";
 import { ShareSheet } from "@/components/project/share";
 import { StatusMenu } from "@/components/project/status-menu";
@@ -14,10 +14,56 @@ import { SummaryBar } from "@/components/project/summary-bar";
 import { Button, IconButton, Spinner } from "@/components/ui/button";
 import { EmptyState, Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
-import { setOnSaved, useEditor } from "@/lib/editor";
+import { api, unwrap, type Project, type Schemas } from "@/lib/api/client";
+import { hasUnsaved, setOnSaved, useEditor } from "@/lib/editor";
 import { useMediaQuery } from "@/lib/focus";
+import { relativeTime } from "@/lib/format";
+import type { Conflict } from "@/lib/merge";
 import { qk, useMe, usePlan, useProject } from "@/lib/queries";
 import type { Units } from "@/lib/units";
+
+const SYNC_EVERY_MS = 8000;
+
+/**
+ * Keeps an open project current while others work on it: a cheap check every few seconds (and
+ * when the tab comes back into view) loads their saves when nothing here is unsaved (unsaved edits
+ * are merged when they're saved), and refreshes the shopping list when someone ticks an item.
+ */
+function useLiveSync(id: string, enabled: boolean) {
+  const qc = useQueryClient();
+  const checks = useRef<number | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    let busy = false;
+    const check = async () => {
+      if (busy || document.visibilityState !== "visible") return;
+      busy = true;
+      try {
+        const s = await unwrap<Schemas["SyncOut"]>(api.GET("/api/projects/{project_id}/sync", { params: { path: { project_id: id } } }));
+        if (checks.current !== null && s.checks_rev !== checks.current) void qc.invalidateQueries({ queryKey: ["shopping", id] });
+        checks.current = s.checks_rev;
+        if (s.version > useEditor.getState().version && !hasUnsaved()) {
+          const p = await unwrap<Project>(api.GET("/api/projects/{project_id}", { params: { path: { project_id: id } } }));
+          useEditor.getState().remoteUpdate(p);
+          qc.setQueryData(qk.project(p.id), p);
+        }
+      } catch {
+        // Offline or signed out: the next check tries again.
+      } finally {
+        busy = false;
+      }
+    };
+    const timer = setInterval(check, SYNC_EVERY_MS);
+    const onShow = () => { if (document.visibilityState === "visible") void check(); };
+    document.addEventListener("visibilitychange", onShow);
+    window.addEventListener("focus", onShow);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onShow);
+      window.removeEventListener("focus", onShow);
+    };
+  }, [id, enabled, qc]);
+}
 
 const TABS = [
   { value: "build", label: "Build" },
@@ -84,6 +130,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
   }, []);
 
   const ready = ed.project?.id === id && !!ed.content;
+  useLiveSync(id, ready);
   const title = ed.content?.name;
   useEffect(() => {
     if (title) document.title = `${title} · Woodchunk`;
@@ -137,7 +184,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
                         <IconButton label="Undo (⌘Z)" size="sm" disabled={!ed.past.length} onClick={ed.undo}><Undo2 size={17} /></IconButton>
                         <IconButton label="Redo (⇧⌘Z)" size="sm" disabled={!ed.future.length} onClick={ed.redo}><Redo2 size={17} /></IconButton>
                       </> : null}
-                      {role === "owner" ? <Button size="sm" variant="ghost" icon={<Share size={15} />} onClick={() => setSharing(true)}>Share</Button> : null}
+                      {role ? <Button size="sm" variant="ghost" icon={<Share size={15} />} onClick={() => setSharing(true)}>{role === "owner" ? "Share" : "People"}</Button> : null}
                       <Button size="sm" variant={aiOpen ? "secondary" : "ghost"} icon={<Sparkles size={15} />} onClick={() => setAIOpen((o) => !o)} aria-pressed={aiOpen}>Ask</Button>
                       <MoreMenu owner={role === "owner"} onTemplate={() => setTemplating(true)} />
                     </div>
@@ -164,16 +211,35 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
 function ConflictBanner() {
   const save = useEditor((s) => s.save);
   const latest = useEditor((s) => s.latest);
+  const conflicts = useEditor((s) => s.conflicts);
   if (save !== "conflict") return null;
+  const who = latest?.updated_by_name || "Someone else";
+  const what = conflicts.slice(0, 3).map(conflictLabel).join("; ");
   return (
     <div role="alert" className="no-print flex flex-wrap items-center justify-between gap-3 rounded-[14px] bg-kerf-soft px-4 py-3 text-[14px]">
-      <span className="font-medium text-ink">Someone else changed this project while you were editing, so your last changes aren&apos;t saved.</span>
+      <span className="font-medium text-ink">
+        {conflicts.length
+          ? <>You and {who} both changed {what}{conflicts.length > 3 ? ` and ${conflicts.length - 3} more` : ""}. Everything else is combined. Which value should win?</>
+          : <>{who} changed this project while you were editing, so your last changes aren&apos;t saved.</>}
+      </span>
       <span className="flex gap-2">
-        <Button size="sm" onClick={() => useEditor.getState().takeTheirs()} disabled={!latest}>Load their version</Button>
-        <Button size="sm" variant="primary" onClick={() => useEditor.getState().keepMine()} disabled={!latest}>Keep mine</Button>
+        <Button size="sm" onClick={() => useEditor.getState().takeTheirs()} disabled={!latest}>{conflicts.length ? "Theirs" : "Load their version"}</Button>
+        <Button size="sm" variant="primary" onClick={() => useEditor.getState().keepMine()} disabled={!latest}>{conflicts.length ? "Mine" : "Keep mine"}</Button>
       </span>
     </div>
   );
+}
+
+const FIELD_NAMES: Record<string, string> = {
+  qty: "quantity", length_mm: "length", width_mm: "width", item_id: "material", name: "name", notes: "notes",
+  grain_locked: "grain", settings: "cutting settings", description: "description",
+};
+const CONTAINERS = new Set(["assemblies", "parts", "hardware", "extras", "frame", "nodes", "members", "joints"]);
+
+/** "Frame › Leg › quantity" from a merge path. */
+function conflictLabel(c: Conflict): string {
+  const parts = c.path.filter((p) => !CONTAINERS.has(p)).map((p) => FIELD_NAMES[p] ?? p.replace(/_mm$/, "").replace(/_/g, " "));
+  return parts.join(" › ") || "the project";
 }
 
 function TitleInput() {
@@ -193,7 +259,12 @@ function TitleInput() {
 function SaveIndicator() {
   const save = useEditor((s) => s.save);
   const readOnly = useEditor((s) => s.readOnly);
+  const project = useEditor((s) => s.project);
+  const { me } = useProjectCtx();
+  // Someone else made the latest change: say who, so a shared project's changes aren't a mystery.
+  const byOther = project?.updated_by && project.updated_by !== me?.id && (save === "saved" || save === "idle");
   if (readOnly) return <span className="me-2 text-[13px] text-ink-3">View only</span>;
+  if (byOther) return <span className="me-2 text-[13px] text-ink-3" title={new Date(project.updated_at).toLocaleString()}>{project.updated_by_name} edited · {relativeTime(project.updated_at)}</span>;
   if (save === "saving" || save === "pending") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-ink-3"><Spinner className="h-3.5 w-3.5" />Saving</span>;
   if (save === "error" || save === "conflict") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-kerf"><CloudOff size={14} />{save === "conflict" ? "Out of date" : "Not saved, retrying"}</span>;
   if (save === "saved") return <span className="me-2 inline-flex items-center gap-1 text-[13px] text-ink-3"><Check size={14} />Saved</span>;

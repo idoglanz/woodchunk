@@ -28,7 +28,7 @@ from app.models.project import (
     TemplateMeta,
 )
 from app.models.user import User
-from app.routers.deps import load_project, plan_for
+from app.routers.deps import edited_by, load_project, plan_for
 from app.services.ai.catalog_ai import translate_strings
 from app.services.ai.client import AIServiceError
 from app.services.frame.parts import derive_all
@@ -98,7 +98,7 @@ async def save_project(project_id: str, body: ProjectUpdate, user: User = Depend
     if body.version != p.version:
         raise HTTPException(status.HTTP_409_CONFLICT, "Someone else changed this project. Reload to see their changes.")
     content = await derive_all(get_db(), ProjectContent.model_validate(body.model_dump(exclude={"version"})))
-    update = {**content.model_dump(mode="python"), "updated_at": now(), "version": p.version + 1}
+    update = {**content.model_dump(mode="python"), "updated_at": now(), "version": p.version + 1, **edited_by(user)}
     res = await get_db().projects.find_one_and_update(
         {"_id": p.id, "version": p.version}, {"$set": update}, return_document=True)
     if res is None:
@@ -174,11 +174,30 @@ class CheckIn(Model):
 
 @router.put("/projects/{project_id}/shopping/checked", status_code=204)
 async def check_line(project_id: str, body: CheckIn, user: User = Depends(current_user)):
-    p = await load_project(project_id, user, "edit")
+    # Ticking is shared progress at the store, not an edit to the plan: viewers can tick too.
+    p = await load_project(project_id, user, "view")
+    if p.role_of(user.id) is None and not user.is_admin:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Join the project to tick items off.")
     if p.status == ProjectStatus.done:
         raise HTTPException(status.HTTP_409_CONFLICT, "This project is done. Reopen it to make changes.")
     op = "$addToSet" if body.checked else "$pull"
-    await get_db().projects.update_one({"_id": p.id}, {op: {"shopping_checked": body.key}})
+    await get_db().projects.update_one({"_id": p.id}, {op: {"shopping_checked": body.key}, "$inc": {"checks_rev": 1}})
+
+
+class SyncOut(Model):
+    version: int
+    updated_at: datetime
+    updated_by: str
+    updated_by_name: str
+    checks_rev: int
+
+
+@router.get("/projects/{project_id}/sync", response_model=SyncOut)
+async def project_sync(project_id: str, user: User = Depends(current_user)):
+    """Cheap check for open copies: has anyone saved, or ticked the shopping list, since?"""
+    p = await load_project(project_id, user, "view")
+    return SyncOut(version=p.version, updated_at=p.updated_at, updated_by=p.updated_by,
+                   updated_by_name=p.updated_by_name, checks_rev=p.checks_rev)
 
 
 class StatusIn(Model):
@@ -201,7 +220,7 @@ async def set_status(project_id: str, body: StatusIn, user: User = Depends(curre
     if (p.status, body.status) not in TRANSITIONS:
         raise HTTPException(status.HTTP_409_CONFLICT, f"A {p.status} project can't move to {body.status}.")
     db = get_db()
-    update: dict = {"status": body.status, "updated_at": now(), "version": p.version + 1}
+    update: dict = {"status": body.status, "updated_at": now(), "version": p.version + 1, **edited_by(user)}
     stock_changes: list = []  # inventory writes, done only once this request has claimed the change
     if body.status == ProjectStatus.bought:
         plan, items, _, _ = await plan_for(p)
@@ -400,6 +419,31 @@ async def create_invite(project_id: str, body: InviteIn, user: User = Depends(cu
     return InviteOut(**inv, project_name=p.name)
 
 
+class InviteLink(Model):
+    id: str
+    token: str
+    role: str
+    created_at: datetime
+    expires_at: datetime
+    joined: int  # people who joined through this link
+
+
+@router.get("/projects/{project_id}/invites", response_model=list[InviteLink])
+async def list_invites(project_id: str, user: User = Depends(current_user)):
+    """The project's links that still work, newest first."""
+    p = await load_project(project_id, user, "owner")
+    cur = get_db().invites.find({"project_id": p.id, "expires_at": {"$gt": now()}}).sort("created_at", -1)
+    return [InviteLink(id=d["_id"], token=d["token"], role=d["role"], created_at=d["created_at"],
+                       expires_at=d["expires_at"], joined=len(d.get("joined", []))) async for d in cur]
+
+
+@router.delete("/projects/{project_id}/invites/{invite_id}", status_code=204)
+async def revoke_invite(project_id: str, invite_id: str, user: User = Depends(current_user)):
+    """The link stops working; people who already joined stay."""
+    p = await load_project(project_id, user, "owner")
+    await get_db().invites.delete_one({"_id": invite_id, "project_id": p.id})
+
+
 @router.get("/invites/{token}", response_model=InviteOut)
 async def get_invite(token: str, user: User = Depends(current_user)):
     inv = await get_db().invites.find_one({"token": token})
@@ -425,10 +469,28 @@ async def accept_invite(token: str, user: User = Depends(current_user)):
         m = Member(user_id=user.id, role=Role(inv["role"]), email=user.email, name=user.name)
         doc = await db.projects.find_one_and_update({"_id": p.id, "members.user_id": {"$ne": user.id}},
                                                     {"$push": {"members": m.model_dump()}}, return_document=True) or doc
+        await db.invites.update_one({"_id": inv["_id"]}, {"$addToSet": {"joined": user.id}})
     elif role == Role.viewer and inv["role"] == Role.editor:
         # A viewer who opens an editor link is upgraded (never the other way round).
         doc = await db.projects.find_one_and_update({"_id": p.id, "members.user_id": user.id},
                                                     {"$set": {"members.$.role": Role.editor}}, return_document=True)
+    return Project.from_mongo(doc)
+
+
+class MemberRoleIn(Model):
+    role: Literal["editor", "viewer"]
+
+
+@router.put("/projects/{project_id}/members/{member_id}", response_model=Project)
+async def set_member_role(project_id: str, member_id: str, body: MemberRoleIn, user: User = Depends(current_user)):
+    p = await load_project(project_id, user, "owner")
+    current = p.role_of(member_id)
+    if current is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "They're not in this project.")
+    if current == Role.owner:
+        raise HTTPException(status.HTTP_409_CONFLICT, "The owner's access can't be changed.")
+    doc = await get_db().projects.find_one_and_update({"_id": p.id, "members.user_id": member_id},
+                                                      {"$set": {"members.$.role": body.role}}, return_document=True)
     return Project.from_mongo(doc)
 
 

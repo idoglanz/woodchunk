@@ -1,29 +1,53 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
-import { Copy, UserMinus } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Copy, Link2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button, IconButton } from "@/components/ui/button";
+import { Select } from "@/components/ui/field";
 import { Sheet } from "@/components/ui/overlay";
 import { Segmented } from "@/components/ui/segmented";
-import { api, unwrap, type Project } from "@/lib/api/client";
+import { api, unwrap, type Project, type Schemas } from "@/lib/api/client";
 import { useEditor } from "@/lib/editor";
-import { qk } from "@/lib/queries";
+import { relativeTime } from "@/lib/format";
+import { qk, useMe } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 
+type Role = "editor" | "viewer";
+const ROLE_LABEL = { owner: "Owner", editor: "Can edit", viewer: "Can view" } as const;
+const linkUrl = (token: string) => `${window.location.origin}/join/${token}`;
+
+/**
+ * Who's in the project. The owner invites people (a link per access level), sees and revokes the
+ * links still out there, and changes or removes someone's access; everyone else can leave.
+ */
 export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onOpenChange: (o: boolean) => void; project: Project }) {
-  const [role, setRole] = useState<"editor" | "viewer">("editor");
-  const [link, setLink] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const me = useMe();
+  const owner = project.members.find((m) => m.role === "owner");
+  const isOwner = !!me.data && (owner?.user_id === me.data.id || me.data.role === "admin");
   const qc = useQueryClient();
+  const router = useRouter();
+  const invitesKey = ["invites", project.id] as const;
+  const invites = useQuery({
+    queryKey: invitesKey, enabled: open && isOwner,
+    queryFn: () => unwrap<Schemas["InviteLink"][]>(api.GET("/api/projects/{project_id}/invites", { params: { path: { project_id: project.id } } })),
+  });
+  const [role, setRole] = useState<Role>("editor");
+  const [busy, setBusy] = useState(false);
+
+  const updated = (p: Project) => {
+    useEditor.getState().serverUpdate(p);
+    qc.setQueryData(qk.project(p.id), p);
+  };
+  const copy = (token: string) => navigator.clipboard.writeText(linkUrl(token)).then(() => toast.info("Invite link copied")).catch(() => {});
 
   const makeLink = async () => {
     setBusy(true);
     try {
       const inv = await unwrap<{ token: string }>(api.POST("/api/projects/{project_id}/invites", { params: { path: { project_id: project.id } }, body: { role } }));
-      const url = `${window.location.origin}/join/${inv.token}`;
-      setLink(url);
-      try { await navigator.clipboard.writeText(url); toast.info("Invite link copied"); } catch {}
+      await qc.invalidateQueries({ queryKey: invitesKey });
+      await copy(inv.token);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't create a link.");
     } finally {
@@ -31,42 +55,100 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
     }
   };
 
-  const remove = async (userId: string) => {
+  const revoke = async (inviteId: string) => {
+    const r = await api.DELETE("/api/projects/{project_id}/invites/{invite_id}", { params: { path: { project_id: project.id, invite_id: inviteId } } });
+    if (!r.response.ok) toast.error("Couldn't revoke that link.");
+    void qc.invalidateQueries({ queryKey: invitesKey });
+  };
+
+  const setAccess = async (userId: string, next: Role) => {
     try {
-      const p = await unwrap<Project>(api.DELETE("/api/projects/{project_id}/members/{member_id}", { params: { path: { project_id: project.id, member_id: userId } } }));
-      useEditor.getState().serverUpdate(p);
-      qc.setQueryData(qk.project(p.id), p);
+      updated(await unwrap<Project>(api.PUT("/api/projects/{project_id}/members/{member_id}", {
+        params: { path: { project_id: project.id, member_id: userId } }, body: { role: next } })));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't remove them.");
+      toast.error(e instanceof Error ? e.message : "Couldn't change their access.");
     }
   };
 
+  const remove = async (userId: string) => {
+    const leaving = userId === me.data?.id;
+    try {
+      const p = await unwrap<Project>(api.DELETE("/api/projects/{project_id}/members/{member_id}", { params: { path: { project_id: project.id, member_id: userId } } }));
+      if (leaving) {
+        void qc.invalidateQueries({ queryKey: ["projects"] });
+        toast.info(`You left ${project.name}`);
+        router.push("/");
+        return;
+      }
+      updated(p);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : leaving ? "Couldn't leave the project." : "Couldn't remove them.");
+    }
+  };
+
+  const links = invites.data ?? [];
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} title="Share project" description="People with the link can join after signing in. Links expire in 14 days.">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Segmented label="Access" value={role} onChange={(v) => { setRole(v); setLink(null); }}
-            options={[{ value: "editor", label: "Can edit" }, { value: "viewer", label: "Can view" }]} />
-          <Button variant="primary" loading={busy} onClick={makeLink}>Create invite link</Button>
-        </div>
-        {link ? (
-          <div className="flex items-center gap-2 rounded-xl bg-surface-2 p-2 ps-3">
-            <span className="min-w-0 flex-1 truncate font-mono text-[13px] select-all">{link}</span>
-            <IconButton label="Copy link" size="sm" onClick={() => navigator.clipboard.writeText(link).then(() => toast.info("Copied")).catch(() => {})}><Copy size={15} /></IconButton>
-          </div>
-        ) : null}
-        <div className="flex flex-col">
-          <h3 className="mb-2 text-[13px] font-semibold text-ink-2">People</h3>
-          {project.members.map((m) => (
-            <div key={m.user_id} className="flex items-center justify-between gap-3 border-t border-line py-2.5 first:border-t-0">
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate text-[15px]">{m.name || m.email}</span>
-                <span className="text-[13px] text-ink-2">{m.role === "owner" ? "Owner" : m.role === "editor" ? "Can edit" : "Can view"}</span>
-              </div>
-              {m.role !== "owner" ? <IconButton label={`Remove ${m.name || m.email}`} size="sm" onClick={() => remove(m.user_id)}><UserMinus size={16} /></IconButton> : null}
+    <Sheet open={open} onOpenChange={onOpenChange} title={isOwner ? "Share project" : "People"}
+      description={isOwner ? "People with a link join after signing in. Links work for 14 days, until you revoke them." : `${owner?.name || owner?.email || "The owner"} shares this project.`}>
+      <div className="flex flex-col gap-7">
+        {isOwner ? (
+          <section className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Segmented label="Access for a new link" value={role} onChange={setRole}
+                options={[{ value: "editor", label: "Can edit" }, { value: "viewer", label: "Can view" }]} />
+              <Button variant="primary" icon={<Link2 size={16} />} loading={busy} onClick={makeLink}>Create invite link</Button>
             </div>
-          ))}
-        </div>
+            {links.length ? (
+              <ul className="flex flex-col rounded-xl bg-surface-2 px-3">
+                {links.map((l) => (
+                  <li key={l.id} className="flex items-center gap-3 border-t border-line py-2.5 first:border-t-0">
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-[14px] font-medium">{ROLE_LABEL[l.role as Role] ?? l.role} link</span>
+                      <span className="text-[12px] text-ink-2">
+                        Made {relativeTime(l.created_at)} · {l.joined ? `${l.joined} joined` : "nobody joined yet"} · ends {new Date(l.expires_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <IconButton label="Copy link" size="sm" onClick={() => copy(l.token)}><Copy size={15} /></IconButton>
+                    <Button size="sm" variant="plain" onClick={() => revoke(l.id)}>Revoke</Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        ) : null}
+
+        <section className="flex flex-col">
+          <h3 className="mb-1 text-[13px] font-semibold text-ink-2">People</h3>
+          {project.members.map((m) => {
+            const self = m.user_id === me.data?.id;
+            return (
+              <div key={m.user_id} className="flex items-center justify-between gap-3 border-t border-line py-2.5 first:border-t-0">
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate text-[15px]">{m.name || m.email}{self ? <span className="text-ink-3"> (you)</span> : null}</span>
+                  {m.name && m.email ? <span className="truncate text-[12px] text-ink-3">{m.email}</span> : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {isOwner && m.role !== "owner" ? <>
+                    <Select aria-label={`Access for ${m.name || m.email}`} value={m.role} onChange={(e) => setAccess(m.user_id, e.target.value as Role)}
+                      className="h-8 w-auto text-[13px]">
+                      <option value="editor">Can edit</option>
+                      <option value="viewer">Can view</option>
+                    </Select>
+                    <Button size="sm" variant="plain" onClick={() => remove(m.user_id)}>Remove</Button>
+                  </> : <span className="text-[13px] text-ink-2">{ROLE_LABEL[m.role]}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </section>
+
+        <p className="text-[12px] leading-relaxed text-ink-3">
+          Plans use {isOwner ? "your" : `${owner?.name || "the owner"}'s`} workshop stock first, and marking the project as cut updates it.
+        </p>
+
+        {!isOwner && project.members.some((m) => m.user_id === me.data?.id) ? (
+          <Button variant="destructive" className="self-start" onClick={() => remove(me.data!.id)}>Leave project</Button>
+        ) : null}
       </div>
     </Sheet>
   );

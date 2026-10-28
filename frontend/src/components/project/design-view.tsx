@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Box, CheckSquare, Copy, LayoutTemplate, MoreHorizontal, PencilRuler, Plus, Sparkles, Trash2, Unlink, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Box, CheckSquare, Copy, LayoutTemplate, MoreHorizontal, Paperclip, PencilRuler, Plus, Sparkles, Trash2, Unlink, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { cutSummary } from "@/components/frame/cut-list";
 import { TemplateDialog } from "@/components/frame/template-dialog";
-import { SketchesCard } from "@/components/sketch/sketch-card";
+import { AssemblySketches, AttachSketches } from "@/components/sketch/assembly-sketches";
+import { SketchesCard, useNewSketch } from "@/components/sketch/sketch-card";
 import { useProjectCtx } from "@/components/project/context";
 import { ItemPicker, rememberMaterial } from "@/components/project/material-picker";
 import { SelectionBar, selectableParts } from "@/components/project/selection-bar";
@@ -21,6 +22,7 @@ import { partRowId, useActivePart, usePartFocus } from "@/lib/focus";
 import { money } from "@/lib/format";
 import { deriveParts } from "@/lib/frame/parts";
 import { useCatalog, useItemMap } from "@/lib/queries";
+import { lineLength } from "@/lib/sketch/parts";
 import { lengthInput } from "@/lib/units";
 import { usePartSelection } from "@/lib/selection";
 
@@ -97,6 +99,8 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
   const upd = (fn: (x: Assembly) => void, key?: string) => edit((d) => { const x = d.assemblies.find((y) => y.id === a.id); if (x) fn(x); }, key);
   const { id: projectId } = useProjectCtx();
   const [drawing, setDrawing] = useState(false);
+  const [attaching, setAttaching] = useState(false);
+  const newSketch = useNewSketch();
   const drawn = !!a.frame;
 
   const addPart = () => upd((x) => {
@@ -133,7 +137,7 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
               <MenuItem icon={<Copy size={15} />} onSelect={() => edit((d) => {
                 const src = d.assemblies.find((y) => y.id === a.id)!;
                 const copy: Assembly = { ...structuredClone(src), id: newId(), letter: nextLetter(d.assemblies.map((y) => y.letter)), name: `${src.name} copy` };
-                copy.parts = copy.parts.map((p) => ({ ...p, id: newId() }));
+                copy.parts = copy.parts.map((p) => ({ ...p, id: newId(), sketch: null })); // copies don't follow the sketch
                 copy.hardware = copy.hardware.map((h) => ({ ...h, id: newId() }));
                 deriveParts(copy, byId);
                 d.assemblies.splice(index + 1, 0, copy);
@@ -145,15 +149,22 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
               ) : (
                 <MenuItem icon={<Box size={15} />} onSelect={() => setDrawing(true)}>Design in 3D…</MenuItem>
               )}
+              <MenuItem icon={<PencilRuler size={15} />} onSelect={() => newSketch(a)}>New sketch for this</MenuItem>
+              <MenuItem icon={<Paperclip size={15} />} onSelect={() => setAttaching(true)}>Attach sketches…</MenuItem>
               <MenuItem icon={<ArrowUp size={15} />} disabled={index === 0} onSelect={() => move(-1)}>Move up</MenuItem>
               <MenuItem icon={<ArrowDown size={15} />} disabled={index === count - 1} onSelect={() => move(1)}>Move down</MenuItem>
               <MenuSeparator />
-              <MenuItem danger icon={<Trash2 size={15} />} onSelect={() => edit((d) => { d.assemblies = d.assemblies.filter((y) => y.id !== a.id); })}>Delete assembly</MenuItem>
+              <MenuItem danger icon={<Trash2 size={15} />} onSelect={() => edit((d) => {
+                d.assemblies = d.assemblies.filter((y) => y.id !== a.id);
+                for (const sk of d.sketches) if (sk.assembly_id === a.id) sk.assembly_id = null; // its sketches stay, unattached
+              })}>Delete assembly</MenuItem>
             </Menu>
           ) : null}
         </div>
       </div>
 
+      <AssemblySketches a={a} />
+      {attaching ? <AttachSketches a={a} open={attaching} onOpenChange={setAttaching} /> : null}
       {drawing ? <TemplateDialog open={drawing} onOpenChange={setDrawing} assemblyId={a.id} /> : null}
       {drawn ? <DrawnParts a={a} byId={byId} projectId={projectId} /> : (
       <div className="px-2 sm:px-3">
@@ -233,6 +244,11 @@ function PartRow({ a, p, label, items, byId, problem }: {
   const readOnly = useEditor((s) => s.readOnly);
   const { units, id: projectId } = useProjectCtx();
   const sketchName = (sid: string) => useEditor.getState().content?.sketches.find((x) => x.id === sid)?.name ?? "a sketch";
+  // A link to a line that's gone (someone deleted it meanwhile): the length is editable again.
+  const linkedLine = (link: NonNullable<Part["sketch"]>) => {
+    const sk = useEditor.getState().content?.sketches.find((x) => x.id === link.sketch_id);
+    return sk ? lineLength(sk, link.shape_id) : null;
+  };
   const active = useActivePart() === p.id;
   const item = p.item_id ? byId.get(p.item_id) : undefined;
   const isSheet = item?.kind === "sheet";
@@ -275,7 +291,7 @@ function PartRow({ a, p, label, items, byId, problem }: {
       </div>
       <div className={cn(NUMS, "[grid-area:nums]")}>
         <QtyInput ariaLabel={`${label} quantity`} value={p.qty} disabled={readOnly} onChange={(n) => upd((x) => { x.qty = n; }, `qty-${p.id}`)} />
-        {p.sketch ? (
+        {p.sketch && linkedLine(p.sketch) !== null ? (
           // Cut to a sketch line: its length is changed there.
           <Tip content={`From ${sketchName(p.sketch.sketch_id)}: change it in the sketch`}>
             <Link href={`/projects/${projectId}/sketch/${p.sketch.sketch_id}`} aria-label={`${label} length ${lengthInput(p.length_mm, units)} ${units}, from a sketch`}

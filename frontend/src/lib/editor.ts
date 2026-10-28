@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { api, ApiError, unwrap, type Assembly, type Part, type Project, type ProjectContent } from "@/lib/api/client";
 import { equal, merge3, type Conflict, type MergeResult } from "@/lib/merge";
 import { tidy } from "@/lib/sketch/model";
+import { syncParts } from "@/lib/sketch/parts";
 import { solve } from "@/lib/sketch/solve";
 import { toast } from "@/lib/toast";
 
@@ -76,7 +77,11 @@ function combine(base: ProjectContent, mine: ProjectContent, theirs: ProjectCont
     const solved = solve(clean, { quick: true });
     return solved.ok ? solved.sketch : clean;
   });
-  return { ...r, value: { ...r.value, sketches } };
+  // Parts cut to sketch lines follow the combined sketches (or let go of lines that went).
+  const value = structuredClone({ ...r.value, sketches });
+  for (const sk of value.sketches) syncParts(value, sk.id);
+  for (const a of value.assemblies) for (const p of a.parts) if (p.sketch && !value.sketches.some((x) => x.id === p.sketch!.sketch_id)) p.sketch = null;
+  return { ...r, value };
 }
 
 export const useEditor = create<Editor>((set, get) => {

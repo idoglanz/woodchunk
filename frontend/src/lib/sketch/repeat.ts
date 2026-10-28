@@ -6,7 +6,7 @@
 
 import { addConstraint, lineOf, pointAt, pointsOf, shapeById } from "./model";
 import { solve, type V2 } from "./solve";
-import { ORIGIN, type Constraint, type Sketch } from "./types";
+import { ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "./types";
 
 export type Axis = "x" | "y";
 
@@ -101,6 +101,11 @@ export function repeat(sk: Sketch, ids: string[], plan: RepeatPlan, newId: () =>
   if (!res.ok) return res;
   const { shapes, points } = groupOf(sk, ids);
   if (points.includes(ORIGIN)) return { ok: false, reason: "That's attached to the origin: repeat a copy of it instead." };
+  // What a sketch can hold (the server's limits).
+  const more = plan.count - 1;
+  if (sk.points.length + points.length * more > 2000 || sk.shapes.length + shapes.length * more > 2000 || sk.constraints.length + 3 * shapes.length * more > 4000) {
+    return { ok: false, reason: "That's more than one sketch holds: repeat fewer, or a smaller group." };
+  }
   const ext = extent(sk, ids, plan.axis)!;
   const width = ext.max - ext.min;
   const step = width + res.gap;
@@ -117,14 +122,20 @@ export function repeat(sk: Sketch, ids: string[], plan: RepeatPlan, newId: () =>
   const trial: Sketch = structuredClone(sk);
   const shift = (p: V2, by: number): V2 => (plan.axis === "x" ? [p[0] + by, p[1]] : [p[0], p[1] + by]);
   const group = new Set([...points, ...shapes.map((s) => s.id)]);
-  // The group's own relations and dimensions (also to the axes): copied with each copy.
-  const own = sk.constraints.filter((c) => c.refs.some((r) => group.has(r)) && c.refs.every((r) => group.has(r) || r === "x_axis" || r === "y_axis"));
+  // The group's own relations and dimensions, copied with each copy; to the axis it repeats along
+  // too (a slat standing on the X axis, repeated along X), but not what holds it across that
+  // (a distance from the Y axis would pin every copy to the same place).
+  const along = plan.axis === "x" ? X_AXIS : Y_AXIS;
+  const own = sk.constraints.filter((c) => c.refs.some((r) => group.has(r)) && c.refs.every((r) => group.has(r) || r === along));
   // The point each copy is placed (and dimensioned) by: where the group starts along the axis.
   const lead = points.reduce((best, p) => (coord(pointAt(sk, p), plan.axis) < coord(pointAt(sk, best), plan.axis) ? p : best), points[0]);
+  // How far that point is past the group's start (a circle's centre is a radius in).
+  const leadIn = coord(pointAt(sk, lead), plan.axis) - ext.min;
   // The group's far edge, if it has one square to the axis (a slat's right side): the next one's
   // gap is dimensioned from it, so the gaps read between the copies.
   const trailing = shapes.find((s) => s.kind === "line" && Math.abs((boundaryAt(sk, s.id, plan.axis) ?? NaN) - ext.max) < 1e-6)?.id;
   let previous: Map<string, string> | null = null;
+  const leads: { id: string; at: number }[] = []; // where each copy's lead point has to end up
 
   for (let i = 0; i < plan.count; i++) {
     const by = start + i * step - ext.min;
@@ -155,13 +166,21 @@ export function repeat(sk: Sketch, ids: string[], plan: RepeatPlan, newId: () =>
     }
     // Pinned in place (exact values: rounding would unbalance the gaps): the first from the
     // boundary, the rest by their gap from the one before (or from the boundary, without a far edge).
-    if (first && i > 0 && trailing && previous) addConstraint(trial, "point_line_distance", [map.get(lead)!, previous.get(trailing)!], res.gap);
-    else if (first) addConstraint(trial, "point_line_distance", [map.get(lead)!, first.line], start + i * step - first.at);
+    if (first && i > 0 && trailing && previous) addConstraint(trial, "point_line_distance", [map.get(lead)!, previous.get(trailing)!], res.gap + leadIn);
+    else if (first) addConstraint(trial, "point_line_distance", [map.get(lead)!, first.line], start + i * step - first.at + leadIn);
     previous = map;
+    leads.push({ id: map.get(lead)!, at: start + i * step + leadIn });
   }
 
   const solved = solve(trial, { quick: true });
-  if (!solved.ok) return { ok: false, reason: "That doesn't fit with the rest of the sketch." };
+  // Solving can pull a tied original back to where it was held: then they're not evenly spaced.
+  const landed = solved.ok && leads.every((l) => Math.abs(coord(pointAt(solved.sketch, l.id), plan.axis) - l.at) < 1e-3);
+  if (!landed) {
+    // Usually: the original is tied in place (to an axis, the origin or other lines) and can't move to the first spot.
+    return { ok: false, reason: start !== ext.min
+      ? `It's held in place along ${plan.axis.toUpperCase()} by a dimension or relation: use "Set gap" to repeat from where it is, or remove that first.`
+      : "That doesn't fit with the rest of the sketch." };
+  }
   Object.assign(sk, trial, { points: solved.sketch.points, shapes: solved.sketch.shapes });
   return res;
 }

@@ -89,6 +89,12 @@ length while drawing, label positions you can drag, and linking sketch lengths t
   to it, in a length, or with a set gap; ends equal to the gaps, flush, or set. Copies carry the
   group's relations; their sizes become "equal" to the original's (one number to change); each is
   pinned by its gap from the one before (or from the boundary). Placed once: changing the span
-  later doesn't re-spread them (repeat again).
+  or the item's size later doesn't re-spread them, and can push the last one past the boundary
+  (repeat again). Ties across the repeat (a distance from the Y axis for an X repeat) aren't
+  copied; if the original is held where it can't move into the first place, the repeat is refused.
 - **Grid:** snapping on by default (G toggles, Alt places freely); size Auto (follows the zoom)
   or 1–100 mm, kept per browser. Points and axes win over the grid.
+- **Sketches for assemblies** (`Sketch.assembly_id`): an assembly card shows its sketches (attached,
+  or ones its parts are cut from); attach from the assembly menu or the sketch's For picker.
+  Copies (duplicate project/template) keep the attachment; duplicated parts and assemblies don't
+  follow the sketch.

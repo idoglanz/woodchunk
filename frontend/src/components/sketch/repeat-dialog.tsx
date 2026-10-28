@@ -78,7 +78,7 @@ export function RepeatDialog({ sk, ids, open, onOpenChange, onApply }: {
               options={[{ value: "x", label: "Across (X)" }, { value: "y", label: "Up (Y)" }]} />
           </Field>
           <Field label="How many">
-            <QtyInput ariaLabel="How many in all" min={2} max={200} value={count} onChange={setCount} />
+            <QtyInput ariaLabel="How many in all" min={2} max={100} value={count} onChange={setCount} />
           </Field>
         </div>
         <Field label="Spacing">

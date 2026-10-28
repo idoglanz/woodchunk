@@ -134,6 +134,10 @@ test("sketch: draw roughly, pin sizes, read off the rest", async ({ page }, info
   await expect(page.getByText("Empty: draw something to start.")).toBeVisible();
 
   if (info.project.name !== "desktop") {
+    // The project header fits the phone: nothing to scroll sideways.
+    await page.getByRole("link", { name: "Back to Build" }).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.getByRole("link", { name: /^Sketch 1/ }).first().click();
     // Phones look and change numbers; drawing needs a bigger screen.
     await expect(page.getByText(/To draw, open the sketch on a larger screen/)).toBeVisible();
     await expect(page.getByRole("radio", { name: "Line" })).toHaveCount(0);
@@ -261,4 +265,7 @@ test("sketch to parts: slats repeated with even gaps, cut as parts that follow t
   await page.getByRole("link", { name: "Back to Build" }).click();
   await expect(page.getByRole("link", { name: /length 550 mm, from a sketch/ })).toHaveCount(7);
   await expect(page.getByRole("link", { name: /length 1200 mm, from a sketch/ })).toHaveCount(1);
+  // The new assembly is the sketch's: it shows on its card, one click back to the drawing.
+  await page.getByRole("link", { name: /^Sketch 1/ }).first().click();
+  await expect(page.getByLabel("Assembly this sketch is for")).toHaveValue(/.+/);
 });

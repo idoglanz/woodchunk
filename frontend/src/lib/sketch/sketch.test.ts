@@ -7,7 +7,7 @@ const P = (x: number, y: number, id = `p${++n}`): SketchPoint => ({ id, x, y });
 const line = (id: string, a: string, b: string): Shape => ({ id, kind: "line", a, b });
 const C = (kind: ConstraintKind, refs: string[], value: number | null = null, extra: Partial<Constraint> = {}): Constraint =>
   ({ id: `c${++n}`, kind, refs, value, driving: true, side: null, ...extra });
-const sketch = (points: SketchPoint[], shapes: Shape[], constraints: Constraint[]): Sketch => ({ id: "s", name: "s", points, shapes, constraints });
+const sketch = (points: SketchPoint[], shapes: Shape[], constraints: Constraint[]): Sketch => ({ id: "s", name: "s", assembly_id: null, points, shapes, constraints });
 const lengthOf = (sk: Sketch, lineId: string) => measure(sk, C("distance", [lineId]));
 const near = (a: number, b: number, tol = 1e-6) => expect(Math.abs(a - b)).toBeLessThan(tol);
 
@@ -151,5 +151,16 @@ describe("sketch solver", () => {
     const r = solve(sk);
     expect(r.ok).toBe(true);
     near(lengthOf(r.sketch, "ab"), lengthOf(sk, "ab"), 1);
+  });
+});
+
+describe("pieces held by the axes", () => {
+  it("keeps a dimension to an axis when the sketch has other, separate pieces", () => {
+    const sk = sketch([P(310, 0, "a"), P(360, 0, "b"), P(800, 0, "c"), P(900, 0, "d")],
+      [line("one", "a", "b"), line("two", "c", "d")],
+      [C("point_line_distance", ["a", "y_axis"], 200), C("on_line", ["a", "x_axis"])]);
+    const r = solve(sk);
+    expect(r.ok).toBe(true);
+    near(r.sketch.points.find((p) => p.id === "a")!.x, 200);
   });
 });

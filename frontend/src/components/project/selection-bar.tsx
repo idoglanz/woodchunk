@@ -59,7 +59,7 @@ export function SelectionBar({ items, byId }: { items: CatalogItem[]; byId: Map<
       for (const a of d.assemblies) {
         a.parts = a.parts.flatMap((p) => {
           if (!selected.has(p.id)) return [p];
-          const copy = { ...structuredClone(p), id: newId() };
+          const copy = { ...structuredClone(p), id: newId(), sketch: null }; // copies don't follow the sketch
           copies.push(copy.id);
           return [p, copy];
         });

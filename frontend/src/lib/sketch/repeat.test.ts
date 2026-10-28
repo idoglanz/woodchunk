@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addConstraint, addLine, addPoint, addRectangle, newSketch, pointAt } from "./model";
+import { addCircle, addConstraint, addLine, addPoint, addRectangle, newSketch, pointAt } from "./model";
 import { extent, planSpacing, repeat, spacing } from "./repeat";
 import { solve } from "./solve";
 
@@ -62,5 +62,42 @@ describe("repeat with even gaps", () => {
     const e = extent(sk, sk.shapes.map((s) => s.id), "y")!;
     expect(e.max - e.min).toBeCloseTo(4 * 20 + 3 * 30, 6);
     expect(pointAt(sk, sk.points[0].id)[1]).toBeCloseTo(0, 6); // the original stays put
+  });
+
+  it("places circles by their edges, not their centres", () => {
+    const { sk, left, right } = frame();
+    const dowel = addCircle(sk, addPoint(sk, [100, 300]), 25);
+    addConstraint(sk, "diameter", [dowel], 50);
+    const r = repeat(sk, [dowel], { axis: "x", count: 3, span: { between: [left, right] }, ends: "equal" }, newId);
+    expect(r.ok).toBe(true);
+    const s = solve(sk);
+    expect(s.ok).toBe(true);
+    const centres = s.sketch.shapes.filter((x) => x.kind === "circle").map((c) => pointAt(s.sketch, (c as { c: string }).c)[0]).sort((a, b) => a - b);
+    [287.5, 600, 912.5].forEach((x, i) => expect(centres[i]).toBeCloseTo(x, 6));
+  });
+
+  it("doesn't pin copies to where the original is held across the repeat", () => {
+    const sk = newSketch([]);
+    const lines = addRectangle(sk, addPoint(sk, [310, 0]), [360, 500]);
+    const corner = sk.points[0].id;
+    addConstraint(sk, "point_line_distance", [corner, "y_axis"], 310);
+    addConstraint(sk, "on_line", [corner, "x_axis"]);
+    // A set gap leaves the original where it is: copies keep standing on the X axis, and nothing else.
+    const r = repeat(sk, lines, { axis: "x", count: 3, span: { gap: 30 }, ends: "flush" }, newId);
+    expect(r.ok).toBe(true);
+    const s = solve(sk);
+    expect(s.ok).toBe(true);
+    const xs = [...new Set(s.sketch.points.map((p) => Math.round(p.x)))].sort((a, b) => a - b);
+    expect(xs).toEqual([310, 360, 390, 440, 470, 520]);
+    expect(s.sketch.points.every((p) => Math.abs(p.y) < 1e-6 || Math.abs(p.y - 500) < 1e-6)).toBe(true);
+  });
+
+  it("explains when the original is held where it can't move to fill a span", () => {
+    const sk = newSketch([]);
+    const lines = addRectangle(sk, addPoint(sk, [310, 0]), [360, 500]);
+    addConstraint(sk, "point_line_distance", [sk.points[0].id, "y_axis"], 310);
+    const r = repeat(sk, lines, { axis: "x", count: 3, span: { length: 1000 }, ends: "equal" }, newId);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/held in place/);
   });
 });

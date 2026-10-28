@@ -9,6 +9,8 @@
 import { nullSpace, orthonormal, reject, solveLinear, type Matrix } from "./linalg";
 import { ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Shape, type Sketch } from "./types";
 
+const BUILT_IN = new Set([ORIGIN, X_AXIS, Y_AXIS]);
+
 export type V2 = [number, number];
 const sub = (a: V2, b: V2): V2 => [a[0] - b[0], a[1] - b[1]];
 const cross = (a: V2, b: V2) => a[0] * b[1] - a[1] * b[0];
@@ -368,7 +370,8 @@ function pieces(sk: Sketch, skip?: string): Sketch[] {
     ...sk,
     points: sk.points.filter((p) => ids.has(p.id)),
     shapes: sk.shapes.filter((x) => ids.has(x.id)),
-    constraints: sk.constraints.filter((c) => c.refs.length && c.refs.every((r) => ids.has(r))),
+    // Its own constraints, including ones to the origin and axes (they're in every piece's reach).
+    constraints: sk.constraints.filter((c) => c.refs.some((r) => ids.has(r)) && c.refs.every((r) => ids.has(r) || BUILT_IN.has(r))),
   }));
 }
 

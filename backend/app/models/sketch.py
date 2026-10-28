@@ -64,6 +64,7 @@ class SketchConstraint(Model):
 class Sketch(Model):
     id: str = Field(default_factory=new_id, max_length=40)
     name: str = Field(default="Sketch", min_length=1, max_length=80)
+    assembly_id: str | None = Field(default=None, max_length=40)  # the assembly it's drawn for, if any
     points: list[SketchPoint] = Field(default=[], max_length=2000)
     shapes: list[SketchShape] = Field(default=[], max_length=2000)
     constraints: list[SketchConstraint] = Field(default=[], max_length=4000)

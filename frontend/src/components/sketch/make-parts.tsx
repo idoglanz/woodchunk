@@ -32,7 +32,8 @@ export function MakeParts({ sk, lines, open, onOpenChange }: { sk: Sketch; lines
   const linked = useMemo(() => (content ? partLabels(content, sk.id) : new Map()), [content, sk.id]);
   const fresh = lines.filter((l) => !linked.has(l));
   const assemblies = (content?.assemblies ?? []).filter((a) => !a.frame); // a frame's parts come from the frame
-  const [asm, setAsm] = useState<string>(assemblies.at(-1)?.id ?? NEW);
+  // The sketch's own assembly first, else the last one.
+  const [asm, setAsm] = useState<string>(assemblies.find((a) => a.id === sk.assembly_id)?.id ?? assemblies.at(-1)?.id ?? NEW);
   const [item, setItem] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
   const [name, setName] = useState(sk.name);
@@ -46,11 +47,13 @@ export function MakeParts({ sk, lines, open, onOpenChange }: { sk: Sketch; lines
       if (!a) {
         a = newAssembly({ letter: nextLetter(d.assemblies.map((x) => x.letter)), name: sk.name });
         d.assemblies.push(a);
+        const own = d.sketches.find((x) => x.id === sk.id);
+        if (own && !own.assembly_id) own.assembly_id = a.id; // drawn for the assembly it started
       }
       fresh.forEach((l, i) => {
         a!.parts.push(newPart({
           name: fresh.length > 1 ? `${name} ${i + 1}` : name, item_id: item, qty,
-          length_mm: lineLength(sk, l) ?? 0, sketch: { sketch_id: sk.id, shape_id: l },
+          length_mm: Math.min(lineLength(sk, l) ?? 0, 100_000), sketch: { sketch_id: sk.id, shape_id: l },
         }));
       });
       [letter, asmName] = [a.letter, a.name];

@@ -2977,6 +2977,8 @@ export interface components {
              * @default Sketch
              */
             name: string;
+            /** Assembly Id */
+            assembly_id?: string | null;
             /**
              * Points
              * @default []
@@ -3002,6 +3004,8 @@ export interface components {
              * @default Sketch
              */
             name: string;
+            /** Assembly Id */
+            assembly_id: string | null;
             /**
              * Points
              * @default []

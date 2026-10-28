@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { cutSummary } from "@/components/frame/cut-list";
 import { TemplateDialog } from "@/components/frame/template-dialog";
+import { SketchesCard } from "@/components/sketch/sketch-card";
 import { useProjectCtx } from "@/components/project/context";
 import { ItemPicker, rememberMaterial } from "@/components/project/material-picker";
 import { Button, IconButton } from "@/components/ui/button";
@@ -50,7 +51,7 @@ export function DesignView() {
     });
 
   if (!content.assemblies.length) {
-    return (
+    const empty = (
       <Card>
         <EmptyState title="What are you building?"
           text="Add an assembly for each thing you're making (a table, two sawhorses…), then list the parts it's cut from."
@@ -63,6 +64,7 @@ export function DesignView() {
         {frameDialog}
       </Card>
     );
+    return <div className="flex flex-col gap-4">{empty}<SketchesCard /></div>;
   }
 
   return (
@@ -71,6 +73,7 @@ export function DesignView() {
         <AssemblyCard key={a.id} a={a} index={i} count={content.assemblies.length} items={items} byId={byId} />
       ))}
       <ExtrasCard lines={content.extras} items={items} byId={byId} />
+      <SketchesCard />
       {!readOnly ? (
         <div className="flex flex-wrap gap-2">
           <Button icon={<Plus size={16} strokeWidth={2.4} />} onClick={addAssembly}>Add assembly</Button>

@@ -9,7 +9,7 @@
 import { nullSpace, orthonormal, reject, solveLinear, type Matrix } from "./linalg";
 import type { Constraint, Shape, Sketch } from "./types";
 
-type V2 = [number, number];
+export type V2 = [number, number];
 const sub = (a: V2, b: V2): V2 => [a[0] - b[0], a[1] - b[1]];
 const cross = (a: V2, b: V2) => a[0] * b[1] - a[1] * b[0];
 const dotv = (a: V2, b: V2) => a[0] * b[0] + a[1] * b[1];
@@ -211,8 +211,8 @@ export type SolveResult = {
 };
 
 export type SolveOptions = {
-  /** Hold a point at a spot (dragging it), if the constraints allow. */
-  drag?: { point: string; to: V2 };
+  /** Hold points at spots (dragging them), if the constraints allow. */
+  drag?: { point: string; to: V2 }[];
   /** A constraint to leave out (finding conflicts). */
   skip?: string;
   /** Only whether it solves: no freedom analysis, no conflict search. */
@@ -228,23 +228,28 @@ function sizeOf(sk: Sketch): number {
   return Math.max(100, Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)));
 }
 
-/** Solve the unknowns in place; true when every residual is (near) zero. */
-function iterate(F: (x: number[]) => number[], x: number[]): boolean {
+/**
+ * Solve the unknowns in place; true when every residual is (near) zero. `w` weighs how readily
+ * each unknown changes (the step minimises Σ (Δx/w)²): radii less readily than positions, so a
+ * free circle moves to fit rather than swelling.
+ */
+function iterate(F: (x: number[]) => number[], x: number[], w: number[]): boolean {
   const m = F(x).length;
   if (!m) return true;
   const norm = (v: number[]) => Math.max(0, ...v.map(Math.abs));
   let f = F(x);
   let lambda = 1e-9;
+  const w2 = w.map((v) => v * v);
   for (let it = 0; it < MAX_ITER; it++) {
     if (norm(f) < TOL) return true;
     const J = jacobian(F, x, f.length);
-    // Minimum-norm step: Δ = −Jᵀ (J Jᵀ + λI)⁻¹ F.
     let accepted = false;
     for (let tries = 0; tries < 12 && !accepted; tries++) {
-      const A: Matrix = J.map((ri, i) => J.map((rj, j) => ri.reduce((s, v, k) => s + v * rj[k], 0) + (i === j ? lambda : 0)));
+      // Minimum (weighted) norm step: Δ = −W² Jᵀ (J W² Jᵀ + λI)⁻¹ F.
+      const A: Matrix = J.map((ri, i) => J.map((rj, j) => ri.reduce((s, v, k) => s + v * rj[k] * w2[k], 0) + (i === j ? lambda : 0)));
       const y = solveLinear(A, f);
       if (!y) { lambda = Math.max(lambda * 10, 1e-9); continue; }
-      const step = x.map((_, k) => -J.reduce((s, row, i) => s + row[k] * y[i], 0));
+      const step = x.map((_, k) => -w2[k] * J.reduce((s, row, i) => s + row[k] * y[i], 0));
       const trial = x.map((v, k) => v + step[k]);
       const ft = F(trial);
       if (ft.every(Number.isFinite) && norm(ft) < norm(f)) {
@@ -279,7 +284,7 @@ export function solve(sk: Sketch, opts: SolveOptions = {}): SolveResult {
   const fixed = new Set(sk.constraints.filter((c) => c.kind === "fix" && c.id !== opts.skip).map((c) => c.refs[0]));
   const pinnedAt = new Map<string, V2>();
   for (const p of sk.points) if (fixed.has(p.id)) pinnedAt.set(p.id, [p.x, p.y]);
-  if (opts.drag && !fixed.has(opts.drag.point)) pinnedAt.set(opts.drag.point, opts.drag.to);
+  for (const d of opts.drag ?? []) if (!fixed.has(d.point)) pinnedAt.set(d.point, d.to);
 
   const L = sizeOf(sk);
   const res = residuals(sk, L, opts.skip);
@@ -292,10 +297,10 @@ export function solve(sk: Sketch, opts: SolveOptions = {}): SolveResult {
   });
   const x = [...start];
   const F = (v: number[]) => { const g = getter(sk, u, v, pinnedAt); return res.map((r) => r.f(g)); };
-  const ok = iterate(F, x);
+  const ok = iterate(F, x, u.names.map((n) => (n.endsWith(":r") ? 0.3 : 1)));
 
-  if (!ok && opts.drag) {
-    // The point can't go there (the constraints pin it): solve without dragging it.
+  if (!ok && opts.drag?.length) {
+    // The points can't go there (the constraints pin them): solve without dragging.
     return solve(sk, { skip: opts.skip, quick: opts.quick });
   }
   if (!ok) {
@@ -314,8 +319,9 @@ export function solve(sk: Sketch, opts: SolveOptions = {}): SolveResult {
 }
 
 /**
- * What can still move at the solution: the null space of the Jacobian, less moving or turning
- * the whole sketch (when nothing anchors it), mapped back to points and shapes.
+ * What can still move at the solution: the null space of the Jacobian, mapped back to points and
+ * shapes. When nothing anchors the sketch, moving or turning all of it doesn't count: one point is
+ * held (and, if it can turn, the direction to the farthest point), so what's left is the shape.
  */
 function freedom(sk: Sketch, u: Unknowns, x: number[], F: (v: number[]) => number[]) {
   const n = x.length;
@@ -323,30 +329,46 @@ function freedom(sk: Sketch, u: Unknowns, x: number[], F: (v: number[]) => numbe
   if (!n) return { dof: 0, free };
   const f = F(x);
   const J = f.length ? jacobian(F, [...x], f.length) : [];
-  const N = f.length ? nullSpace(J, n) : Array.from({ length: n }, (_, i) => Array.from({ length: n }, (__, j) => (i === j ? 1 : 0)));
-  const ON = orthonormal(N);
+  const ON = orthonormal(nullSpace(J, n));
+  const inNull = (m: number[]) => {
+    const k = Math.hypot(...m);
+    return k > 0 && Math.hypot(...reject(m, ON)) < 1e-6 * k;
+  };
 
-  // Moving or turning the whole sketch: in the null space unless something anchors it (a fixed
-  // point, or a horizontal/vertical line for turning), and then not a freedom of the shape.
-  const cx = sk.points.reduce((s, p) => s + p.x, 0) / Math.max(1, sk.points.length);
-  const cy = sk.points.reduce((s, p) => s + p.y, 0) / Math.max(1, sk.points.length);
-  const motions = [0, 1, 2].map((kind) => u.names.map((name) => {
-    const [id, axis] = name.split(":");
-    if (axis === "r") return 0;
-    const p = sk.points.find((q) => q.id === id)!;
-    if (kind === 0) return axis === "x" ? 1 : 0;
-    if (kind === 1) return axis === "y" ? 1 : 0;
-    return axis === "x" ? -(p.y - cy) : p.x - cx;
-  }));
-  const gauge = orthonormal(motions).filter((m) => {
-    const w = reject(m, ON);
-    return Math.sqrt(w.reduce((s, v) => s + v * v, 0)) < 1e-6;
-  });
-  // What's left once those are taken out (rounding leaves crumbs well below 1e-6: not freedom).
-  const shape = orthonormal([...gauge, ...ON], 1e-6).slice(gauge.length);
-  const freeVar = new Set<number>();
-  for (const v of shape) v.forEach((c, i) => { if (Math.abs(c) > 1e-6) freeVar.add(i); });
-  for (const i of freeVar) free.add(u.names[i].split(":")[0]);
+  const hold: number[][] = [];
+  const ax = u.names.findIndex((name) => name.endsWith(":x"));
+  if (ax >= 0) {
+    const pos = (i: number): V2 => [x[i], x[i + 1]];
+    const A = pos(ax);
+    const axis = (k: 0 | 1) => u.names.map((name) => (name.endsWith(k ? ":y" : ":x") ? 1 : 0));
+    const turn = u.names.map((name, i) => {
+      if (name.endsWith(":x")) return -(x[i + 1] - A[1]);
+      if (name.endsWith(":y")) return x[i - 1] - A[0];
+      return 0;
+    });
+    const row = (entries: [number, number][]) => {
+      const r = new Array(n).fill(0);
+      for (const [i, v] of entries) r[i] = v;
+      return r;
+    };
+    if (inNull(axis(0)) && inNull(axis(1))) {
+      hold.push(row([[ax, 1]]), row([[ax + 1, 1]]));
+      if (inNull(turn)) {
+        let far = -1, best = 0;
+        u.names.forEach((name, i) => {
+          if (!name.endsWith(":x")) return;
+          const d = len(sub(pos(i), A));
+          if (d > best) { best = d; far = i; }
+        });
+        if (far >= 0) {
+          const [dx, dy] = sub(pos(far), A).map((v) => v / best);
+          hold.push(row([[far, -dy], [far + 1, dx], [ax, dy], [ax + 1, -dx]]));
+        }
+      }
+    }
+  }
+  const shape = orthonormal(nullSpace([...J, ...hold], n), 1e-6);
+  for (const v of shape) v.forEach((c, i) => { if (Math.abs(c) > 1e-6) free.add(u.names[i].split(":")[0]); });
   // A shape is free when any of its points (or its radius) is.
   for (const s of sk.shapes) {
     const parts = s.kind === "line" ? [s.a, s.b] : s.kind === "circle" ? [s.c, s.id] : [s.c, s.a, s.b];

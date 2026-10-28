@@ -6460,6 +6460,15 @@
       "title": "Extras",
       "default": []
      },
+     "sketches": {
+      "items": {
+       "$ref": "#/components/schemas/Sketch-Output"
+      },
+      "type": "array",
+      "maxItems": 50,
+      "title": "Sketches",
+      "default": []
+     },
      "id": {
       "type": "string",
       "title": "Id"
@@ -6586,6 +6595,7 @@
      "settings",
      "assemblies",
      "extras",
+     "sketches",
      "id",
      "owner_id",
      "members",
@@ -6775,6 +6785,15 @@
       "type": "array",
       "maxItems": 300,
       "title": "Extras",
+      "default": []
+     },
+     "sketches": {
+      "items": {
+       "$ref": "#/components/schemas/Sketch-Input"
+      },
+      "type": "array",
+      "maxItems": 50,
+      "title": "Sketches",
       "default": []
      },
      "version": {
@@ -7481,6 +7500,534 @@
      "already_bought"
     ],
     "title": "ShoppingOut"
+   },
+   "Sketch-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 40,
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Name",
+      "default": "Sketch"
+     },
+     "points": {
+      "items": {
+       "$ref": "#/components/schemas/SketchPoint"
+      },
+      "type": "array",
+      "maxItems": 2000,
+      "title": "Points",
+      "default": []
+     },
+     "shapes": {
+      "items": {
+       "oneOf": [
+        {
+         "$ref": "#/components/schemas/SketchLine-Input"
+        },
+        {
+         "$ref": "#/components/schemas/SketchCircle-Input"
+        },
+        {
+         "$ref": "#/components/schemas/SketchArc-Input"
+        }
+       ],
+       "discriminator": {
+        "propertyName": "kind",
+        "mapping": {
+         "arc": "#/components/schemas/SketchArc-Input",
+         "circle": "#/components/schemas/SketchCircle-Input",
+         "line": "#/components/schemas/SketchLine-Input"
+        }
+       }
+      },
+      "type": "array",
+      "maxItems": 2000,
+      "title": "Shapes",
+      "default": []
+     },
+     "constraints": {
+      "items": {
+       "$ref": "#/components/schemas/SketchConstraint-Input"
+      },
+      "type": "array",
+      "maxItems": 4000,
+      "title": "Constraints",
+      "default": []
+     }
+    },
+    "type": "object",
+    "title": "Sketch"
+   },
+   "Sketch-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 40,
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Name",
+      "default": "Sketch"
+     },
+     "points": {
+      "items": {
+       "$ref": "#/components/schemas/SketchPoint"
+      },
+      "type": "array",
+      "maxItems": 2000,
+      "title": "Points",
+      "default": []
+     },
+     "shapes": {
+      "items": {
+       "oneOf": [
+        {
+         "$ref": "#/components/schemas/SketchLine-Output"
+        },
+        {
+         "$ref": "#/components/schemas/SketchCircle-Output"
+        },
+        {
+         "$ref": "#/components/schemas/SketchArc-Output"
+        }
+       ],
+       "discriminator": {
+        "propertyName": "kind",
+        "mapping": {
+         "arc": "#/components/schemas/SketchArc-Output",
+         "circle": "#/components/schemas/SketchCircle-Output",
+         "line": "#/components/schemas/SketchLine-Output"
+        }
+       }
+      },
+      "type": "array",
+      "maxItems": 2000,
+      "title": "Shapes",
+      "default": []
+     },
+     "constraints": {
+      "items": {
+       "$ref": "#/components/schemas/SketchConstraint-Output"
+      },
+      "type": "array",
+      "maxItems": 4000,
+      "title": "Constraints",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "points",
+     "shapes",
+     "constraints"
+    ],
+    "title": "Sketch"
+   },
+   "SketchArc-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "const": "arc",
+      "title": "Kind",
+      "default": "arc"
+     },
+     "c": {
+      "type": "string",
+      "title": "C"
+     },
+     "a": {
+      "type": "string",
+      "title": "A"
+     },
+     "b": {
+      "type": "string",
+      "title": "B"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "c",
+     "a",
+     "b"
+    ],
+    "title": "SketchArc",
+    "description": "Centre, start and end, counter-clockwise from start to end."
+   },
+   "SketchArc-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "const": "arc",
+      "title": "Kind",
+      "default": "arc"
+     },
+     "c": {
+      "type": "string",
+      "title": "C"
+     },
+     "a": {
+      "type": "string",
+      "title": "A"
+     },
+     "b": {
+      "type": "string",
+      "title": "B"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "kind",
+     "c",
+     "a",
+     "b"
+    ],
+    "title": "SketchArc",
+    "description": "Centre, start and end, counter-clockwise from start to end."
+   },
+   "SketchCircle-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "const": "circle",
+      "title": "Kind",
+      "default": "circle"
+     },
+     "c": {
+      "type": "string",
+      "title": "C"
+     },
+     "r": {
+      "type": "number",
+      "maximum": 100000.0,
+      "exclusiveMinimum": 0.0,
+      "title": "R"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "c",
+     "r"
+    ],
+    "title": "SketchCircle"
+   },
+   "SketchCircle-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "const": "circle",
+      "title": "Kind",
+      "default": "circle"
+     },
+     "c": {
+      "type": "string",
+      "title": "C"
+     },
+     "r": {
+      "type": "number",
+      "maximum": 100000.0,
+      "exclusiveMinimum": 0.0,
+      "title": "R"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "kind",
+     "c",
+     "r"
+    ],
+    "title": "SketchCircle"
+   },
+   "SketchConstraint-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "coincident",
+       "horizontal",
+       "vertical",
+       "parallel",
+       "perpendicular",
+       "equal",
+       "tangent",
+       "on_line",
+       "on_circle",
+       "midpoint",
+       "fix",
+       "distance",
+       "point_line_distance",
+       "angle",
+       "radius",
+       "diameter"
+      ],
+      "title": "Kind"
+     },
+     "refs": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Refs"
+     },
+     "value": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100000.0,
+        "minimum": -100000.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value"
+     },
+     "driving": {
+      "type": "boolean",
+      "title": "Driving",
+      "default": true
+     },
+     "side": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 1.0,
+        "minimum": -1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Side"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "kind",
+     "refs"
+    ],
+    "title": "SketchConstraint"
+   },
+   "SketchConstraint-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "coincident",
+       "horizontal",
+       "vertical",
+       "parallel",
+       "perpendicular",
+       "equal",
+       "tangent",
+       "on_line",
+       "on_circle",
+       "midpoint",
+       "fix",
+       "distance",
+       "point_line_distance",
+       "angle",
+       "radius",
+       "diameter"
+      ],
+      "title": "Kind"
+     },
+     "refs": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Refs"
+     },
+     "value": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100000.0,
+        "minimum": -100000.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value"
+     },
+     "driving": {
+      "type": "boolean",
+      "title": "Driving",
+      "default": true
+     },
+     "side": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 1.0,
+        "minimum": -1.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Side"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "kind",
+     "refs",
+     "value",
+     "driving",
+     "side"
+    ],
+    "title": "SketchConstraint"
+   },
+   "SketchLine-Input": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "const": "line",
+      "title": "Kind",
+      "default": "line"
+     },
+     "a": {
+      "type": "string",
+      "title": "A"
+     },
+     "b": {
+      "type": "string",
+      "title": "B"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "a",
+     "b"
+    ],
+    "title": "SketchLine"
+   },
+   "SketchLine-Output": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "const": "line",
+      "title": "Kind",
+      "default": "line"
+     },
+     "a": {
+      "type": "string",
+      "title": "A"
+     },
+     "b": {
+      "type": "string",
+      "title": "B"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "kind",
+     "a",
+     "b"
+    ],
+    "title": "SketchLine"
+   },
+   "SketchPoint": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Id"
+     },
+     "x": {
+      "type": "number",
+      "maximum": 100000.0,
+      "minimum": -100000.0,
+      "title": "X"
+     },
+     "y": {
+      "type": "number",
+      "maximum": 100000.0,
+      "minimum": -100000.0,
+      "title": "Y"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "x",
+     "y"
+    ],
+    "title": "SketchPoint"
    },
    "Stats": {
     "properties": {

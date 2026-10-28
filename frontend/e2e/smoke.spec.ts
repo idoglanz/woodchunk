@@ -116,3 +116,61 @@ test("design a frame in 3D: template → cut list → parameters → Build", asy
   await expect(page.getByRole("button", { name: "Add part" })).toHaveCount(0);
   await expect(page.getByText("Saved")).toBeVisible();
 });
+
+test("sketch: draw roughly, pin sizes, read off the rest", async ({ page }, info) => {
+  const email = `e2e-sketch-${info.project.name}-${Date.now()}@test.dev`;
+  await page.goto("/sign-in");
+  await page.getByLabel("Email").fill(email);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "New project" }).first().click();
+  await page.getByRole("button", { name: "Blank" }).click();
+  await page.getByLabel("Name").fill("E2E sketch");
+  await page.getByRole("button", { name: "Create" }).click();
+
+  await page.getByRole("button", { name: "New sketch" }).click();
+  await expect(page).toHaveURL(/\/sketch\//);
+  await expect(page.getByText("Empty: draw something to start.")).toBeVisible();
+
+  if (info.project.name !== "desktop") {
+    // Phones look and change numbers; drawing needs a bigger screen.
+    await expect(page.getByText(/To draw, open the sketch on a larger screen/)).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Line" })).toHaveCount(0);
+    return;
+  }
+
+  const box = (await page.getByRole("img", { name: "Sketch" }).boundingBox())!;
+  const at = (x: number, y: number) => page.mouse.click(box.x + x, box.y + y);
+  // A rough rectangle, and a diagonal corner to corner (the clicks snap to the corners).
+  await page.getByRole("radio", { name: "Rectangle" }).click();
+  await at(200, 420);
+  await at(520, 220);
+  await expect(page.getByText(/2 more dimensions or relations/)).toBeVisible();
+  await page.getByRole("radio", { name: "Line" }).click();
+  await at(201, 419);
+  await at(519, 221);
+
+  // Dimension the bottom, the left side and the diagonal (already decided: worked out).
+  await page.getByRole("radio", { name: "Dimension" }).click();
+  for (const [x, y] of [[360, 420], [200, 320], [360, 320]]) {
+    await at(x, y);
+    await page.keyboard.press("Enter");
+    if (await page.getByLabel("Value").count()) await page.getByLabel("Value").press("Escape");
+  }
+  const dims = page.getByRole("region", { name: "Dimensions" });
+  const saved = page.waitForResponse((r) => r.request().method() === "PUT" && r.ok() && (r.request().postData() ?? "").includes('"value":600'));
+  for (const [name, value] of [["Line 1 length", "1200"], ["Line 4 length", "600"]]) {
+    await dims.getByRole("button", { name: new RegExp(`^${name}:`) }).click();
+    await dims.getByLabel("Value").fill(value);
+    await dims.getByLabel("Value").press("Enter");
+  }
+  await expect(page.getByText("Fully defined: every size is pinned down.")).toBeVisible();
+  const diagonal = dims.getByRole("button", { name: "Line 5 length: 1341.6 mm, worked out" });
+  await expect(diagonal).toBeVisible();
+
+  // Saved with the project.
+  await saved;
+  await page.reload();
+  await expect(diagonal).toBeVisible();
+  await page.getByRole("link", { name: "Back to Build" }).click();
+  await expect(page.getByText("Fully defined")).toBeVisible();
+});

@@ -3,7 +3,7 @@ import type { components, paths } from "./schema";
 
 export type Schemas = components["schemas"];
 export type Project = Schemas["Project"];
-export type ProjectContent = Pick<Project, "name" | "description" | "settings" | "assemblies" | "extras">;
+export type ProjectContent = Pick<Project, "name" | "description" | "settings" | "assemblies" | "extras" | "sketches">;
 export type Assembly = Schemas["Assembly-Output"];
 export type Part = Schemas["Part-Output"];
 export type HardwareLine = Schemas["HardwareLine-Output"];

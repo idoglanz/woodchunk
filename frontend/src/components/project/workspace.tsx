@@ -193,7 +193,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
   }), [id, me.data, readOnly, plan.data, plan.isFetching, aiOpen]);
 
   // The 3D frame editor takes the whole page below the app bar.
-  const fullBleed = pathname.includes("/frame/");
+  const fullBleed = pathname.includes("/frame/") || pathname.includes("/sketch/");
 
   if (project.isError) {
     return <EmptyState title="Project not found" text="It may have been deleted, or you don't have access to it." action={<Link href="/" className="font-semibold text-info">Back to projects</Link>} />;
@@ -296,7 +296,7 @@ const FIELD_NAMES: Record<string, string> = {
   qty: "quantity", length_mm: "length", width_mm: "width", item_id: "material", name: "name", notes: "notes",
   grain_locked: "grain", settings: "cutting settings", description: "description",
 };
-const CONTAINERS = new Set(["assemblies", "parts", "hardware", "extras", "frame", "nodes", "members", "joints"]);
+const CONTAINERS = new Set(["assemblies", "parts", "hardware", "extras", "frame", "nodes", "members", "joints", "sketches", "points", "shapes", "constraints"]);
 
 /** "Frame › Leg › quantity" from a merge path. */
 function conflictLabel(c: Conflict): string {

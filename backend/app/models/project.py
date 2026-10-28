@@ -8,6 +8,7 @@ from pydantic import Field, field_validator, model_validator
 from app.models.common import Doc, Model, new_id, now
 from app.models.frame import Frame
 from app.models.inventory import InventoryEntry
+from app.models.sketch import Sketch
 
 
 class ProjectStatus(StrEnum):
@@ -131,6 +132,7 @@ class ProjectContent(Model):
     settings: CuttingSettings = CuttingSettings()
     assemblies: list[Assembly] = Field(default=[], max_length=200)
     extras: list[HardwareLine] = Field(default=[], max_length=300)
+    sketches: list[Sketch] = Field(default=[], max_length=50)  # 2D scratch pads
 
     @model_validator(mode="after")
     def _assign_letters(self):

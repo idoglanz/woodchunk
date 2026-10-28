@@ -10,6 +10,7 @@ Woodworking planner: projects → assemblies (×qty) → parts cut from catalog 
 - `backend/app/routers/`: REST API under `/api`. `deps.py` has access checks (`load_project(..., need)`).
 - `frontend/src/lib/`: API client (`api/client.ts`, generated `schema.d.ts`), query hooks (`queries.ts`), project editor store with autosave/undo (`editor.ts`).
 - `frontend/src/components/project/`: workspace, design/plan/buy/shop-sheet views, AI panel. `components/ui/`: primitives; reuse them.
+- `frontend/src/lib/sketch/`: the 2D sketch pad (`ProjectContent.sketches`): solver (`solve.ts`, damped Gauss–Newton, freedom and conflicts), editing (`model.ts`), view geometry (`view.ts`). Screen in `components/sketch/`; plan in `docs/SKETCH_PLAN.md`. Change the solver only with tests in `lib/sketch/*.test.ts`.
 
 ## Rules
 - Lengths are millimetres everywhere in data; convert only for display (`lib/units.ts`).

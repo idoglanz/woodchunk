@@ -5,8 +5,8 @@ import type { Constraint, ConstraintKind, Shape, Sketch, SketchPoint } from "./t
 let n = 0;
 const P = (x: number, y: number, id = `p${++n}`): SketchPoint => ({ id, x, y });
 const line = (id: string, a: string, b: string): Shape => ({ id, kind: "line", a, b });
-const C = (kind: ConstraintKind, refs: string[], value?: number, extra: Partial<Constraint> = {}): Constraint =>
-  ({ id: `c${++n}`, kind, refs, value, ...extra });
+const C = (kind: ConstraintKind, refs: string[], value: number | null = null, extra: Partial<Constraint> = {}): Constraint =>
+  ({ id: `c${++n}`, kind, refs, value, driving: true, side: null, ...extra });
 const sketch = (points: SketchPoint[], shapes: Shape[], constraints: Constraint[]): Sketch => ({ id: "s", name: "s", points, shapes, constraints });
 const lengthOf = (sk: Sketch, lineId: string) => measure(sk, C("distance", [lineId]));
 const near = (a: number, b: number, tol = 1e-6) => expect(Math.abs(a - b)).toBeLessThan(tol);
@@ -61,6 +61,26 @@ describe("sketch solver", () => {
     expect(lengthOf(r.sketch, "left")).toBeLessThan(650);
   });
 
+  it("counts a loose line's length as its only freedom", () => {
+    const r = solve(sketch([P(0, 0, "a"), P(300, 40, "b")], [line("ab", "a", "b")], []));
+    expect(r.dof).toBe(1);
+    expect(r.free.has("ab")).toBe(true);
+    const flat = solve(sketch([P(0, 0, "a"), P(300, 40, "b")], [line("ab", "a", "b")], [C("distance", ["ab"], 300)]));
+    expect(flat.dof).toBe(0);
+    expect(flat.free.size).toBe(0);
+  });
+
+  it("marks only what can change when nothing is fixed", () => {
+    const pts = [P(0, 0, "a"), P(1150, 30, "b"), P(1170, 640, "c"), P(-20, 610, "d")];
+    const shapes = [line("bottom", "a", "b"), line("right", "b", "c"), line("top", "c", "d"), line("left", "d", "a")];
+    const r = solve(sketch(pts, shapes, [
+      C("horizontal", ["bottom"]), C("horizontal", ["top"]), C("vertical", ["left"]), C("vertical", ["right"]), C("distance", ["bottom"], 1200),
+    ]));
+    expect(r.dof).toBe(1);
+    expect(r.free.has("bottom")).toBe(false);
+    expect(r.free.has("left")).toBe(true);
+  });
+
   it("finds the numbers that contradict each other", () => {
     const sk = triangle(({ ab, ac, bc }) => [C("distance", [ab], 100), C("distance", [ac], 100), C("distance", [bc], 300, { id: "too-long" })]);
     const r = solve(sk);
@@ -79,7 +99,7 @@ describe("sketch solver", () => {
   it("keeps a line tangent to a circle", () => {
     const pts = [P(0, 0, "a"), P(400, 0, "b"), P(150, 70, "o")];
     const sk = sketch(pts, [line("ab", "a", "b"), { id: "circ", kind: "circle", c: "o", r: 40 }], [
-      C("horizontal", ["ab"]), C("fix", ["a"]), C("radius", ["circ"], 50), C("tangent", ["ab", "circ"], undefined, { side: 1 }),
+      C("horizontal", ["ab"]), C("fix", ["a"]), C("radius", ["circ"], 50), C("tangent", ["ab", "circ"], null, { side: 1 }),
     ]);
     const r = solve(sk);
     expect(r.ok).toBe(true);
@@ -118,10 +138,10 @@ describe("sketch solver", () => {
   it("drags a point when the constraints allow, and holds it when they don't", () => {
     const pts = [P(0, 0, "a"), P(400, 0, "b")];
     const free = sketch(pts, [line("ab", "a", "b")], [C("fix", ["a"]), C("horizontal", ["ab"])]);
-    const moved = solve(free, { drag: { point: "b", to: [600, 0] } });
+    const moved = solve(free, { drag: [{ point: "b", to: [600, 0] }] });
     near(moved.sketch.points[1].x, 600);
     const pinned = sketch(pts, [line("ab", "a", "b")], [C("fix", ["a"]), C("horizontal", ["ab"]), C("distance", ["ab"], 400)]);
-    const held = solve(pinned, { drag: { point: "b", to: [600, 0] } });
+    const held = solve(pinned, { drag: [{ point: "b", to: [600, 0] }] });
     expect(held.ok).toBe(true);
     near(held.sketch.points[1].x, 400);
   });

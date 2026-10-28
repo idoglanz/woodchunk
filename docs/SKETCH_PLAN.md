@@ -26,7 +26,7 @@ link to parts yet.
 Sketch     { id, name, points: Point[], shapes: Shape[], constraints: Constraint[] }
 Point      { id, x, y }                                   // mm, y up
 Shape      line { id, a, b } | circle { id, c, r } | arc { id, c, a, b }   // arc: centre, start, end (counter-clockwise)
-Constraint { id, kind, refs: string[], value?, driving: bool, label?: {dx, dy} }
+Constraint { id, kind, refs: string[], value?, driving: bool, side? }   // side: which way round a tangent is
 ```
 
 Kinds: `coincident`, `horizontal`, `vertical`, `parallel`, `perpendicular`, `equal`, `tangent`,
@@ -65,6 +65,9 @@ validates shape and bounds (no solving on the server).
 - **Phones:** view, pan/zoom, tap a dimension to change it.
 
 ## Phases
+
+S0–S3 and most of S4 shipped together (2026-10-28). Left for later: arrows nudging points, a typed
+length while drawing, label positions you can drag, and linking sketch lengths to parts.
 
 - **S0 solver:** model types, residuals, solver, DOF and conflicts, measurements; tests.
 - **S1 data and viewing:** backend model, the Build card, the sketch screen with pan/zoom,

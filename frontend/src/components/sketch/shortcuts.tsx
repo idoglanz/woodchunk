@@ -28,11 +28,13 @@ const GROUPS: { title: string; rows: [string[], string][] }[] = [
       [["600", "Enter"], "Line length, or a circle's diameter"],
       [["1200x600", "Enter"], "Rectangle size"],
       [["Esc"], "Stop drawing, clear the selection, then back to Select"],
+      [["G"], "Snap to grid on or off"], [["Alt", "click"], "Place without snapping"],
     ],
   },
   {
     title: "Selection",
     rows: [
+      [["Double-click"], "Select a whole shape"],
       [[`${MOD} A`], "Select everything"],
       [["Del"], "Delete"],
       [["←↑↓→"], "Nudge 1 mm (Shift: 10 mm)"],

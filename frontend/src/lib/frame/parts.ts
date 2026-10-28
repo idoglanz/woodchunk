@@ -42,7 +42,7 @@ export function deriveParts(a: Assembly, byId: Map<string, CatalogItem>): FrameR
     parts.push({
       id: "f" + stableId(`${a.id}|${g.key}`), name, item_id: g.item_id, qty: g.qty,
       length_mm: Math.max(0, g.lp), short_mm: Math.max(0, g.sp), width_mm: null, grain_locked: false, notes: "",
-      cuts: g.ends.map((e) => ({ miter: e.miter, bevel: e.bevel })), face_up: g.face_up, members: g.members,
+      cuts: g.ends.map((e) => ({ miter: e.miter, bevel: e.bevel })), face_up: g.face_up, members: g.members, sketch: null,
     });
   }
   a.parts = parts;

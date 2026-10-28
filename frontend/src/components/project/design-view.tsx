@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Box, CheckSquare, Copy, LayoutTemplate, MoreHorizontal, Plus, Sparkles, Trash2, Unlink, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Box, CheckSquare, Copy, LayoutTemplate, MoreHorizontal, PencilRuler, Plus, Sparkles, Trash2, Unlink, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { cutSummary } from "@/components/frame/cut-list";
@@ -21,6 +21,7 @@ import { partRowId, useActivePart, usePartFocus } from "@/lib/focus";
 import { money } from "@/lib/format";
 import { deriveParts } from "@/lib/frame/parts";
 import { useCatalog, useItemMap } from "@/lib/queries";
+import { lengthInput } from "@/lib/units";
 import { usePartSelection } from "@/lib/selection";
 
 function useItems() {
@@ -230,7 +231,8 @@ function PartRow({ a, p, label, items, byId, problem }: {
 }) {
   const edit = useEditor((s) => s.edit);
   const readOnly = useEditor((s) => s.readOnly);
-  const { units } = useProjectCtx();
+  const { units, id: projectId } = useProjectCtx();
+  const sketchName = (sid: string) => useEditor.getState().content?.sketches.find((x) => x.id === sid)?.name ?? "a sketch";
   const active = useActivePart() === p.id;
   const item = p.item_id ? byId.get(p.item_id) : undefined;
   const isSheet = item?.kind === "sheet";
@@ -273,8 +275,18 @@ function PartRow({ a, p, label, items, byId, problem }: {
       </div>
       <div className={cn(NUMS, "[grid-area:nums]")}>
         <QtyInput ariaLabel={`${label} quantity`} value={p.qty} disabled={readOnly} onChange={(n) => upd((x) => { x.qty = n; }, `qty-${p.id}`)} />
-        <LengthInput ariaLabel={`${label} length`} units={units} value={p.length_mm} placeholder="Length"
-          invalid={!!problem && problem.includes("length")} onChange={(mm) => upd((x) => { x.length_mm = mm ?? 0; })} />
+        {p.sketch ? (
+          // Cut to a sketch line: its length is changed there.
+          <Tip content={`From ${sketchName(p.sketch.sketch_id)}: change it in the sketch`}>
+            <Link href={`/projects/${projectId}/sketch/${p.sketch.sketch_id}`} aria-label={`${label} length ${lengthInput(p.length_mm, units)} ${units}, from a sketch`}
+              className="tnum flex h-9 items-center justify-end gap-1.5 rounded-lg bg-surface-2/60 px-2.5 text-[14px] text-ink hover:bg-surface-2">
+              <PencilRuler size={13} className="shrink-0 text-ink-3" />{lengthInput(p.length_mm, units)}<span className="text-[12px] text-ink-3">{units}</span>
+            </Link>
+          </Tip>
+        ) : (
+          <LengthInput ariaLabel={`${label} length`} units={units} value={p.length_mm} placeholder="Length"
+            invalid={!!problem && problem.includes("length")} onChange={(mm) => upd((x) => { x.length_mm = mm ?? 0; })} />
+        )}
         {isSheet ? (
           <LengthInput ariaLabel={`${label} width`} units={units} value={p.width_mm} placeholder="Width" allowEmpty
             invalid={!!problem && problem.includes("width")} onChange={(mm) => upd((x) => { x.width_mm = mm; })}

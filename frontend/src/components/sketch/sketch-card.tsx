@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/misc";
 import { Menu, MenuItem } from "@/components/ui/overlay";
 import { newId, useEditor } from "@/lib/editor";
 import { newSketch, pointAt } from "@/lib/sketch/model";
+import { syncParts } from "@/lib/sketch/parts";
 import { solve } from "@/lib/sketch/solve";
 import type { Sketch } from "@/lib/sketch/types";
 import { arcSweep, fit, radiusOf } from "@/lib/sketch/view";
@@ -78,7 +79,10 @@ function SketchTile({ sk, readOnly }: { sk: Sketch; readOnly: boolean }) {
               const i = d.sketches.findIndex((x) => x.id === sk.id);
               d.sketches.splice(i + 1, 0, { ...structuredClone(sk), id: newId(), name: `${sk.name} copy`.slice(0, 80) });
             })}>Duplicate</MenuItem>
-            <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => edit((d) => { d.sketches = d.sketches.filter((x) => x.id !== sk.id); })}>Delete</MenuItem>
+            <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => edit((d) => {
+              d.sketches = d.sketches.filter((x) => x.id !== sk.id);
+              syncParts(d, sk.id); // its parts keep their lengths, unlinked
+            })}>Delete</MenuItem>
           </Menu>
         </div>
       ) : null}

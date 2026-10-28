@@ -77,3 +77,18 @@ length while drawing, label positions you can drag, and linking sketch lengths t
 - **S3 dimensions and relations:** dimension tool (length, distance, angle, radius), relation
   buttons, glyphs, colours and status, conflicts.
 - **S4 polish:** reference dimensions, show all measurements, previews, shortcuts, e2e.
+
+## Sketches to parts, even spacing, grid (2026-10-28)
+
+- **Lines as parts:** select lines (a whole rectangle counts as one piece, cut to its long side)
+  → Make parts: material, assembly (or a new one), names, how many of each. `Part.sketch =
+  {sketch_id, shape_id}`; every sketch edit re-syncs those parts' lengths in the same undo step
+  (`lib/sketch/parts.ts`). Build shows the length as a link to the sketch; deleting the line or
+  sketch keeps the part at its last length, unlinked. Lines cut as parts wear their label (B3).
+- **Repeat with even gaps** (`lib/sketch/repeat.ts`): count, X or Y, and between two lines square
+  to it, in a length, or with a set gap; ends equal to the gaps, flush, or set. Copies carry the
+  group's relations; their sizes become "equal" to the original's (one number to change); each is
+  pinned by its gap from the one before (or from the boundary). Placed once: changing the span
+  later doesn't re-spread them (repeat again).
+- **Grid:** snapping on by default (G toggles, Alt places freely); size Auto (follows the zoom)
+  or 1–100 mm, kept per browser. Points and axes win over the grid.

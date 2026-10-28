@@ -231,3 +231,14 @@ export function gridStep(scale: number, minPx = 18): number {
   for (const s of [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]) if (s * scale >= minPx) return s;
   return 20000;
 }
+
+/**
+ * The grid: what clicks snap to (`snap`, mm), and the spacing drawn (`draw`): the same, or a
+ * multiple when a fixed grid would be too dense to see at this zoom.
+ */
+export function gridOf(scale: number, grid: number | "auto"): { snap: number; draw: number } {
+  if (grid === "auto") { const step = gridStep(scale); return { snap: step, draw: step }; }
+  let draw = grid;
+  for (const k of [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]) { draw = grid * k; if (draw * scale >= 8) break; }
+  return { snap: grid, draw };
+}

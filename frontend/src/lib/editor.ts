@@ -252,7 +252,7 @@ export function newId(): string {
 export function newPart(fields: Partial<Part> = {}): Part {
   return {
     id: newId(), name: "", item_id: null, qty: 1, length_mm: 0, width_mm: null, grain_locked: false, notes: "",
-    members: [], short_mm: null, cuts: [], face_up: "", ...fields,
+    members: [], short_mm: null, cuts: [], face_up: "", sketch: null, ...fields,
   };
 }
 

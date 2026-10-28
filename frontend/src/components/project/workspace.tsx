@@ -328,9 +328,10 @@ export function SaveIndicator() {
   // Someone else made the latest change: say who, so a shared project's changes aren't a mystery.
   const byOther = project?.updated_by && project.updated_by !== me?.id && (save === "saved" || save === "idle");
   if (readOnly) return <span className="me-2 text-[13px] text-ink-3">View only</span>;
-  if (byOther) return <span className="me-2 text-[13px] text-ink-3" title={new Date(project.updated_at).toLocaleString()}>{project.updated_by_name} edited · {relativeTime(project.updated_at)}</span>;
-  if (save === "saving" || save === "pending") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-ink-3"><Spinner className="h-3.5 w-3.5" />Saving</span>;
+  if (byOther) return <span className="me-2 text-[13px] text-ink-3 max-sm:hidden" title={new Date(project.updated_at).toLocaleString()}>{project.updated_by_name} edited · {relativeTime(project.updated_at)}</span>;
+  // Phones: icons only, so the header's actions fit beside the back arrow.
+  if (save === "saving" || save === "pending") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-ink-3"><Spinner className="h-3.5 w-3.5" /><span className="max-sm:sr-only">Saving</span></span>;
   if (save === "error" || save === "conflict") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-kerf"><CloudOff size={14} />{save === "conflict" ? "Out of date" : "Not saved, retrying"}</span>;
-  if (save === "saved") return <span className="me-2 inline-flex items-center gap-1 text-[13px] text-ink-3"><Check size={14} />Saved</span>;
+  if (save === "saved") return <span className="me-2 inline-flex items-center gap-1 text-[13px] text-ink-3"><Check size={14} /><span className="max-sm:sr-only">Saved</span></span>;
   return null;
 }

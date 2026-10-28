@@ -2,7 +2,6 @@
 
 import { Pin } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { isTyping } from "@/components/frame/edit-layers";
 import { cn } from "@/lib/cn";
 import { useEditor } from "@/lib/editor";
 import { addArc, addCircle, addConstraint, addLine, addPoint, addRectangle, cornerSide, dimensionFor, isDimension, mergePoints, movable, pointAt, round, take } from "@/lib/sketch/model";
@@ -11,6 +10,7 @@ import { AXES, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "@/li
 import { useSketchUI, type Anchor } from "@/lib/sketch/ui";
 import { arcSweep, bounds, dimensionMarks, glyphAnchor, gridStep, hitTest, measured, measurementsFor, radiusOf, type Marks, type View } from "@/lib/sketch/view";
 import { toast } from "@/lib/toast";
+import { isTyping } from "@/lib/typing";
 import { lengthInput, parseLength, type Units } from "@/lib/units";
 
 const SNAP_PX = 10;

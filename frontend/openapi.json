@@ -5650,6 +5650,16 @@
       "type": "number",
       "title": "Waste Pct"
      },
+     "used_pct": {
+      "type": "number",
+      "title": "Used Pct",
+      "default": 0.0
+     },
+     "offcut_pct": {
+      "type": "number",
+      "title": "Offcut Pct",
+      "default": 0.0
+     },
      "optimal": {
       "type": "boolean",
       "title": "Optimal"
@@ -5682,6 +5692,8 @@
      "kerf",
      "cost",
      "waste_pct",
+     "used_pct",
+     "offcut_pct",
      "optimal",
      "longest_stock",
      "buy",
@@ -7223,6 +7235,16 @@
       "type": "number",
       "title": "Waste Pct"
      },
+     "used_pct": {
+      "type": "number",
+      "title": "Used Pct",
+      "default": 0.0
+     },
+     "offcut_pct": {
+      "type": "number",
+      "title": "Offcut Pct",
+      "default": 0.0
+     },
      "buy": {
       "items": {
        "$ref": "#/components/schemas/BuyLine"
@@ -7250,6 +7272,8 @@
      "edge_trim",
      "cost",
      "waste_pct",
+     "used_pct",
+     "offcut_pct",
      "buy",
      "layouts"
     ],
@@ -8388,6 +8412,16 @@
       "type": "number",
       "title": "Waste Pct"
      },
+     "used_pct": {
+      "type": "number",
+      "title": "Used Pct",
+      "default": 0.0
+     },
+     "offcut_pct": {
+      "type": "number",
+      "title": "Offcut Pct",
+      "default": 0.0
+     },
      "parts": {
       "type": "integer",
       "title": "Parts"
@@ -8409,6 +8443,8 @@
      "sheets",
      "from_inventory",
      "waste_pct",
+     "used_pct",
+     "offcut_pct",
      "parts",
      "offcuts"
     ],

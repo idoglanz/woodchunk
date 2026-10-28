@@ -2120,6 +2120,16 @@ export interface components {
             cost: number;
             /** Waste Pct */
             waste_pct: number;
+            /**
+             * Used Pct
+             * @default 0
+             */
+            used_pct: number;
+            /**
+             * Offcut Pct
+             * @default 0
+             */
+            offcut_pct: number;
             /** Optimal */
             optimal: boolean;
             /** Longest Stock */
@@ -2865,6 +2875,16 @@ export interface components {
             cost: number;
             /** Waste Pct */
             waste_pct: number;
+            /**
+             * Used Pct
+             * @default 0
+             */
+            used_pct: number;
+            /**
+             * Offcut Pct
+             * @default 0
+             */
+            offcut_pct: number;
             /** Buy */
             buy: components["schemas"]["BuyLine"][];
             /** Layouts */
@@ -3327,6 +3347,16 @@ export interface components {
             from_inventory: number;
             /** Waste Pct */
             waste_pct: number;
+            /**
+             * Used Pct
+             * @default 0
+             */
+            used_pct: number;
+            /**
+             * Offcut Pct
+             * @default 0
+             */
+            offcut_pct: number;
             /** Parts */
             parts: number;
             /** Offcuts */

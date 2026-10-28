@@ -3,7 +3,6 @@
 import { ArrowLeft, Circle, Maximize, MousePointer2, PenLine, Redo2, Ruler, Spline, Square, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { isTyping } from "@/components/frame/edit-layers";
 import { useProjectCtx } from "@/components/project/context";
 import { SaveIndicator } from "@/components/project/workspace";
 import { DimensionInput, fmt, SketchCanvas } from "@/components/sketch/canvas";
@@ -20,6 +19,7 @@ import { isBuiltIn, type Constraint, type Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Tool } from "@/lib/sketch/ui";
 import { fit, measured, type View } from "@/lib/sketch/view";
 import { toast } from "@/lib/toast";
+import { isTyping } from "@/lib/typing";
 import type { Units } from "@/lib/units";
 
 const TOOLS: { value: Tool; label: string; key: string; icon: typeof PenLine }[] = [

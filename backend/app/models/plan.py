@@ -43,6 +43,10 @@ class LumberPlan(Model):
     kerf: float
     cost: float
     waste_pct: float
+    # Of the stock this takes: used in parts, kept as offcuts (they go to the inventory), wasted
+    # (saw cuts, trims, scraps too small to keep). The three add up to 100.
+    used_pct: float = 0.0
+    offcut_pct: float = 0.0
     optimal: bool
     longest_stock: float
     buy: list[BuyLine]
@@ -102,6 +106,10 @@ class SheetPlan(Model):
     edge_trim: float
     cost: float
     waste_pct: float
+    # Of the stock this takes: used in parts, kept as offcuts (they go to the inventory), wasted
+    # (saw cuts, trims, scraps too small to keep). The three add up to 100.
+    used_pct: float = 0.0
+    offcut_pct: float = 0.0
     buy: list[BuyLine]
     layouts: list[SheetLayoutOut]
 
@@ -138,6 +146,10 @@ class Totals(Model):
     sheets: int
     from_inventory: int
     waste_pct: float
+    # Of the stock this takes: used in parts, kept as offcuts (they go to the inventory), wasted
+    # (saw cuts, trims, scraps too small to keep). The three add up to 100.
+    used_pct: float = 0.0
+    offcut_pct: float = 0.0
     parts: int
     offcuts: int
 

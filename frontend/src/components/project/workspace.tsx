@@ -318,7 +318,7 @@ function TitleInput() {
   );
 }
 
-function SaveIndicator() {
+export function SaveIndicator() {
   const save = useEditor((s) => s.save);
   const readOnly = useEditor((s) => s.readOnly);
   const project = useEditor((s) => s.project);

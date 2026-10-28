@@ -13,6 +13,7 @@ import { newSketch, pointAt } from "@/lib/sketch/model";
 import { solve } from "@/lib/sketch/solve";
 import type { Sketch } from "@/lib/sketch/types";
 import { arcSweep, fit, radiusOf } from "@/lib/sketch/view";
+import { toast } from "@/lib/toast";
 
 /** Build's list of the project's sketches: a preview of each, and a button for a new one. */
 export function SketchesCard() {
@@ -41,12 +42,17 @@ export function SketchesCard() {
   );
 }
 
+/** As many as a project holds (the server's limit). */
+const MAX_SKETCHES = 50;
+
 export function useNewSketch() {
   const { id } = useProjectCtx();
   const router = useRouter();
   const edit = useEditor((s) => s.edit);
   return () => {
-    const sk = newSketch(useEditor.getState().content?.sketches ?? []);
+    const existing = useEditor.getState().content?.sketches ?? [];
+    if (existing.length >= MAX_SKETCHES) { toast.error(`A project holds up to ${MAX_SKETCHES} sketches. Delete one to start another.`); return; }
+    const sk = newSketch(existing);
     edit((d) => { d.sketches.push(sk); });
     router.push(`/projects/${id}/sketch/${sk.id}`);
   };
@@ -55,6 +61,7 @@ export function useNewSketch() {
 function SketchTile({ sk, readOnly }: { sk: Sketch; readOnly: boolean }) {
   const { id } = useProjectCtx();
   const edit = useEditor((s) => s.edit);
+  const full = useEditor((s) => (s.content?.sketches.length ?? 0) >= MAX_SKETCHES);
   const status = useMemo(() => (sk.shapes.length ? solve(sk) : null), [sk]);
   const note = !status ? "Empty" : !status.ok ? "Conflicting" : status.dof ? `${status.dof} to pin down` : "Fully defined";
   return (
@@ -67,7 +74,7 @@ function SketchTile({ sk, readOnly }: { sk: Sketch; readOnly: boolean }) {
       {!readOnly ? (
         <div className="absolute end-1.5 top-1.5">
           <Menu trigger={<IconButton label="Sketch options" size="sm" className="bg-surface/90"><MoreHorizontal size={16} /></IconButton>}>
-            <MenuItem icon={<Copy size={16} />} onSelect={() => edit((d) => {
+            <MenuItem icon={<Copy size={16} />} disabled={full} onSelect={() => edit((d) => {
               const i = d.sketches.findIndex((x) => x.id === sk.id);
               d.sketches.splice(i + 1, 0, { ...structuredClone(sk), id: newId(), name: `${sk.name} copy`.slice(0, 80) });
             })}>Duplicate</MenuItem>

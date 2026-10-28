@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { addDimension, addLine, addPoint, addRectangle, addRelation, deleteItems, dimensionFor, mergePoints, newSketch, relationOptions, setDimension, tidy } from "./model";
-import { measure, solve } from "./solve";
+import { addCircle, addConstraint, addDimension, addLine, addPoint, addRectangle, addRelation, deleteItems, dimensionFor, mergePoints, newSketch, relationOptions, setDimension, tidy } from "./model";
+import { LIMIT, measure, solve } from "./solve";
 import type { Sketch } from "./types";
 
 function rectangle() {
@@ -96,5 +96,80 @@ describe("sketch editing", () => {
     expect(clean.shapes).toHaveLength(2);
     expect(clean.constraints.every((c) => c.refs.every((r) => clean.shapes.some((s) => s.id === r) || clean.points.some((p) => p.id === r)))).toBe(true);
     expect(tidy(sk)).toBe(sk);
+  });
+
+  it("measures the corner you see where chained lines meet, not its supplement", () => {
+    const sk = newSketch([]);
+    const [a, b, c] = [addPoint(sk, [0, 0]), addPoint(sk, [100, 0]), addPoint(sk, [50, 86.6])];
+    const ab = addLine(sk, a, b), bc = addLine(sk, b, c, false);
+    const angle = addDimension(sk, "angle", [ab, bc]).constraint;
+    expect(Math.abs(angle.value!)).toBe(60);
+    expect(setDimension(sk, angle.id, 90).ok).toBe(true);
+    const [pb, pc] = [sk.points[1], sk.points[2]];
+    expect(Math.abs(pc.x - pb.x)).toBeLessThan(1e-6); // square to the base now
+    expect(Math.abs(measure(sk, sk.constraints.find((x) => x.id === angle.id)!))).toBeCloseTo(90, 6);
+  });
+
+  it("never solves a circle to a negative radius (a drag across its tangent line is held)", () => {
+    const sk = newSketch([]);
+    const [a, b] = [addPoint(sk, [0, 0]), addPoint(sk, [400, 0])];
+    const l = addLine(sk, a, b);
+    addConstraint(sk, "fix", [a]);
+    addConstraint(sk, "fix", [b]);
+    const o = addPoint(sk, [150, 50]);
+    const circ = addCircle(sk, o, 50);
+    addConstraint(sk, "tangent", [l, circ], null, 1);
+    const r = solve(sk, { drag: [{ point: o, to: [150, -80] }] });
+    expect(r.ok).toBe(true);
+    expect((r.sketch.shapes.find((s) => s.id === circ) as { r: number }).r).toBeGreaterThan(0);
+    expect(r.sketch.points.find((p) => p.id === o)!.y).toBeGreaterThan(0);
+  });
+
+  it("joins onto a fixed point without moving it, and refuses two fixed points apart", () => {
+    const sk = newSketch([]);
+    const [p, q, r] = [addPoint(sk, [0, 0]), addPoint(sk, [100, 50]), addPoint(sk, [300, 0])];
+    addLine(sk, q, r, false);
+    addConstraint(sk, "fix", [p]);
+    expect(addRelation(sk, { kind: "coincident", label: "", refs: [q, p] }).ok).toBe(true);
+    expect(sk.points.map((x) => [x.id, x.x, x.y])).toContainEqual([p, 0, 0]);
+    expect(sk.points.some((x) => x.id === q)).toBe(false);
+    addConstraint(sk, "fix", [r]);
+    const before = structuredClone(sk);
+    expect(mergePoints(sk, r, p)).toBe(false);
+    expect(sk).toEqual(before);
+  });
+
+  it("refuses sizes past what a sketch can hold", () => {
+    const { sk, lines } = rectangle();
+    const w = addDimension(sk, "distance", [lines[0]]).constraint;
+    expect(setDimension(sk, w.id, LIMIT * 1.5).ok).toBe(false);
+  });
+
+  it("handles big sketches", () => {
+    const sk = newSketch([]);
+    for (let i = 0; i < 55; i++) {
+      const a = addPoint(sk, [i * 300, 0]);
+      for (const l of addRectangle(sk, a, [i * 300 + 200, 100]).slice(0, 2)) addConstraint(sk, "distance", [l], 200);
+    }
+    expect(sk.points.length).toBeGreaterThan(200);
+    const t = performance.now();
+    expect(solve(sk).ok).toBe(true);
+    expect(solve(sk, { quick: true, drag: [{ point: sk.points[5].id, to: [1000, 300] }] }).ok).toBe(true);
+    expect(performance.now() - t).toBeLessThan(1000); // separate pieces are solved one by one
+  });
+
+  it("counts where separate pieces sit relative to each other as free", () => {
+    const sk = newSketch([]);
+    const pieces = [0, 2000].map((x0) => {
+      const lines = addRectangle(sk, addPoint(sk, [x0, 0]), [x0 + 1000, 500]);
+      addConstraint(sk, "distance", [lines[0]], 1000);
+      addConstraint(sk, "distance", [lines[1]], 500);
+      return lines;
+    });
+    const r = solve(sk);
+    expect(r.ok).toBe(true);
+    expect(r.dof).toBe(2); // the second rectangle can slide anywhere (both stay level)
+    expect(pieces[0].some((l) => r.free.has(l))).toBe(false);
+    expect(pieces[1].every((l) => r.free.has(l))).toBe(true);
   });
 });

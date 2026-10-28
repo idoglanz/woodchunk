@@ -3,7 +3,7 @@
  * Everything here mutates the sketch it's given (the editor hands a copy), then re-solves it.
  */
 
-import { measure, solve, type SolveResult, type V2 } from "./solve";
+import { LIMIT, measure, solve, type SolveResult, type V2 } from "./solve";
 import { DIMENSIONS, type Constraint, type ConstraintKind, type Shape, type Sketch } from "./types";
 
 const newId = () => crypto.randomUUID().replace(/-/g, "");
@@ -114,9 +114,21 @@ export function deleteItems(sk: Sketch, ids: Iterable<string>) {
   Object.assign(sk, tidy(sk));
 }
 
-/** Join point `from` into point `into` (dropped on it): everything using `from` uses `into`. */
-export function mergePoints(sk: Sketch, from: string, into: string) {
-  if (from === into) return;
+const isFixed = (sk: Sketch, pid: string) => sk.constraints.some((c) => c.kind === "fix" && c.refs[0] === pid);
+
+/**
+ * Join two points into one: everything using either uses the one left, which stays where it is.
+ * That's `into`, unless only `from` is fixed (a fixed point doesn't move). Two fixed points in
+ * different places can't be joined: false, and nothing changes.
+ */
+export function mergePoints(sk: Sketch, from: string, into: string): boolean {
+  if (from === into) return true;
+  if (isFixed(sk, from)) {
+    if (isFixed(sk, into)) {
+      const [p, q] = [pointAt(sk, from), pointAt(sk, into)];
+      if (Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-6) return false;
+    } else [from, into] = [into, from];
+  }
   for (const s of sk.shapes) {
     if (s.kind === "line") { if (s.a === from) s.a = into; if (s.b === from) s.b = into; }
     else if (s.kind === "circle") { if (s.c === from) s.c = into; }
@@ -124,10 +136,18 @@ export function mergePoints(sk: Sketch, from: string, into: string) {
   }
   for (const c of sk.constraints) c.refs = c.refs.map((r) => (r === from ? into : r));
   sk.points = sk.points.filter((p) => p.id !== from);
-  // A line from a point to itself, or a relation of a point with itself, means nothing now.
+  // A line from a point to itself, or a relation of a point with itself, means nothing now; nor
+  // does the same relation twice (both points were fixed).
   sk.shapes = sk.shapes.filter((s) => s.kind !== "line" || s.a !== s.b);
-  sk.constraints = sk.constraints.filter((c) => new Set(c.refs).size === c.refs.length);
+  const seen = new Set<string>();
+  sk.constraints = sk.constraints.filter((c) => {
+    const key = `${c.kind}:${c.refs.join(",")}`;
+    if (new Set(c.refs).size !== c.refs.length || (c.kind === "fix" && seen.has(key))) return false;
+    seen.add(key);
+    return true;
+  });
   Object.assign(sk, tidy(sk));
+  return true;
 }
 
 /** Copy solved positions and radii into the sketch. */
@@ -239,7 +259,7 @@ export function dimensionFor(sk: Sketch, ids: string[]): { kind: ConstraintKind;
  */
 export function addDimension(sk: Sketch, kind: ConstraintKind, refs: string[]): { constraint: Constraint; driving: boolean } {
   const before = solve(sk);
-  const c = addConstraint(sk, kind, refs);
+  const c = addConstraint(sk, kind, refs, null, kind === "angle" ? cornerSide(sk, refs) : null);
   c.value = Math.round(measure(sk, c)); // whole mm (or degrees): what you'd mark out
   const after = solve(sk);
   if (!after.ok || (before.ok && after.dof >= before.dof)) {
@@ -251,11 +271,30 @@ export function addDimension(sk: Sketch, kind: ConstraintKind, refs: string[]): 
   return { constraint: c, driving: true };
 }
 
+/**
+ * Which corner an angle between two lines means: the one you see where they meet (or would),
+ * between the longer part of each line. −1 when that needs the second line turned round.
+ */
+export function cornerSide(sk: Sketch, refs: string[]): number {
+  const [l1, l2] = refs.map((r) => shapeById(sk, r));
+  if (l1?.kind !== "line" || l2?.kind !== "line") return 1;
+  const [a1, b1, a2, b2] = [pointAt(sk, l1.a), pointAt(sk, l1.b), pointAt(sk, l2.a), pointAt(sk, l2.b)];
+  const d1: V2 = [b1[0] - a1[0], b1[1] - a1[1]], d2: V2 = [b2[0] - a2[0], b2[1] - a2[1]];
+  const den = d1[0] * d2[1] - d1[1] * d2[0];
+  if (Math.abs(den) < 1e-9) return 1;
+  const t = ((a2[0] - a1[0]) * d2[1] - (a2[1] - a1[1]) * d2[0]) / den;
+  const u = ((a2[0] - a1[0]) * d1[1] - (a2[1] - a1[1]) * d1[0]) / den;
+  // Along each line from the meeting point toward its farther end: forward when that's past the middle.
+  return (t < 0.5 ? 1 : -1) * (u < 0.5 ? 1 : -1);
+}
+
+const failed = (sk: Sketch): SolveResult => ({ sketch: sk, ok: false, dof: 0, free: new Set(), conflicts: [] });
+
 /** Add a relation; refused (and nothing changed) if the sketch can't satisfy it with the rest. */
 export function addRelation(sk: Sketch, opt: RelationOption): SolveResult {
   const trial = structuredClone(sk);
   if (opt.kind === "fix") for (const p of opt.refs) addConstraint(trial, "fix", [p]);
-  else if (opt.kind === "coincident") mergePoints(trial, opt.refs[1], opt.refs[0]);
+  else if (opt.kind === "coincident") { if (!mergePoints(trial, opt.refs[1], opt.refs[0])) return failed(sk); }
   else addConstraint(trial, opt.kind, opt.refs, null, opt.side ?? null);
   const r = solve(trial);
   if (r.ok) { Object.assign(sk, trial); take(sk, r.sketch); }
@@ -266,8 +305,9 @@ export function addRelation(sk: Sketch, opt: RelationOption): SolveResult {
 export function setDimension(sk: Sketch, cid: string, value: number): SolveResult {
   const trial = structuredClone(sk);
   const c = trial.constraints.find((x) => x.id === cid);
-  if (!c) return solve(sk, { quick: true });
-  c.value = value;
+  if (!c || !(Math.abs(value) <= LIMIT)) return failed(sk);
+  // Angles are shown without their sign (which way round they turn): keep it.
+  c.value = c.kind === "angle" && dimensionValue(sk, c) < 0 ? -Math.abs(value) : value;
   c.driving = true;
   const r = solve(trial);
   if (r.ok) { sk.constraints = trial.constraints; take(sk, r.sketch); }

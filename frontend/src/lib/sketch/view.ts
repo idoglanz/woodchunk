@@ -115,7 +115,7 @@ export type Marks = { lines: [V2, V2][]; arc?: { c: V2; r: number; start: number
  * A dimension's marks. Lengths sit beside the line, on the side away from the sketch's middle;
  * angles as an arc where the two lines meet (or would); radii as a leader from the centre.
  */
-export function dimensionMarks(sk: Sketch, c: Pick<Constraint, "kind" | "refs">, px: number, middle: V2): Marks | null {
+export function dimensionMarks(sk: Sketch, c: Pick<Constraint, "kind" | "refs"> & { side?: number | null }, px: number, middle: V2): Marks | null {
   const gap = 22 * px;
   try {
     switch (c.kind) {
@@ -146,12 +146,15 @@ export function dimensionMarks(sk: Sketch, c: Pick<Constraint, "kind" | "refs">,
         const [a1, b1, a2, b2] = [pointAt(sk, l1.a), pointAt(sk, l1.b), pointAt(sk, l2.a), pointAt(sk, l2.b)];
         const d1 = sub(b1, a1), d2 = sub(b2, a2);
         const den = d1[0] * d2[1] - d1[1] * d2[0];
-        if (Math.abs(den) < 1e-9) return null;
+        // Parallel (0° or 180°): no corner to draw, the value sits between the two lines.
+        if (Math.abs(den) < 1e-9 * len(d1) * len(d2)) return { lines: [], label: mul(add(add(a1, b1), add(a2, b2)), 0.25) };
         const t = ((a2[0] - a1[0]) * d2[1] - (a2[1] - a1[1]) * d2[0]) / den;
         const meet = add(a1, mul(d1, t));
-        // Toward each line's far half from the meeting point, so the arc spans the angle as seen.
-        const toward = (a: V2, b: V2) => unit(sub(len(sub(a, meet)) > len(sub(b, meet)) ? a : b, meet));
-        const [u1, u2] = [toward(a1, b1), toward(a2, b2)];
+        // From the meeting point along line 1's longer part, and line 2 the way the dimension
+        // measures it (its `side`), so the arc spans the angle shown.
+        const u1 = unit(sub(len(sub(a1, meet)) > len(sub(b1, meet)) ? a1 : b1, meet));
+        const forward = u1[0] * d1[0] + u1[1] * d1[1] > 0 ? 1 : -1;
+        const u2 = unit(mul(d2, forward * ((c.side ?? 1) < 0 ? -1 : 1)));
         const r = Math.min(48 * px, len(d1) * 0.4, len(d2) * 0.4) || 48 * px;
         let start = Math.atan2(u1[1], u1[0]), sweep = Math.atan2(u2[1], u2[0]) - start;
         while (sweep <= -Math.PI) sweep += 2 * Math.PI;

@@ -4,10 +4,11 @@ import { Pin } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { cn } from "@/lib/cn";
 import { addArc, addCircle, addLine, addPoint, addRectangle, dimensionFor, isDimension, mergePoints, pointAt, round, take } from "@/lib/sketch/model";
-import { solve, type SolveResult, type V2 } from "@/lib/sketch/solve";
+import { LIMIT, solve, type SolveResult, type V2 } from "@/lib/sketch/solve";
 import type { Constraint, Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Anchor } from "@/lib/sketch/ui";
 import { arcSweep, dimensionMarks, glyphAnchor, gridStep, hitTest, measured, measurementsFor, radiusOf, type Marks, type View } from "@/lib/sketch/view";
+import { toast } from "@/lib/toast";
 import { lengthInput, parseLength, type Units } from "@/lib/units";
 
 const SNAP_PX = 10;
@@ -157,15 +158,32 @@ export function SketchCanvas(props: CanvasProps) {
       const drag = useSketchUI.getState().drag;
       ui.set({ drag: null });
       if (!g.moved || !drag) { click(at, e.shiftKey); return; }
-      const join = g.points.length === 1 ? snapAt(drag[0].to, new Set([g.points[0].point])) : null;
+      const point = g.points[0].point;
+      const join = g.points.length === 1 ? snapAt(drag[0].to, new Set([point])) : null;
+      const moved = solve(sk, { drag, quick: true }).sketch;
+      // Dropped on another point: join them, if the point really got there and the result solves.
+      const got = moved.points.find((p) => p.id === point);
+      let joined: Sketch | null = null;
+      if (join && got && Math.hypot(got.x - join.at[0], got.y - join.at[1]) < 1e-3) {
+        const trial = structuredClone(moved);
+        if (mergePoints(trial, point, join.id) && solve(trial, { quick: true }).ok) joined = trial;
+        else toast.error("Those two points can't be joined: it doesn't fit with the rest.");
+      }
       props.onEdit((d) => {
-        take(d, solve(d, { drag, quick: true }).sketch);
-        if (join) mergePoints(d, g.points[0].point, join.id);
+        if (joined) Object.assign(d, joined);
+        else take(d, moved);
       });
       return;
     }
     if (g?.kind !== "click") return;
     click(at, e.shiftKey);
+  }
+
+  /** The system took the touch (palm, a gesture): forget it, place nothing. */
+  function onCancel(e: ReactPointerEvent<SVGSVGElement>) {
+    pointers.current.delete(e.pointerId);
+    gesture.current = null;
+    ui.set({ drag: null });
   }
 
   function click(at: V2, shift: boolean) {
@@ -194,7 +212,8 @@ export function SketchCanvas(props: CanvasProps) {
       return;
     }
     const snap = snapAt(at);
-    const here: Anchor = snap ? { point: snap.id, at: snap.at } : { at: [round(at[0]), round(at[1])] };
+    const clamp = (v: number) => Math.max(-LIMIT, Math.min(LIMIT, round(v)));
+    const here: Anchor = snap ? { point: snap.id, at: snap.at } : { at: [clamp(at[0]), clamp(at[1])] };
     const place = (d: Sketch, a: Anchor) => a.point && d.points.some((p) => p.id === a.point) ? a.point : addPoint(d, a.at);
     if (!anchors.length) { ui.set({ anchors: [here] }); return; }
     const first = anchors[0];
@@ -248,7 +267,7 @@ export function SketchCanvas(props: CanvasProps) {
     <div className="absolute inset-0">
       <svg ref={svg} width={size.w} height={size.h} role="img" aria-label="Sketch"
         className={cn("block touch-none select-none", ui.tool !== "select" && canDraw ? "cursor-crosshair" : hover?.item ? "cursor-pointer" : "cursor-grab")}
-        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
         onPointerLeave={() => setHover(null)}>
         <Grid view={view} w={size.w} h={size.h} />
         {sk.shapes.map((s) => {
@@ -509,9 +528,11 @@ export function DimensionInput({ kind, value, units, at, onDone }: {
   const finish = (commit: boolean) => {
     if (done.current) return;
     done.current = true;
-    if (!commit || text.trim() === initial) { onDone(null); return; }
+    if (!commit || !text.trim() || text.trim() === initial) { onDone(null); return; }
     const v = angle ? Number(text.replace(",", ".").replace("°", "")) : parseLength(text, units);
-    onDone(v === null || !Number.isFinite(v) ? null : kind === "diameter" || kind === "radius" || kind === "distance" || kind === "point_line_distance" ? Math.max(0.1, v) : v);
+    if (v === null || !Number.isFinite(v)) { onDone(null); return; }
+    // Angles between lines are 0–180°; lengths above zero and within what a sketch can hold.
+    onDone(angle ? Math.min(180, Math.abs(v)) : Math.max(0.1, Math.min(LIMIT, v)));
   };
   return (
     <input autoFocus inputMode="decimal" aria-label="Value" value={text} onChange={(e) => setText(e.target.value)}

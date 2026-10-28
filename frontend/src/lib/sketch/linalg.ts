@@ -33,7 +33,8 @@ export function solveLinear(A: Matrix, b: number[]): number[] | null {
  */
 export function nullSpace(J: Matrix, n: number, tol = 1e-7): number[][] {
   const R = J.map((row) => [...row]);
-  const scale = Math.max(1e-300, ...R.flat().map(Math.abs));
+  let scale = 1e-300;
+  for (const row of R) for (const v of row) scale = Math.max(scale, Math.abs(v));
   const eps = tol * scale;
   const pivots: number[] = [];
   let row = 0;

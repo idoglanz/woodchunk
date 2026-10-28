@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { isTyping } from "@/components/frame/edit-layers";
 import { useProjectCtx } from "@/components/project/context";
+import { SaveIndicator } from "@/components/project/workspace";
 import { DimensionInput, fmt, SketchCanvas } from "@/components/sketch/canvas";
 import { Button, IconButton } from "@/components/ui/button";
 import { Switch } from "@/components/ui/field";
@@ -166,6 +167,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
             </div>
           ) : null}
           <div className="ms-auto flex items-center gap-2">
+            <span className="inline-flex rounded-full bg-surface/90 py-1 ps-3 shadow-[var(--shadow-card)] backdrop-blur empty:hidden"><SaveIndicator /></span>
             <IconButton label="Fit to sketch" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={fitView}><Maximize size={16} /></IconButton>
             {!readOnly ? <>
               <IconButton label="Undo (⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!history.past} onClick={history.undo}><Undo2 size={16} /></IconButton>
@@ -230,7 +232,7 @@ function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimens
     const r = addRelation(trial, o);
     if (!r.ok) { toast.error(`Can't make that ${o.label.toLowerCase()}: it doesn't fit with the rest.`); return; }
     editSketch((d) => { addRelation(d, o); });
-    if (o.kind === "coincident") ui.select([o.refs[0]]);
+    if (o.kind === "coincident") ui.select([]); // the point left may be either one
   };
 
   return (

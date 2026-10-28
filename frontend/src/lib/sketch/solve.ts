@@ -37,6 +37,17 @@ function centreOf(sk: Sketch, g: Get, id: string): V2 {
   return g.p(s.c);
 }
 
+/**
+ * The two directions an angle is measured between: each line from its start to its end, the
+ * second one turned round when `side` is −1 (so the angle is the corner as drawn, not its supplement).
+ */
+function angleDirections(sk: Sketch, g: Get, c: Constraint): [V2, V2] {
+  const [a1, b1] = lineEnds(sk, g, c.refs[0]);
+  const [a2, b2] = lineEnds(sk, g, c.refs[1]);
+  const d2 = sub(b2, a2);
+  return [sub(b1, a1), (c.side ?? 1) < 0 ? [-d2[0], -d2[1]] : d2];
+}
+
 // --- measurements (also what reference dimensions and labels show) --------------------------------
 
 /** The current value of a dimension (mm or degrees), whether or not it's driving. */
@@ -52,9 +63,7 @@ export function measure(sk: Sketch, c: Constraint, g: Get = staticGet(sk)): numb
       return Math.abs(cross(sub(b, a), sub(p, a))) / Math.max(TINY, len(sub(b, a)));
     }
     case "angle": {
-      const [a1, b1] = lineEnds(sk, g, c.refs[0]);
-      const [a2, b2] = lineEnds(sk, g, c.refs[1]);
-      const d1 = sub(b1, a1), d2 = sub(b2, a2);
+      const [d1, d2] = angleDirections(sk, g, c);
       return deg(Math.atan2(cross(d1, d2), dotv(d1, d2)));
     }
     case "radius": return g.r(c.refs[0]);
@@ -154,8 +163,7 @@ function residuals(sk: Sketch, L: number, skip?: string): Residual[] {
         break;
       case "angle":
         add(c.id, (g) => {
-          const [a1, b1] = lineEnds(sk, g, r0), [a2, b2] = lineEnds(sk, g, r1);
-          const d1 = sub(b1, a1), d2 = sub(b2, a2);
+          const [d1, d2] = angleDirections(sk, g, c);
           const k = Math.max(TINY, len(d1) * len(d2));
           // sin(θ − v): zero at the wanted angle; starting near it, the solver doesn't jump by 180°.
           return (L * (cross(d1, d2) * Math.cos(rad(v)) - dotv(d1, d2) * Math.sin(rad(v)))) / k;
@@ -279,8 +287,91 @@ function jacobian(F: (x: number[]) => number[], x: number[], m: number): Matrix 
   return J;
 }
 
-/** Solve a sketch. Geometry that's free stays as close as it can to where it is. */
+/** How far out a sketch may reach (mm), as the server checks: further is a typo. */
+export const LIMIT = 100_000;
+
+/** A solution that can be saved: radii above zero, everything within the limit. */
+function sane(sk: Sketch, u: Unknowns, x: number[], pinnedAt: Map<string, V2>): boolean {
+  const g = getter(sk, u, x, pinnedAt);
+  for (const p of sk.points) if (g.p(p.id).some((v) => !Number.isFinite(v) || Math.abs(v) > LIMIT)) return false;
+  for (const s of sk.shapes) if (s.kind !== "line" && !(g.r(s.id) > 0.05 && g.r(s.id) <= LIMIT)) return false;
+  return true;
+}
+
+/**
+ * Solve a sketch. Geometry that's free stays as close as it can to where it is. Pieces that
+ * nothing joins (two separate rectangles) are solved one by one: much quicker on big sketches.
+ */
 export function solve(sk: Sketch, opts: SolveOptions = {}): SolveResult {
+  const parts = pieces(sk, opts.skip);
+  if (parts.length <= 1) return solvePiece(sk, opts).result;
+  const solved = parts.map((part) => {
+    const ids = new Set(part.points.map((p) => p.id));
+    return solvePiece(part, { ...opts, drag: opts.drag?.filter((d) => ids.has(d.point)) });
+  });
+  if (solved.some((r) => !r.result.ok)) {
+    return { sketch: sk, ok: false, dof: 0, free: new Set(), conflicts: solved.flatMap((r) => r.result.conflicts) };
+  }
+  const points = new Map(solved.flatMap((r) => r.result.sketch.points.map((p) => [p.id, p] as const)));
+  const shapes = new Map(solved.flatMap((r) => r.result.sketch.shapes.map((x) => [x.id, x] as const)));
+  const sketch: Sketch = { ...sk, points: sk.points.map((p) => points.get(p.id) ?? p), shapes: sk.shapes.map((x) => shapes.get(x.id) ?? x) };
+  if (opts.quick) return { sketch, ok: true, dof: 0, free: new Set(), conflicts: [] };
+
+  // Each piece left its own moving and turning out of its count. Between pieces that's real
+  // freedom (where one sits relative to another), except for the moving and turning of the whole
+  // sketch, which the first piece stands for.
+  const gauges = solved.map((r) => r.gauge);
+  const whole = gauges.every((g) => g >= 2) ? (gauges.every((g) => g === 3) ? 3 : 2) : 0;
+  let dof = -whole;
+  const free = new Set<string>();
+  solved.forEach((r, i) => {
+    dof += r.result.dof + r.gauge;
+    r.result.free.forEach((id) => free.add(id));
+    if (r.gauge - (i === 0 ? whole : 0) > 0) {
+      for (const p of parts[i].points) free.add(p.id);
+      for (const x of parts[i].shapes) free.add(x.id);
+    }
+  });
+  return { sketch, ok: true, dof, free, conflicts: [] };
+}
+
+/** The sketch split into pieces that no shape or driving constraint joins. */
+function pieces(sk: Sketch, skip?: string): Sketch[] {
+  const parent = new Map<string, string>();
+  const find = (a: string): string => {
+    let r = a;
+    while (parent.get(r) !== r) r = parent.get(r)!;
+    parent.set(a, r);
+    return r;
+  };
+  const join = (a: string, b: string) => parent.set(find(a), find(b));
+  for (const p of sk.points) parent.set(p.id, p.id);
+  for (const x of sk.shapes) {
+    parent.set(x.id, x.id);
+    for (const p of x.kind === "line" ? [x.a, x.b] : x.kind === "circle" ? [x.c] : [x.c, x.a, x.b]) if (parent.has(p)) join(x.id, p);
+  }
+  for (const c of sk.constraints) {
+    if (c.id === skip || c.driving === false) continue;
+    const refs = c.refs.filter((r) => parent.has(r));
+    for (const r of refs.slice(1)) join(refs[0], r);
+  }
+  const groups = new Map<string, Set<string>>();
+  for (const id of parent.keys()) {
+    const root = find(id);
+    if (!groups.has(root)) groups.set(root, new Set());
+    groups.get(root)!.add(id);
+  }
+  if (groups.size <= 1) return [sk];
+  return [...groups.values()].map((ids) => ({
+    ...sk,
+    points: sk.points.filter((p) => ids.has(p.id)),
+    shapes: sk.shapes.filter((x) => ids.has(x.id)),
+    constraints: sk.constraints.filter((c) => c.refs.length && c.refs.every((r) => ids.has(r))),
+  }));
+}
+
+/** Solve one piece; `gauge` is how much moving and turning all of it was left out of its freedom. */
+function solvePiece(sk: Sketch, opts: SolveOptions): { result: SolveResult; gauge: number } {
   const fixed = new Set(sk.constraints.filter((c) => c.kind === "fix" && c.id !== opts.skip).map((c) => c.refs[0]));
   const pinnedAt = new Map<string, V2>();
   for (const p of sk.points) if (fixed.has(p.id)) pinnedAt.set(p.id, [p.x, p.y]);
@@ -299,12 +390,13 @@ export function solve(sk: Sketch, opts: SolveOptions = {}): SolveResult {
   const F = (v: number[]) => { const g = getter(sk, u, v, pinnedAt); return res.map((r) => r.f(g)); };
   const ok = iterate(F, x, u.names.map((n) => (n.endsWith(":r") ? 0.3 : 1)));
 
-  if (!ok && opts.drag?.length) {
+  const solvedOk = ok && sane(sk, u, x, pinnedAt);
+  if (!solvedOk && opts.drag?.length) {
     // The points can't go there (the constraints pin them): solve without dragging.
-    return solve(sk, { skip: opts.skip, quick: opts.quick });
+    return solvePiece(sk, { skip: opts.skip, quick: opts.quick });
   }
-  if (!ok) {
-    return { sketch: sk, ok: false, dof: 0, free: new Set(), conflicts: opts.quick ? [] : findConflicts(sk) };
+  if (!solvedOk) {
+    return { result: { sketch: sk, ok: false, dof: 0, free: new Set(), conflicts: opts.quick ? [] : findConflicts(sk) }, gauge: 0 };
   }
 
   const g = getter(sk, u, x, pinnedAt);
@@ -313,9 +405,9 @@ export function solve(sk: Sketch, opts: SolveOptions = {}): SolveResult {
     points: sk.points.map((p) => { const [px, py] = g.p(p.id); return { ...p, x: px, y: py }; }),
     shapes: sk.shapes.map((s) => (s.kind === "circle" ? { ...s, r: g.r(s.id) } : s)),
   };
-  if (opts.quick) return { sketch: solved, ok: true, dof: 0, free: new Set(), conflicts: [] };
-  const { dof, free } = freedom(solved, u, x, F);
-  return { sketch: solved, ok: true, dof, free, conflicts: [] };
+  if (opts.quick) return { result: { sketch: solved, ok: true, dof: 0, free: new Set(), conflicts: [] }, gauge: 0 };
+  const { dof, free, gauge } = freedom(solved, u, x, F);
+  return { result: { sketch: solved, ok: true, dof, free, conflicts: [] }, gauge };
 }
 
 /**
@@ -326,7 +418,7 @@ export function solve(sk: Sketch, opts: SolveOptions = {}): SolveResult {
 function freedom(sk: Sketch, u: Unknowns, x: number[], F: (v: number[]) => number[]) {
   const n = x.length;
   const free = new Set<string>();
-  if (!n) return { dof: 0, free };
+  if (!n) return { dof: 0, free, gauge: 0 };
   const f = F(x);
   const J = f.length ? jacobian(F, [...x], f.length) : [];
   const ON = orthonormal(nullSpace(J, n));
@@ -374,7 +466,7 @@ function freedom(sk: Sketch, u: Unknowns, x: number[], F: (v: number[]) => numbe
     const parts = s.kind === "line" ? [s.a, s.b] : s.kind === "circle" ? [s.c, s.id] : [s.c, s.a, s.b];
     if (parts.some((id) => free.has(id))) free.add(s.id);
   }
-  return { dof: shape.length, free };
+  return { dof: shape.length, free, gauge: hold.length };
 }
 
 /** Which driving constraints disagree: the ones without which the sketch solves (newest first). */

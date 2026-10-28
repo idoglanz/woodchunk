@@ -159,6 +159,13 @@ export function mergePoints(sk: Sketch, from: string, into: string): boolean {
   return true;
 }
 
+/** The points that move when something is dragged or nudged: a point, or all of a shape's. Not the origin. */
+export function movable(sk: Sketch, id: string): string[] {
+  if (sk.points.some((p) => p.id === id)) return [id];
+  const s = shapeById(sk, id);
+  return s ? pointsOf(s).filter((p) => p !== ORIGIN) : [];
+}
+
 /** Copy solved positions and radii into the sketch. */
 export function take(sk: Sketch, solved: Sketch) {
   sk.points = solved.points;

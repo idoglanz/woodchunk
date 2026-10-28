@@ -185,4 +185,17 @@ test("sketch: draw roughly, pin sizes, read off the rest", async ({ page }, info
   await page.keyboard.press("Enter");
   await expect(page.getByText("Fully defined: every size is pinned down.")).toBeVisible();
   await expect(page.getByRole("region", { name: "Dimensions" }).getByRole("button", { name: "Line 2 length: 600 mm" })).toBeVisible();
+
+  // Keyboard: ? lists the shortcuts; a free line drawn, then Shift+H makes it level and an arrow nudges it.
+  await page.keyboard.press("?");
+  await expect(page.getByText("Nudge 1 mm (Shift: 10 mm)")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("l");
+  await page.mouse.click(box2.x + 60, box2.y + 80);
+  await page.mouse.click(box2.x + 260, box2.y + 60);
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("v");
+  await page.mouse.click(box2.x + 160, box2.y + 70);
+  await page.keyboard.press("Shift+H");
+  await expect(page.getByRole("region", { name: "Relations" }).getByText("Line 5 horizontal")).toBeVisible();
 });

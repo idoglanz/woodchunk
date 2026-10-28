@@ -7,13 +7,14 @@ import { isTyping } from "@/components/frame/edit-layers";
 import { useProjectCtx } from "@/components/project/context";
 import { SaveIndicator } from "@/components/project/workspace";
 import { DimensionInput, fmt, SketchCanvas } from "@/components/sketch/canvas";
+import { RELATION_KEYS, ShortcutsHelp } from "@/components/sketch/shortcuts";
 import { Button, IconButton } from "@/components/ui/button";
 import { Switch } from "@/components/ui/field";
 import { EmptyState } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { useEditor } from "@/lib/editor";
 import { useMediaQuery } from "@/lib/focus";
-import { addDimension, addRelation, constraintName, deleteItems, dimensionFor, dimensionValue, isDimension, itemNames, relationOptions, setDimension, take } from "@/lib/sketch/model";
+import { addDimension, addRelation, constraintName, deleteItems, dimensionFor, dimensionValue, isDimension, itemNames, movable, pointAt, relationOptions, setDimension, take, type RelationOption } from "@/lib/sketch/model";
 import { solve } from "@/lib/sketch/solve";
 import { isBuiltIn, type Constraint, type Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Tool } from "@/lib/sketch/ui";
@@ -118,31 +119,79 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
     useSketchUI.getState().select([]);
   }, [editSketch]);
 
-  // Shortcuts: tools by letter, Esc steps back, Delete removes the selection, Enter places a dimension.
+  const relate = useCallback((o: RelationOption) => {
+    const r = addRelation(structuredClone(sk), o);
+    if (!r.ok) { toast.error(`Can't make that ${o.label.toLowerCase()}: it doesn't fit with the rest.`); return; }
+    editSketch((d) => { addRelation(d, o); });
+    if (o.kind === "coincident") useSketchUI.getState().select([]); // the point left may be either one
+  }, [sk, editSketch]);
+
+  /** Move the selection by `d` mm, if the constraints let it. */
+  const nudge = useCallback((d: [number, number]) => {
+    const points = [...new Set(useSketchUI.getState().selected.flatMap((x) => movable(sk, x)))];
+    if (!points.length) return;
+    const drag = points.map((p) => { const [x, y] = pointAt(sk, p); return { point: p, to: [x + d[0], y + d[1]] as [number, number] }; });
+    editSketch((s) => take(s, solve(s, { drag, quick: true }).sketch), "nudge");
+  }, [sk, editSketch]);
+
+  const [help, setHelp] = useState(false);
+
+  // Keyboard shortcuts (the list is in shortcuts.tsx, behind the keyboard button and ?).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
+      if (e.altKey || isTyping(e.target)) return;
       const s = useSketchUI.getState();
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (e.metaKey || e.ctrlKey) {
+        if (key === "a" && canDraw) { e.preventDefault(); s.select(sk.shapes.map((x) => x.id)); }
+        return; // ⌘Z and the rest are the app's
+      }
+      if (e.key === "?" || (e.key === "/" && e.shiftKey)) { setHelp((h) => !h); return; }
       if (e.key === "Escape") {
-        if (s.anchors.length || s.picks.length) s.set({ anchors: [], picks: [] });
+        if (s.anchors.length || s.picks.length) s.set({ anchors: [], picks: [], typed: "" });
         else if (s.selected.length) s.select([]);
         else s.setTool("select");
         return;
       }
+      // Seeing: fit, zoom, measurements (phones and viewers too).
+      if (key === "f" && !e.shiftKey) { fitView(); return; }
+      if (key === "=" || key === "+" || key === "-" || key === "_") {
+        const k = key === "-" || key === "_" ? 1 / 1.25 : 1.25;
+        updateView((v) => ({ ...v, scale: Math.max(0.005, Math.min(60, v.scale * k)) }));
+        return;
+      }
+      if (key === "m" && !e.shiftKey) { s.set({ showAll: !s.showAll }); return; }
       if (!canDraw) return;
       if ((e.key === "Delete" || e.key === "Backspace") && s.selected.length) { e.preventDefault(); deleteSelected(); return; }
+      if (e.key.startsWith("Arrow") && s.selected.length) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        nudge(e.key === "ArrowLeft" ? [-step, 0] : e.key === "ArrowRight" ? [step, 0] : e.key === "ArrowUp" ? [0, step] : [0, -step]);
+        return;
+      }
       if (e.key === "Enter" && s.tool === "dimension" && s.picks.length) {
         const dim = dimensionFor(sk, s.picks);
         if (dim) onDimension(dim.kind, dim.refs);
         s.set({ picks: [] });
         return;
       }
-      const t = TOOLS.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
+      if (e.shiftKey && s.selected.length) {
+        // Shift + letter: that relation on the selection, when it fits.
+        const o = relationOptions(sk, s.selected).find((x) => RELATION_KEYS[x.kind]?.toLowerCase() === key);
+        if (o) { e.preventDefault(); relate(o); }
+        return;
+      }
+      if (key === "d" && s.tool === "select" && s.selected.length) {
+        // D on a selection dimensions it, if it's something that has a size.
+        const dim = dimensionFor(sk, s.selected);
+        if (dim) { onDimension(dim.kind, dim.refs); return; }
+      }
+      const t = TOOLS.find((x) => x.key.toLowerCase() === key);
       if (t) s.setTool(t.value);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canDraw, deleteSelected, onDimension, sk]);
+  }, [canDraw, deleteSelected, onDimension, sk, relate, nudge, fitView, updateView]);
 
   return (
     <div className="flex h-[calc(100dvh-52px)] flex-col md:flex-row">
@@ -168,7 +217,8 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
           ) : null}
           <div className="ms-auto flex items-center gap-2">
             <span className="inline-flex rounded-full bg-surface/90 py-1 ps-3 shadow-[var(--shadow-card)] backdrop-blur empty:hidden"><SaveIndicator /></span>
-            <IconButton label="Fit to sketch" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={fitView}><Maximize size={16} /></IconButton>
+            <IconButton label="Fit to sketch (F)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={fitView}><Maximize size={16} /></IconButton>
+            <span className="hidden md:inline-flex"><ShortcutsHelp open={help} onOpenChange={setHelp} /></span>
             {!readOnly ? <>
               <IconButton label="Undo (⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!history.past} onClick={history.undo}><Undo2 size={16} /></IconButton>
               <IconButton label="Redo (⇧⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!history.future} onClick={history.redo}><Redo2 size={16} /></IconButton>
@@ -180,7 +230,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
       <aside aria-label="Sketch details"
         className="flex max-h-[54dvh] w-full shrink-0 flex-col overflow-y-auto border-t border-line bg-surface md:max-h-none md:w-[340px] md:border-s md:border-t-0">
         <Details sk={sk} status={status} readOnly={readOnly} canDraw={canDraw} units={units}
-          editSketch={editSketch} onSetDimension={onSetDimension} onDimension={onDimension} onDelete={deleteSelected} />
+          editSketch={editSketch} onSetDimension={onSetDimension} onDimension={onDimension} onRelate={relate} onDelete={deleteSelected} />
       </aside>
     </div>
   );
@@ -218,11 +268,12 @@ function ToolHint({ sketch: sk, empty }: { sketch: Sketch; empty: boolean }) {
   );
 }
 
-function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimension, onDimension, onDelete }: {
+function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimension, onDimension, onRelate, onDelete }: {
   sk: Sketch; status: ReturnType<typeof solve>; readOnly: boolean; canDraw: boolean; units: Units;
   editSketch: (fn: (d: Sketch) => void, key?: string) => void;
   onSetDimension: (id: string, v: number) => void;
   onDimension: (kind: Constraint["kind"], refs: string[]) => void;
+  onRelate: (o: RelationOption) => void;
   onDelete: () => void;
 }) {
   const ui = useSketchUI();
@@ -232,14 +283,6 @@ function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimens
   const options = canDraw ? relationOptions(sk, ui.selected) : [];
   const dim = canDraw ? dimensionFor(sk, ui.selected) : null;
   const selectedConstraint = ui.selected.length === 1 ? sk.constraints.find((c) => c.id === ui.selected[0]) : undefined;
-
-  const relate = (o: (typeof options)[number]) => {
-    const trial = structuredClone(sk);
-    const r = addRelation(trial, o);
-    if (!r.ok) { toast.error(`Can't make that ${o.label.toLowerCase()}: it doesn't fit with the rest.`); return; }
-    editSketch((d) => { addRelation(d, o); });
-    if (o.kind === "coincident") ui.select([]); // the point left may be either one
-  };
 
   return (
     <div className="flex flex-col">
@@ -264,8 +307,12 @@ function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimens
           {!selectedConstraint && ui.selected.length === 1 ? <Measures sk={sk} id={ui.selected[0]} units={units} /> : null}
           {options.length || dim ? (
             <div className="flex flex-wrap gap-1.5">
-              {dim ? <Button size="sm" variant="primary" icon={<Ruler size={14} />} onClick={() => onDimension(dim.kind, dim.refs)}>{dim.kind === "angle" ? "Angle" : "Dimension"}</Button> : null}
-              {options.map((o) => <Button key={o.kind} size="sm" onClick={() => relate(o)}>{o.label}</Button>)}
+              {dim ? <Button size="sm" variant="primary" icon={<Ruler size={14} />} title="D" onClick={() => onDimension(dim.kind, dim.refs)}>{dim.kind === "angle" ? "Angle" : "Dimension"}<span className="hidden text-[11px] font-medium opacity-60 lg:inline">D</span></Button> : null}
+              {options.map((o) => (
+                <Button key={o.kind} size="sm" onClick={() => onRelate(o)} title={RELATION_KEYS[o.kind] ? `Shift ${RELATION_KEYS[o.kind]}` : undefined}>
+                  {o.label}{RELATION_KEYS[o.kind] ? <span className="hidden text-[11px] font-medium text-ink-3 lg:inline">⇧{RELATION_KEYS[o.kind]}</span> : null}
+                </Button>
+              ))}
             </div>
           ) : null}
         </section>

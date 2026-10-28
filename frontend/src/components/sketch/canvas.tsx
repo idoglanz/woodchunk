@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { isTyping } from "@/components/frame/edit-layers";
 import { cn } from "@/lib/cn";
 import { useEditor } from "@/lib/editor";
-import { addArc, addCircle, addConstraint, addLine, addPoint, addRectangle, cornerSide, dimensionFor, isDimension, mergePoints, pointAt, round, take } from "@/lib/sketch/model";
+import { addArc, addCircle, addConstraint, addLine, addPoint, addRectangle, cornerSide, dimensionFor, isDimension, mergePoints, movable, pointAt, round, take } from "@/lib/sketch/model";
 import { LIMIT, solve, type SolveResult, type V2 } from "@/lib/sketch/solve";
 import { AXES, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Anchor } from "@/lib/sketch/ui";
@@ -91,6 +91,22 @@ export function SketchCanvas(props: CanvasProps) {
     return [sk.points.reduce((s, p) => s + p.x, 0) / sk.points.length, sk.points.reduce((s, p) => s + p.y, 0) / sk.points.length];
   }, [sk.points]);
 
+  // Space held: dragging pans, whatever the tool (as in most drawing apps).
+  const space = useRef(false);
+  const [panning, setPanning] = useState(false);
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      // (Not on a focused button or link: Space presses those.)
+      if (e.code !== "Space" || isTyping(e.target) || (e.target instanceof HTMLElement && e.target.closest("button, a"))) return;
+      e.preventDefault(); // not a page scroll, nor a click on a focused button
+      if (!space.current) { space.current = true; setPanning(true); }
+    };
+    const up = (e: KeyboardEvent) => { if (e.code === "Space") { space.current = false; setPanning(false); } };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
+  }, []);
+
   function onDown(e: ReactPointerEvent<SVGSVGElement>) {
     if (e.button !== 0 && e.pointerType === "mouse" && e.button !== 1) return;
     svg.current!.setPointerCapture(e.pointerId);
@@ -104,13 +120,13 @@ export function SketchCanvas(props: CanvasProps) {
     }
     if (pointers.current.size > 2) return;
     const at = toWorld(s);
-    if (e.button === 1 || !canDraw) { gesture.current = { kind: "pan", start: s, view }; return; }
+    if (e.button === 1 || !canDraw || space.current) { gesture.current = { kind: "pan", start: s, view }; return; }
     if (ui.tool === "select") {
       const hit = hitTest(sk, at, HIT_PX * px);
       // Empty space: a click clears the selection, a drag pans.
       if (!hit) { gesture.current = { kind: "click", start: s }; return; }
       if (!e.shiftKey && !ui.selected.includes(hit)) ui.select([hit]);
-      const points = dragPoints(sk, hit);
+      const points = movable(sk, hit);
       // The origin and axes don't move: dragging from them pans, clicking selects.
       gesture.current = points.length ? { kind: "drag", start: at, points: points.map((p) => ({ point: p, from: pointAt(sk, p) })), moved: false } : { kind: "click", start: s };
       return;
@@ -362,7 +378,7 @@ export function SketchCanvas(props: CanvasProps) {
   return (
     <div className="absolute inset-0">
       <svg ref={svg} width={size.w} height={size.h} role="img" aria-label="Sketch"
-        className={cn("block touch-none select-none", ui.tool !== "select" && canDraw ? "cursor-crosshair" : hover?.item ? "cursor-pointer" : "cursor-grab")}
+        className={cn("block touch-none select-none", panning ? "cursor-grab active:cursor-grabbing" : ui.tool !== "select" && canDraw ? "cursor-crosshair" : hover?.item ? "cursor-pointer" : "cursor-grab")}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
         onPointerLeave={() => setHover(null)}>
         <Grid view={view} w={size.w} h={size.h} />
@@ -448,14 +464,6 @@ export function SketchCanvas(props: CanvasProps) {
       </div>
     </div>
   );
-}
-
-/** Dragging a point moves it; a line, circle or arc moves whole (all its points). The origin stays. */
-function dragPoints(sk: Sketch, id: string): string[] {
-  if (sk.points.some((p) => p.id === id)) return [id];
-  const s = sk.shapes.find((x) => x.id === id);
-  if (!s) return [];
-  return (s.kind === "line" ? [s.a, s.b] : s.kind === "circle" ? [s.c] : [s.c, s.a, s.b]).filter((p) => p !== ORIGIN);
 }
 
 /** The point an anchor stands for: the one it snapped to, or a new one (on its axis, if it landed on one). */

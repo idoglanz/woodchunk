@@ -96,7 +96,7 @@ Hebrew uses the same stack (SF Hebrew / Arial Hebrew), with `dir="rtl"` on Hebre
 - **Part label:** rounded 6 px chip in the assembly fill showing a bold letter+index (`A1`).
 - **Card:** surface, radius 16, padding 20/24, no border in light mode.
 - **Popover / Sheet:** cutting settings, material picker and AI panel. On phones these become a bottom sheet.
-- **Toast:** bottom-center, ink background, surface text, auto-dismiss after 4 s, with an "Undo" action where relevant.
+- **Toast:** bottom-center (top on phones, clear of the tab bar), ink background, surface text, auto-dismiss after 4 s, with an "Undo" action where relevant.
 - **Empty state:** one line explaining what will appear and one primary action.
 
 ## Diagrams

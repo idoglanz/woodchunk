@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Box, Copy, LayoutTemplate, MoreHorizontal, Plus, Sparkles, Trash2, Unlink, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Box, CheckSquare, Copy, LayoutTemplate, MoreHorizontal, Plus, Sparkles, Trash2, Unlink, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { cutSummary } from "@/components/frame/cut-list";
 import { TemplateDialog } from "@/components/frame/template-dialog";
 import { useProjectCtx } from "@/components/project/context";
 import { ItemPicker, rememberMaterial } from "@/components/project/material-picker";
+import { SelectionBar, selectableParts } from "@/components/project/selection-bar";
 import { Button, IconButton } from "@/components/ui/button";
 import { LengthInput, NumberInput, QtyInput } from "@/components/ui/field";
 import { AsmChip, Card, EmptyState } from "@/components/ui/misc";
@@ -19,6 +20,7 @@ import { partRowId, useActivePart, usePartFocus } from "@/lib/focus";
 import { money } from "@/lib/format";
 import { deriveParts } from "@/lib/frame/parts";
 import { useCatalog, useItemMap } from "@/lib/queries";
+import { usePartSelection } from "@/lib/selection";
 
 function useItems() {
   const q = useCatalog({});
@@ -78,6 +80,7 @@ export function DesignView() {
         </div>
       ) : null}
       {frameDialog}
+      <SelectionBar items={items} byId={byId} />
     </div>
   );
 }
@@ -118,6 +121,11 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
           )}
           {!readOnly ? (
             <Menu trigger={<IconButton label="Assembly options" size="sm"><MoreHorizontal size={18} /></IconButton>}>
+              {!drawn && a.parts.length ? (
+                <MenuItem icon={<CheckSquare size={15} />} onSelect={() => usePartSelection.getState().set([...new Set([...usePartSelection.getState().ids, ...a.parts.map((p) => p.id)])])}>
+                  Select all parts
+                </MenuItem>
+              ) : null}
               <MenuItem icon={<Copy size={15} />} onSelect={() => edit((d) => {
                 const src = d.assemblies.find((y) => y.id === a.id)!;
                 const copy: Assembly = { ...structuredClone(src), id: newId(), letter: nextLetter(d.assemblies.map((y) => y.letter)), name: `${src.name} copy` };
@@ -228,17 +236,26 @@ function PartRow({ a, p, label, items, byId, problem }: {
     if (x) fn(x);
   }, key);
   const focus = usePartFocus.getState();
+  const selected = usePartSelection((s) => s.ids.includes(p.id));
+  const chip = <AsmChip letter={a.letter} className={cn(selected && "!bg-ink !text-surface", problem && "shadow-[0_0_0_1.5px_var(--kerf)]")}>{label}</AsmChip>;
 
   return (
     <div id={partRowId(p.id)}
       onPointerEnter={() => focus.setHovered(p.id)} onPointerLeave={() => focus.setHovered(null)}
       onFocus={() => focus.setFocused(p.id)}
       onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null) && usePartFocus.getState().focused === p.id) focus.setFocused(null); }}
-      className={cn(ROW, "group scroll-mt-24 items-center rounded-xl px-2 py-1.5 transition-colors", problem ? "bg-kerf-soft/50" : active && "bg-surface-2/70")}>
+      className={cn(ROW, "group scroll-mt-24 items-center rounded-xl px-2 py-1.5 transition-colors",
+        selected ? "bg-accent-soft" : problem ? "bg-kerf-soft/50" : active && "bg-surface-2/70")}>
       <div className="flex items-center [grid-area:chip]">
-        {problem ? (
-          <Tip content={problem}><span><AsmChip letter={a.letter} className="shadow-[0_0_0_1.5px_var(--kerf)]">{label}</AsmChip></span></Tip>
-        ) : <AsmChip letter={a.letter}>{label}</AsmChip>}
+        {readOnly ? (problem ? <Tip content={problem}><span>{chip}</span></Tip> : chip) : (
+          // The label is the part's select toggle (shift-click: a range), for batch changes.
+          <Tip content={problem ?? (selected ? "Selected · click to unselect" : "Select · shift-click for a range")}>
+            <button type="button" aria-pressed={selected} aria-label={`Select ${label}`} data-part-toggle className="-m-1 rounded-lg p-1"
+              onClick={(e) => usePartSelection.getState().toggle(p.id, e.shiftKey, selectableParts(useEditor.getState().content))}>
+              {chip}
+            </button>
+          </Tip>
+        )}
       </div>
       <div className="min-w-0 [grid-area:name]">
         <InlineText value={p.name} placeholder="Part name" ariaLabel={`${label} name`} readOnly={readOnly} onCommit={(v) => upd((x) => { x.name = v; })} className="w-full text-[15px]" boxed />

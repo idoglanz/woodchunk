@@ -452,3 +452,49 @@ async def test_ai_cannot_edit_drawn_parts():
     content = ProjectContent(assemblies=[Assembly(name="Frame", frame={"nodes": [], "members": []})])
     new, diff = apply_ops(content, [op(action="add_part", assembly="A", name="Leg", qty=99999, length_mm=1e12)], {})
     assert new.assemblies[0].parts == [] and diff[0].kind == "note"
+
+
+async def test_plan_shares_used_offcut_waste(client):
+    """Each material's stock splits into used, kept offcuts and waste (adding up to 100), and the
+    project's split is weighted by how much stock each material takes, not by price."""
+    ply = await find_item(client, "18 mm birch", "sheet")
+    steel = await find_item(client, "40 40 2 square tube", "lumber")
+    p = await new_project(client, assemblies=[
+        {"name": "Top", "qty": 1, "parts": [{"name": "Top", "item_id": ply["id"], "qty": 1, "length_mm": 2000, "width_mm": 1000}]},
+        {"name": "Frame", "qty": 1, "parts": [{"name": "Rail", "item_id": steel["id"], "qty": 1, "length_mm": 1000}]},
+    ])
+    plan = (await client.get(f"/api/projects/{p['id']}/plan", headers=auth(USER))).json()
+    sheet, bar = plan["sheets"][0], plan["lumber"][0]
+    # One 2440 × 1220 sheet: the top uses 2,000,000 mm², two offcuts are kept, three saw cuts are waste.
+    assert (sheet["used_pct"], sheet["waste_pct"]) == (67.2, 0.3)
+    assert abs(sheet["used_pct"] + sheet["offcut_pct"] + sheet["waste_pct"] - 100) <= 0.15
+    # A 6 m tube for a 1 m rail: mostly offcut, and it counts although steel has no price.
+    assert bar["used_pct"] < 20 and bar["offcut_pct"] > 80
+    t = plan["totals"]
+    assert abs(t["used_pct"] + t["offcut_pct"] + t["waste_pct"] - 100) <= 0.15
+    # Weighted by stock volume: the sheet is 2440 × 1220 × 18 mm, the tube its length × 40 × 40.
+    v_sheet = 2440 * 1220 * 18
+    v_bar = sum(b["length_mm"] * b["qty"] for b in bar["buy"]) * 40 * 40
+    expected = (sheet["used_pct"] * v_sheet + bar["used_pct"] * v_bar) / (v_sheet + v_bar)
+    assert abs(t["used_pct"] - expected) <= 0.1
+
+
+async def test_material_without_a_section_still_counts_in_the_shares(client):
+    """A custom bar with no known cross-section weighs like a typical one of the project's, not ~nothing."""
+    r = await client.post("/api/catalog", headers=auth(), json={
+        "kind": "lumber", "name": {"en": "Mystery batten"}, "lumber_stock": [{"length_mm": 3000, "price": 10}]})
+    assert r.status_code == 201, r.text
+    mystery = r.json()
+    board = await find_item(client, "45 x 95", "lumber")
+    p = await new_project(client, assemblies=[{"name": "Box", "qty": 1, "parts": [
+        {"name": "Batten", "item_id": mystery["id"], "qty": 1, "length_mm": 2000},
+        {"name": "Rail", "item_id": board["id"], "qty": 1, "length_mm": 2900},
+    ]}])
+    plan = (await client.get(f"/api/projects/{p['id']}/plan", headers=auth(USER))).json()
+    by_item = {lp["item_id"]: lp for lp in plan["lumber"]}
+    m, b = by_item[mystery["id"]], by_item[board["id"]]
+    # Same section as the board, so the totals sit between the two materials, near their stock-weighted mean.
+    lm = sum(x["length_mm"] * x["qty"] for x in m["buy"])
+    lb = sum(x["length_mm"] * x["qty"] for x in b["buy"])
+    expected = (m["used_pct"] * lm + b["used_pct"] * lb) / (lm + lb)
+    assert abs(plan["totals"]["used_pct"] - expected) <= 0.1

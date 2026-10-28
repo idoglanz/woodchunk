@@ -11,8 +11,9 @@ import { Tip } from "@/components/ui/overlay";
 import type { LumberPlan, SheetPlan } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { useActivePart } from "@/lib/focus";
-import { costText, money, pct, plural } from "@/lib/format";
+import { costText, money, pct, plural, shares } from "@/lib/format";
 import { fmtMeters } from "@/lib/units";
+import { StockSplit } from "@/components/project/stock-split";
 
 export const materialCardId = (itemId: string) => `mat-${itemId}`;
 
@@ -22,13 +23,14 @@ export function PlanSummary({ onIssues, compact }: { onIssues?: () => void; comp
   if (!plan) return <span className="flex items-center gap-2 text-[14px] text-ink-3"><Spinner className="h-3.5 w-3.5" />Planning…</span>;
   const t = plan.totals;
   const stock = [t.boards ? plural(t.boards, "board") : "", t.sheets ? plural(t.sheets, "sheet") : ""].filter(Boolean).join(" + ") || "Nothing to buy";
+  const [used, offcuts, waste] = shares([t.used_pct, t.offcut_pct, t.waste_pct]);
   return (
     <div className={cn("flex min-w-0 items-baseline gap-x-3 gap-y-1", compact ? "flex-nowrap" : "flex-wrap")}>
       <span className={cn("tnum shrink-0 font-bold tracking-[-0.01em]", t.unpriced_materials && !t.cost ? "text-[16px] text-ink-2" : "text-[20px]")}>
         {costText(t.cost, plan.currency, t.unpriced_materials > 0)}
       </span>
       <span className={cn("tnum text-[14px] text-ink-2", compact && "min-w-0 truncate")}>
-        {stock}{t.waste_pct ? ` · ${pct(t.waste_pct)} waste` : ""}
+        {stock}{t.used_pct ? ` · ${used} used` : ""}{!compact && t.offcut_pct ? ` · ${offcuts} offcuts` : ""}{t.used_pct ? ` · ${waste} waste` : ""}
         {t.unpriced_lines ? <span className="text-warn"> · {t.unpriced_lines} unpriced</span> : null}
       </span>
       {plan.unplaced.length ? (
@@ -134,8 +136,9 @@ function BuyLine({ lines, sheet }: { lines: LumberPlan["buy"]; sheet?: boolean }
   );
 }
 
-function MaterialCard({ id, name, buy, cost, priced, currency, meta, badge, sheet, children }: {
-  id: string; name: string; buy: LumberPlan["buy"]; cost: number; priced: boolean; currency: string; meta: string; badge?: ReactNode; sheet?: boolean; children: ReactNode;
+function MaterialCard({ id, name, buy, cost, priced, currency, meta, badge, sheet, split, children }: {
+  id: string; name: string; buy: LumberPlan["buy"]; cost: number; priced: boolean; currency: string; meta: string; badge?: ReactNode; sheet?: boolean;
+  split: { used_pct: number; offcut_pct: number; waste_pct: number }; children: ReactNode;
 }) {
   return (
     <div id={materialCardId(id)} className="flex scroll-mt-4 flex-col gap-4 rounded-[16px] border border-line bg-surface p-4">
@@ -152,6 +155,7 @@ function MaterialCard({ id, name, buy, cost, priced, currency, meta, badge, shee
           </div>
         </div>
       </div>
+      {split.used_pct + split.offcut_pct + split.waste_pct > 0 ? <StockSplit used={split.used_pct} offcut={split.offcut_pct} waste={split.waste_pct} /> : null}
       {children}
     </div>
   );
@@ -165,7 +169,7 @@ function LumberCard({ lp, currency, onPick }: { lp: LumberPlan; currency: string
     </Tip>
   ) : <Tip content="Best plan found in the time allowed."><span><Badge>Best found</Badge></span></Tip>;
   return (
-    <MaterialCard id={lp.item_id} name={lp.name} buy={lp.buy} cost={lp.cost} priced={lp.priced} currency={currency} meta={`${pct(lp.waste_pct)} waste · saw ${lp.kerf} mm`} badge={badge}>
+    <MaterialCard id={lp.item_id} name={lp.name} buy={lp.buy} cost={lp.cost} priced={lp.priced} currency={currency} meta={`saw ${lp.kerf} mm`} badge={badge} split={lp}>
       <LumberBars plan={lp} active={active} onPick={onPick} />
     </MaterialCard>
   );
@@ -174,7 +178,7 @@ function LumberCard({ lp, currency, onPick }: { lp: LumberPlan; currency: string
 function SheetCard({ sp, currency, wide, onPick }: { sp: SheetPlan; currency: string; wide?: boolean; onPick: (partId: string) => void }) {
   return (
     <MaterialCard id={sp.item_id} name={sp.name} buy={sp.buy} cost={sp.cost} priced={sp.priced} currency={currency} sheet
-      meta={`${pct(sp.waste_pct)} waste · saw ${sp.kerf} mm${sp.edge_trim ? ` · trim ${sp.edge_trim} mm` : ""}`}>
+      meta={`saw ${sp.kerf} mm${sp.edge_trim ? ` · trim ${sp.edge_trim} mm` : ""}`} split={sp}>
       {sp.layouts.map((lay, i) => <SheetLayoutBlock key={i} index={i} total={sp.layouts.length} lay={lay} hasGrain={sp.has_grain} wide={wide} onPick={onPick} />)}
     </MaterialCard>
   );

@@ -2,12 +2,14 @@
 
 import { Pin } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { isTyping } from "@/components/frame/edit-layers";
 import { cn } from "@/lib/cn";
-import { addArc, addCircle, addLine, addPoint, addRectangle, dimensionFor, isDimension, mergePoints, pointAt, round, take } from "@/lib/sketch/model";
+import { useEditor } from "@/lib/editor";
+import { addArc, addCircle, addConstraint, addLine, addPoint, addRectangle, cornerSide, dimensionFor, isDimension, mergePoints, pointAt, round, take } from "@/lib/sketch/model";
 import { LIMIT, solve, type SolveResult, type V2 } from "@/lib/sketch/solve";
-import type { Constraint, Sketch } from "@/lib/sketch/types";
+import { AXES, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Anchor } from "@/lib/sketch/ui";
-import { arcSweep, dimensionMarks, glyphAnchor, gridStep, hitTest, measured, measurementsFor, radiusOf, type Marks, type View } from "@/lib/sketch/view";
+import { arcSweep, bounds, dimensionMarks, glyphAnchor, gridStep, hitTest, measured, measurementsFor, radiusOf, type Marks, type View } from "@/lib/sketch/view";
 import { toast } from "@/lib/toast";
 import { lengthInput, parseLength, type Units } from "@/lib/units";
 
@@ -31,6 +33,8 @@ export type CanvasProps = {
   onSetDimension: (id: string, value: number) => void;
   /** A measured value was clicked: make it a dimension (and type its value). */
   onDimension: (kind: Constraint["kind"], refs: string[]) => void;
+  /** Fit the view to the sketch. */
+  onFit: () => void;
 };
 
 type Gesture =
@@ -46,6 +50,7 @@ export function SketchCanvas(props: CanvasProps) {
   const pointers = useRef(new Map<number, V2>());
   const gesture = useRef<Gesture | null>(null);
   const [hover, setHover] = useState<{ at: V2; item: string | null; snap: string | null } | null>(null);
+  const hoverAt = useRef<V2 | null>(null);
 
   const px = 1 / view.scale; // mm per screen pixel
   const toScreen = (p: V2): V2 => [(p[0] - view.cx) * view.scale + size.w / 2, size.h / 2 - (p[1] - view.cy) * view.scale];
@@ -54,9 +59,12 @@ export function SketchCanvas(props: CanvasProps) {
     const r = svg.current!.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top];
   };
-  const snapAt = (at: V2, skip?: Set<string>) => {
+  /** A point (or the origin) near `at` to attach to, else an axis to land on. */
+  const snapAt = (at: V2, skip?: Set<string>): Anchor | null => {
     const id = hitTest({ ...sk, shapes: [] }, at, SNAP_PX * px, skip);
-    return id ? { id, at: pointAt(sk, id) } : null;
+    if (!id) return null;
+    if (AXES.includes(id)) return { axis: id, at: id === X_AXIS ? [round(at[0]), 0] : [0, round(at[1])] };
+    return { point: id, at: pointAt(sk, id) };
   };
 
   // Zoom with the wheel (pinch on a trackpad sends ctrl+wheel), scroll to pan, around the pointer.
@@ -102,7 +110,9 @@ export function SketchCanvas(props: CanvasProps) {
       // Empty space: a click clears the selection, a drag pans.
       if (!hit) { gesture.current = { kind: "click", start: s }; return; }
       if (!e.shiftKey && !ui.selected.includes(hit)) ui.select([hit]);
-      gesture.current = { kind: "drag", start: at, points: dragPoints(sk, hit).map((p) => ({ point: p, from: pointAt(sk, p) })), moved: false };
+      const points = dragPoints(sk, hit);
+      // The origin and axes don't move: dragging from them pans, clicking selects.
+      gesture.current = points.length ? { kind: "drag", start: at, points: points.map((p) => ({ point: p, from: pointAt(sk, p) })), moved: false } : { kind: "click", start: s };
       return;
     }
     gesture.current = { kind: "click", start: s };
@@ -137,13 +147,14 @@ export function SketchCanvas(props: CanvasProps) {
       // A single point dropped on another one joins it: snap to it while over it.
       const snap = single ? snapAt([single.from[0] + d[0], single.from[1] + d[1]], new Set([single.point])) : null;
       ui.set({ drag: cur.points.map((p) => ({ point: p.point, to: snap ? snap.at : [p.from[0] + d[0], p.from[1] + d[1]] })) });
-      setHover({ at, item: null, snap: snap?.id ?? null });
+      setHover({ at, item: null, snap: snap?.point ?? snap?.axis ?? null });
       return;
     }
+    hoverAt.current = at;
     if (e.pointerType !== "touch") {
       const drawing = ["line", "rect", "circle", "arc"].includes(ui.tool);
       const snap = drawing ? snapAt(at) : null;
-      setHover({ at, item: drawing ? null : hitTest(sk, at, HIT_PX * px), snap: snap?.id ?? null });
+      setHover({ at: snap?.axis ? snap.at : at, item: drawing ? null : hitTest(sk, at, HIT_PX * px), snap: snap?.point ?? snap?.axis ?? null });
     }
   }
 
@@ -161,13 +172,14 @@ export function SketchCanvas(props: CanvasProps) {
       const point = g.points[0].point;
       const join = g.points.length === 1 ? snapAt(drag[0].to, new Set([point])) : null;
       const moved = solve(sk, { drag, quick: true }).sketch;
-      // Dropped on another point: join them, if the point really got there and the result solves.
+      // Dropped on another point (or an axis): attach to it, if the point really got there and the result solves.
       const got = moved.points.find((p) => p.id === point);
       let joined: Sketch | null = null;
       if (join && got && Math.hypot(got.x - join.at[0], got.y - join.at[1]) < 1e-3) {
         const trial = structuredClone(moved);
-        if (mergePoints(trial, point, join.id) && solve(trial, { quick: true }).ok) joined = trial;
-        else toast.error("Those two points can't be joined: it doesn't fit with the rest.");
+        const attached = join.point ? mergePoints(trial, point, join.point) : (addConstraint(trial, "on_line", [point, join.axis!]), true);
+        if (attached && solve(trial, { quick: true }).ok) joined = trial;
+        else toast.error(join.point ? "Those two points can't be joined: it doesn't fit with the rest." : "That point can't go on the axis: it doesn't fit with the rest.");
       }
       props.onEdit((d) => {
         if (joined) Object.assign(d, joined);
@@ -213,25 +225,24 @@ export function SketchCanvas(props: CanvasProps) {
     }
     const snap = snapAt(at);
     const clamp = (v: number) => Math.max(-LIMIT, Math.min(LIMIT, round(v)));
-    const here: Anchor = snap ? { point: snap.id, at: snap.at } : { at: [clamp(at[0]), clamp(at[1])] };
-    const place = (d: Sketch, a: Anchor) => a.point && d.points.some((p) => p.id === a.point) ? a.point : addPoint(d, a.at);
-    if (!anchors.length) { ui.set({ anchors: [here] }); return; }
+    const here: Anchor = snap ?? { at: [clamp(at[0]), clamp(at[1])] };
+    if (!anchors.length) { ui.set({ anchors: [here], typed: "" }); return; }
     const first = anchors[0];
     if (tool === "line") {
       if (first.point && first.point === here.point) { ui.set({ anchors: [] }); return; }
       let end = "";
       props.onEdit((d) => { const a = place(d, first); end = place(d, here); addLine(d, a, end); });
       // Ending on a point that was already there closes the chain; otherwise it carries on.
-      ui.set({ anchors: here.point ? [] : [{ point: end, at: here.at }] });
+      ui.set({ anchors: here.point ? [] : [{ point: end, at: here.at }], typed: "" });
     } else if (tool === "rect") {
       if (Math.abs(here.at[0] - first.at[0]) < px || Math.abs(here.at[1] - first.at[1]) < px) return;
-      props.onEdit((d) => { addRectangle(d, place(d, first), here.at); });
-      ui.set({ anchors: [] });
+      props.onEdit((d) => { rectangle(d, first, here); });
+      ui.set({ anchors: [], typed: "" });
     } else if (tool === "circle") {
       const r = Math.hypot(here.at[0] - first.at[0], here.at[1] - first.at[1]);
       if (r * view.scale < 3) return;
       props.onEdit((d) => { addCircle(d, place(d, first), round(r)); });
-      ui.set({ anchors: [] });
+      ui.set({ anchors: [], typed: "" });
     } else if (tool === "arc") {
       if (anchors.length === 1) {
         if (Math.hypot(here.at[0] - first.at[0], here.at[1] - first.at[1]) * view.scale < 3) return;
@@ -243,9 +254,82 @@ export function SketchCanvas(props: CanvasProps) {
       const t = Math.atan2(at[1] - first.at[1], at[0] - first.at[0]);
       const endAt: V2 = [first.at[0] + r * Math.cos(t), first.at[1] + r * Math.sin(t)];
       props.onEdit((d) => { const c = place(d, first); addArc(d, c, place(d, start), addPoint(d, endAt)); });
-      ui.set({ anchors: [] });
+      ui.set({ anchors: [], typed: "" });
     }
   }
+
+  /**
+   * Typed while drawing: a line's length (along where the pointer points), a rectangle's
+   * "width x height" or a circle's diameter. Enter places it, with those sizes pinned.
+   */
+  function placeTyped(text: string) {
+    const { tool, anchors } = useSketchUI.getState();
+    const first = anchors[0];
+    if (!first) return;
+    const sizes = text.split(/\s*[x*×]\s*|\s+/).filter(Boolean).map((t) => parseLength(t, props.units));
+    if (!sizes.length || sizes.some((v) => v === null || v <= 0 || v > LIMIT)) { toast.error(`"${text}" isn't a size`); return; }
+    const toward = hoverAt.current ?? [first.at[0] + 1, first.at[1]];
+    if (tool === "line") {
+      const length = sizes[0]!;
+      let angle = Math.atan2(toward[1] - first.at[1], toward[0] - first.at[0]);
+      // Close to level or plumb: exactly (the line gets that relation too).
+      const quarter = Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
+      if (Math.abs(angle - quarter) < (2 * Math.PI) / 180) angle = quarter;
+      const end: V2 = [round(first.at[0] + length * Math.cos(angle)), round(first.at[1] + length * Math.sin(angle))];
+      let endId = "";
+      props.onEdit((d) => {
+        const line = addLine(d, place(d, first), (endId = addPoint(d, end)));
+        addConstraint(d, "distance", [line], length);
+      });
+      ui.set({ anchors: [{ point: endId, at: end }], typed: "" });
+    } else if (tool === "rect") {
+      const [w, h] = [sizes[0]!, sizes[1] ?? sizes[0]!];
+      const sx = toward[0] < first.at[0] ? -1 : 1, sy = toward[1] < first.at[1] ? -1 : 1;
+      props.onEdit((d) => {
+        const lines = rectangle(d, first, { at: [first.at[0] + sx * w, first.at[1] + sy * h] });
+        addConstraint(d, "distance", [lines[0]], w);
+        addConstraint(d, "distance", [lines[1]], h);
+      });
+      ui.set({ anchors: [], typed: "" });
+    } else if (tool === "circle") {
+      const dia = sizes[0]!;
+      props.onEdit((d) => {
+        const c = addCircle(d, place(d, first), dia / 2);
+        addConstraint(d, "diameter", [c], dia);
+      });
+      ui.set({ anchors: [], typed: "" });
+    }
+    // A typed size can reach past the screen: bring the drawing into view if it does.
+    const now = useEditor.getState().content?.sketches.find((x) => x.id === sk.id);
+    const b = now ? bounds(now) : null;
+    if (b && [b.min, b.max].some((p) => { const q = toScreen(p); return q[0] < 0 || q[1] < 0 || q[0] > size.w || q[1] > size.h; })) props.onFit();
+  }
+  const placeTypedRef = useRef(placeTyped);
+  useEffect(() => { placeTypedRef.current = placeTyped; });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const { tool, anchors, typed } = useSketchUI.getState();
+      if (!anchors.length || !["line", "rect", "circle"].includes(tool) || isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      // Digits; once started, a unit (cm, m, in, ft, ", ') and, for a rectangle, "x" between the sizes.
+      const accepts = /^[0-9.,]$/.test(e.key) || (!!typed && (/^[cmintf"']$/i.test(e.key) || (tool === "rect" && /^[x*× ]$/i.test(e.key))));
+      if (accepts) {
+        useSketchUI.getState().set({ typed: typed + e.key });
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      } else if (e.key === "Backspace" && typed) {
+        useSketchUI.getState().set({ typed: typed.slice(0, -1) });
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      } else if (e.key === "Enter" && typed.trim()) {
+        placeTypedRef.current(typed.trim());
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+    };
+    // Capture: ahead of the editor's own shortcuts (letters pick tools, Backspace deletes).
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
 
   // --- what to draw ---------------------------------------------------------------------------------
 
@@ -260,7 +344,19 @@ export function SketchCanvas(props: CanvasProps) {
 
   const dims = sk.constraints.filter(isDimension);
   const dimensioned = new Set(dims.filter((c) => c.refs.length === 1).map((c) => c.refs[0]));
-  const shownMeasures = measurementsFor(sk, ui.showAll ? sk.shapes.map((s) => s.id) : ui.selected).filter((m) => !dimensioned.has(m.refs[0]));
+  // The Dimension tool shows every size there is to pin (click one to pin it).
+  const measureAll = ui.showAll || ui.tool === "dimension";
+  const shownMeasures = measurementsFor(sk, measureAll ? sk.shapes.map((s) => s.id) : ui.selected).filter((m) => !dimensioned.has(m.refs[0]));
+  // What the Dimension tool would add with the next click: between the picks and what's under the pointer.
+  const preview = (() => {
+    if (ui.tool !== "dimension" || !hover?.item || !ui.picks.length || ui.picks.includes(hover.item)) return null;
+    const dim = dimensionFor(sk, [...ui.picks, hover.item]);
+    if (!dim) return null;
+    const c = { ...dim, side: dim.kind === "angle" ? cornerSide(sk, dim.refs) : null };
+    const marks = dimensionMarks(sk, c, px, middle);
+    return marks ? { marks, value: measured(sk, c), kind: dim.kind } : null;
+  })();
+  const origin = toScreen([0, 0]);
   const marksOf = (c: Pick<Constraint, "kind" | "refs">) => dimensionMarks(sk, c, px, middle);
 
   return (
@@ -270,6 +366,12 @@ export function SketchCanvas(props: CanvasProps) {
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
         onPointerLeave={() => setHover(null)}>
         <Grid view={view} w={size.w} h={size.h} />
+        {/* The axes and the origin: fixed, to draw from and attach to. */}
+        <g aria-hidden="true">
+          {lit.has(X_AXIS) || hover?.snap === X_AXIS ? <path d={`M0,${origin[1]}H${size.w}`} stroke="var(--accent)" strokeWidth={5} opacity={0.6} /> : null}
+          {lit.has(Y_AXIS) || hover?.snap === Y_AXIS ? <path d={`M${origin[0]},0V${size.h}`} stroke="var(--accent)" strokeWidth={5} opacity={0.6} /> : null}
+          <path d={`M0,${origin[1]}H${size.w}M${origin[0]},0V${size.h}`} stroke="var(--ink-3)" strokeWidth={1} strokeDasharray="8 4 2 4" opacity={0.7} />
+        </g>
         {sk.shapes.map((s) => {
           const color = tone(s.id);
           const on = lit.has(s.id);
@@ -311,6 +413,12 @@ export function SketchCanvas(props: CanvasProps) {
             </g>
           );
         })}
+        <g>
+          {lit.has(ORIGIN) || hover?.snap === ORIGIN ? <circle cx={origin[0]} cy={origin[1]} r={10} fill="var(--accent)" opacity={0.7} /> : null}
+          <circle cx={origin[0]} cy={origin[1]} r={5} fill="var(--surface)" stroke="var(--ink)" strokeWidth={1.5} />
+          <circle cx={origin[0]} cy={origin[1]} r={1.6} fill="var(--ink)" />
+        </g>
+        {preview ? <DimensionLines marks={preview.marks} toScreen={toScreen} scale={view.scale} color="var(--info)" dashed /> : null}
         <Preview sketch={sk} hover={hover} toScreen={toScreen} scale={view.scale} />
       </svg>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -320,6 +428,10 @@ export function SketchCanvas(props: CanvasProps) {
           return m ? <DimensionLabel key={c.id} c={c} sketch={sk} at={toScreen(m.label)} units={props.units} canType={props.canType}
             conflict={status.conflicts.includes(c.id)} onSet={props.onSetDimension} /> : null;
         })}
+        {preview ? (
+          <span className="tnum absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-info px-1.5 py-0.5 text-[12px] font-semibold text-surface"
+            style={{ left: toScreen(preview.marks.label)[0], top: toScreen(preview.marks.label)[1] }}>{fmt(preview.kind, preview.value, props.units)}</span>
+        ) : null}
         {shownMeasures.map((m) => {
           const marks = marksOf(m);
           if (!marks) return null;
@@ -338,12 +450,29 @@ export function SketchCanvas(props: CanvasProps) {
   );
 }
 
-/** Dragging a point moves it; a line, circle or arc moves whole (all its points). */
+/** Dragging a point moves it; a line, circle or arc moves whole (all its points). The origin stays. */
 function dragPoints(sk: Sketch, id: string): string[] {
   if (sk.points.some((p) => p.id === id)) return [id];
   const s = sk.shapes.find((x) => x.id === id);
   if (!s) return [];
-  return s.kind === "line" ? [s.a, s.b] : s.kind === "circle" ? [s.c] : [s.c, s.a, s.b];
+  return (s.kind === "line" ? [s.a, s.b] : s.kind === "circle" ? [s.c] : [s.c, s.a, s.b]).filter((p) => p !== ORIGIN);
+}
+
+/** The point an anchor stands for: the one it snapped to, or a new one (on its axis, if it landed on one). */
+function place(d: Sketch, a: Anchor): string {
+  if (a.point && (a.point === ORIGIN || d.points.some((p) => p.id === a.point))) return a.point;
+  const p = addPoint(d, a.at);
+  if (a.axis) addConstraint(d, "on_line", [p, a.axis]);
+  return p;
+}
+
+/** A rectangle between two corners; the second joins whatever it snapped to. */
+function rectangle(d: Sketch, from: Anchor, to: Anchor): string[] {
+  const lines = addRectangle(d, place(d, from), to.at);
+  const corner = (d.shapes.find((x) => x.id === lines[1]) as { b: string }).b;
+  if (to.point) mergePoints(d, corner, to.point);
+  else if (to.axis) addConstraint(d, "on_line", [corner, to.axis]);
+  return lines;
 }
 
 function zoomAt(v: View, s: V2, k: number, w: number, h: number): View {

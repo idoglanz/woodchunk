@@ -3,8 +3,8 @@ import type { V2 } from "./solve";
 
 export type Tool = "select" | "line" | "rect" | "circle" | "arc" | "dimension";
 
-/** The first clicks of a shape being drawn: an existing point, or a spot. */
-export type Anchor = { point?: string; at: V2 };
+/** The first clicks of a shape being drawn: an existing point (the origin too), or a spot, maybe on an axis. */
+export type Anchor = { point?: string; axis?: string; at: V2 };
 
 /** What the sketch screen shows and is in the middle of (not saved with the project). */
 type SketchUI = {
@@ -21,18 +21,20 @@ type SketchUI = {
   showAll: boolean;
   /** Items lit from elsewhere (a row of the dimensions list). */
   hovered: string[];
+  /** A length typed while drawing ("600", or "1200x600" for a rectangle), placed with Enter. */
+  typed: string;
   setTool: (t: Tool) => void;
   select: (ids: string[]) => void;
-  set: (p: Partial<Pick<SketchUI, "anchors" | "picks" | "drag" | "editing" | "showAll" | "hovered">>) => void;
+  set: (p: Partial<Pick<SketchUI, "anchors" | "picks" | "drag" | "editing" | "showAll" | "hovered" | "typed">>) => void;
   reset: () => void;
 };
 
-const fresh = { tool: "select" as Tool, selected: [], anchors: [], picks: [], drag: null, editing: null, hovered: [] };
+const fresh = { tool: "select" as Tool, selected: [], anchors: [], picks: [], drag: null, editing: null, hovered: [], typed: "" };
 
 export const useSketchUI = create<SketchUI>((set) => ({
   ...fresh,
   showAll: false,
-  setTool: (tool) => set({ tool, anchors: [], picks: [], selected: [], editing: null }),
+  setTool: (tool) => set({ tool, anchors: [], picks: [], selected: [], editing: null, typed: "" }),
   select: (selected) => set({ selected }),
   set: (p) => set(p),
   reset: () => set(fresh),

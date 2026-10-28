@@ -26,3 +26,13 @@ export type ConstraintKind = Constraint["kind"];
 export type Sketch = Schemas["Sketch-Output"];
 
 export const DIMENSIONS: ConstraintKind[] = ["distance", "point_line_distance", "angle", "radius", "diameter"];
+
+/**
+ * Every sketch has an origin (a point fixed at 0, 0) and two axes through it. They aren't stored:
+ * shapes and constraints refer to them by these ids, so a drawing attached to them stays put.
+ */
+export const ORIGIN = "origin";
+export const X_AXIS = "x_axis";
+export const Y_AXIS = "y_axis";
+export const AXES = [X_AXIS, Y_AXIS];
+export const isBuiltIn = (id: string) => id === ORIGIN || id === X_AXIS || id === Y_AXIS;

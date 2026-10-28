@@ -473,3 +473,9 @@ async def test_sketches_are_saved_and_checked(client):
     body["sketches"] = [bad]
     r = await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))
     assert r.status_code == 422
+    # The origin and axes are built in: a line can start at the origin, a point sit on an axis.
+    attached = {**sketch, "shapes": [{"id": "l", "kind": "line", "a": "origin", "b": "b"}],
+                "constraints": [{"id": "c", "kind": "on_line", "refs": ["b", "x_axis"]}]}
+    body["sketches"] = [attached]
+    r = await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))
+    assert r.status_code == 200, r.text

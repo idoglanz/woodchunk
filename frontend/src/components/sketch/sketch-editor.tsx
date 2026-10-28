@@ -15,7 +15,7 @@ import { useEditor } from "@/lib/editor";
 import { useMediaQuery } from "@/lib/focus";
 import { addDimension, addRelation, constraintName, deleteItems, dimensionFor, dimensionValue, isDimension, itemNames, relationOptions, setDimension, take } from "@/lib/sketch/model";
 import { solve } from "@/lib/sketch/solve";
-import type { Constraint, Sketch } from "@/lib/sketch/types";
+import { isBuiltIn, type Constraint, type Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Tool } from "@/lib/sketch/ui";
 import { fit, measured, type View } from "@/lib/sketch/view";
 import { toast } from "@/lib/toast";
@@ -80,7 +80,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
     ro.observe(el);
     return () => ro.disconnect();
   }, [latest]);
-  const fitView = () => setView(fit(sk, size.w, size.h));
+  const fitView = useCallback(() => setView(fit(latest(), size.w, size.h)), [latest, size.w, size.h]);
   const updateView = useCallback((next: View | ((v: View) => View)) => setView((v) => (v ? (typeof next === "function" ? next(v) : next) : v)), []);
 
   const onSetDimension = useCallback((cid: string, value: number) => {
@@ -149,7 +149,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
       <div className="relative min-h-[46dvh] min-w-0 flex-1" ref={box}>
         {view && size.w ? (
           <SketchCanvas sketch={shown} status={status} canDraw={canDraw} canType={canType} units={units} view={view} setView={updateView} size={size}
-            onEdit={editSketch} onSetDimension={onSetDimension} onDimension={onDimension} />
+            onEdit={editSketch} onSetDimension={onSetDimension} onDimension={onDimension} onFit={fitView} />
         ) : null}
         <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex flex-wrap items-center gap-2 [&>*]:pointer-events-auto">
           <Link href={`/projects/${projectId}/build`} aria-label="Back to Build"
@@ -191,15 +191,18 @@ function ToolHint({ sketch: sk, empty }: { sketch: Sketch; empty: boolean }) {
   const tool = useSketchUI((s) => s.tool);
   const anchors = useSketchUI((s) => s.anchors.length);
   const picks = useSketchUI((s) => s.picks);
+  const typed = useSketchUI((s) => s.typed);
   const text = (() => {
     switch (tool) {
-      case "select": return empty ? "Pick Line, Rectangle, Circle or Arc above to draw. Rough is fine: pin the sizes after." : "Click to select (Shift for more), drag to move. Click a number to change it.";
-      case "line": return anchors ? "Click the next point. End on an existing point to close, or press Esc." : "Click where the line starts.";
-      case "rect": return anchors ? "Click the opposite corner." : "Click one corner.";
-      case "circle": return anchors ? "Click to set the size." : "Click the centre.";
+      case "select": return empty
+        ? "Start at the origin (the circle where the axes cross): pick Rectangle (R), click the origin, type 1200x600 and press Enter. Rough drawing is fine too: pin the sizes after."
+        : "Click to select (Shift for more), drag to move. Click a number to change it. Attach to the origin or an axis to hold the drawing in place.";
+      case "line": return anchors ? "Click the next point, or type a length and press Enter. End on a point to close; Esc to stop." : "Click where the line starts: the origin, a point, an axis or anywhere.";
+      case "rect": return anchors ? "Click the opposite corner, or type width x height (1200x600) and press Enter." : "Click one corner (the origin is a good start).";
+      case "circle": return anchors ? "Click to set the size, or type the diameter and press Enter." : "Click the centre.";
       case "arc": return anchors === 0 ? "Click the centre." : anchors === 1 ? "Click where the arc starts." : "Click where it ends (counter-clockwise).";
       case "dimension": {
-        if (!picks.length) return "Click a line for its length, a circle for its size, or two things for the distance or angle between them.";
+        if (!picks.length) return "Click a grey size to pin it, or pick two things (points, lines, an axis) for the distance or angle between them.";
         const one = dimensionFor(sk, picks);
         return one ? "Press Enter (or click empty space) for its own size, or click a second thing." : "Click a second point or line.";
       }
@@ -207,7 +210,10 @@ function ToolHint({ sketch: sk, empty }: { sketch: Sketch; empty: boolean }) {
   })();
   return (
     <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex justify-start">
-      <div role="status" className="max-w-[min(560px,100%)] rounded-2xl bg-surface/95 px-4 py-2 text-[13px] text-ink-2 shadow-[var(--shadow-pop)] backdrop-blur">{text}</div>
+      <div role="status" className="flex max-w-[min(620px,100%)] flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl bg-surface/95 px-4 py-2 text-[13px] text-ink-2 shadow-[var(--shadow-pop)] backdrop-blur">
+        <span>{text}</span>
+        {typed ? <span className="tnum rounded-md bg-accent px-2 py-0.5 font-semibold text-accent-ink">{typed}</span> : null}
+      </div>
     </div>
   );
 }
@@ -253,7 +259,7 @@ function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimens
             <h2 className="text-[13px] font-semibold text-ink-2">
               {selectedConstraint ? constraintName(selectedConstraint, names) : ui.selected.map((x) => names.get(x)).filter(Boolean).join(", ")}
             </h2>
-            <IconButton label="Delete (Del)" size="sm" variant="destructive" className="ms-auto" onClick={onDelete}><Trash2 size={15} /></IconButton>
+            {ui.selected.some((x) => !isBuiltIn(x)) ? <IconButton label="Delete (Del)" size="sm" variant="destructive" className="ms-auto" onClick={onDelete}><Trash2 size={15} /></IconButton> : null}
           </div>
           {!selectedConstraint && ui.selected.length === 1 ? <Measures sk={sk} id={ui.selected[0]} units={units} /> : null}
           {options.length || dim ? (

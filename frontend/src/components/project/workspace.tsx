@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AIPanel } from "@/components/project/ai-panel";
 import { ProjectContext, useProjectCtx } from "@/components/project/context";
 import { MoreMenu, TemplateSheet } from "@/components/project/more-menu";
+import { NewMenu } from "@/components/project/new-menu";
 import { ShareSheet } from "@/components/project/share";
 import { StatusMenu } from "@/components/project/status-menu";
 import { SummaryBar } from "@/components/project/summary-bar";
@@ -242,6 +243,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
                           <Avatars people={others.map((m) => ({ user_id: m.user_id, name: m.name || m.email }))} size={26} />
                         </button>
                       ) : null}
+                      <NewMenu />
                       {role ? <Button size="sm" variant="ghost" icon={<Share size={15} />} onClick={() => setSharing(true)}>{role === "owner" ? "Share" : "People"}</Button> : null}
                       <Button size="sm" variant={aiOpen ? "secondary" : "ghost"} icon={<Sparkles size={15} />} onClick={() => setAIOpen((o) => !o)} aria-pressed={aiOpen}>Ask</Button>
                       <MoreMenu owner={role === "owner"} onTemplate={() => setTemplating(true)} />

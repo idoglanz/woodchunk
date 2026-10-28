@@ -7,7 +7,7 @@
  */
 
 import { nullSpace, orthonormal, reject, solveLinear, type Matrix } from "./linalg";
-import type { Constraint, Shape, Sketch } from "./types";
+import { ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Shape, type Sketch } from "./types";
 
 export type V2 = [number, number];
 const sub = (a: V2, b: V2): V2 => [a[0] - b[0], a[1] - b[1]];
@@ -26,6 +26,8 @@ function shapeOf(sk: Sketch, id: string): Shape | undefined {
 }
 
 function lineEnds(sk: Sketch, g: Get, id: string): [V2, V2] {
+  if (id === X_AXIS) return [[0, 0], [1000, 0]];
+  if (id === Y_AXIS) return [[0, 0], [0, 1000]];
   const s = shapeOf(sk, id);
   if (s?.kind !== "line") throw new Error(`not a line: ${id}`);
   return [g.p(s.a), g.p(s.b)];
@@ -76,7 +78,7 @@ export function measure(sk: Sketch, c: Constraint, g: Get = staticGet(sk)): numb
 export function staticGet(sk: Sketch): Get {
   const pts = new Map(sk.points.map((p) => [p.id, [p.x, p.y] as V2]));
   return {
-    p: (id) => pts.get(id) ?? [0, 0],
+    p: (id) => pts.get(id) ?? [0, 0], // the origin is at 0, 0
     r: (id) => {
       const s = shapeOf(sk, id);
       if (s?.kind === "circle") return s.r;
@@ -375,7 +377,7 @@ function solvePiece(sk: Sketch, opts: SolveOptions): { result: SolveResult; gaug
   const fixed = new Set(sk.constraints.filter((c) => c.kind === "fix" && c.id !== opts.skip).map((c) => c.refs[0]));
   const pinnedAt = new Map<string, V2>();
   for (const p of sk.points) if (fixed.has(p.id)) pinnedAt.set(p.id, [p.x, p.y]);
-  for (const d of opts.drag ?? []) if (!fixed.has(d.point)) pinnedAt.set(d.point, d.to);
+  for (const d of opts.drag ?? []) if (!fixed.has(d.point) && d.point !== ORIGIN) pinnedAt.set(d.point, d.to);
 
   const L = sizeOf(sk);
   const res = residuals(sk, L, opts.skip);

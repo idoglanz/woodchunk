@@ -4,7 +4,7 @@
  */
 
 import { LIMIT, measure, solve, type SolveResult, type V2 } from "./solve";
-import { DIMENSIONS, type Constraint, type ConstraintKind, type Shape, type Sketch } from "./types";
+import { AXES, DIMENSIONS, isBuiltIn, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type ConstraintKind, type Shape, type Sketch } from "./types";
 
 const newId = () => crypto.randomUUID().replace(/-/g, "");
 const id = () => newId().slice(0, 10);
@@ -27,9 +27,9 @@ export function pointsOf(s: Shape): string[] {
  * the same sketch when nothing needed dropping.
  */
 export function tidy(sk: Sketch): Sketch {
-  const points = new Set(sk.points.map((p) => p.id));
+  const points = new Set([ORIGIN, ...sk.points.map((p) => p.id)]);
   const shapes = sk.shapes.filter((s) => pointsOf(s).every((p) => points.has(p)));
-  const known = new Set([...points, ...shapes.map((s) => s.id)]);
+  const known = new Set([...points, ...AXES, ...shapes.map((s) => s.id)]);
   const constraints = sk.constraints.filter((c) => c.refs.every((r) => known.has(r)));
   if (shapes.length === sk.shapes.length && constraints.length === sk.constraints.length) return sk;
   return { ...sk, shapes, constraints };
@@ -41,9 +41,18 @@ export function addPoint(sk: Sketch, [x, y]: V2): string {
   return p.id;
 }
 
+/** Where a point is (the origin is at 0, 0). */
 export function pointAt(sk: Sketch, pid: string): V2 {
   const p = sk.points.find((q) => q.id === pid);
   return p ? [p.x, p.y] : [0, 0];
+}
+
+/** A line's two ends, or two points along an axis; null when `id` isn't a line. */
+export function lineOf(sk: Sketch, id: string): [V2, V2] | null {
+  if (id === X_AXIS) return [[0, 0], [1000, 0]];
+  if (id === Y_AXIS) return [[0, 0], [0, 1000]];
+  const s = shapeById(sk, id);
+  return s?.kind === "line" ? [pointAt(sk, s.a), pointAt(sk, s.b)] : null;
 }
 
 export function shapeById(sk: Sketch, sid: string): Shape | undefined {
@@ -104,7 +113,7 @@ export function addArc(sk: Sketch, c: string, a: string, b: string): string {
  * unless something else still uses them; whatever then refers to a deleted thing goes too.
  */
 export function deleteItems(sk: Sketch, ids: Iterable<string>) {
-  const gone = new Set(ids);
+  const gone = new Set([...ids].filter((x) => !isBuiltIn(x))); // the origin and axes stay
   sk.constraints = sk.constraints.filter((c) => !gone.has(c.id));
   const dropped = sk.shapes.filter((s) => gone.has(s.id) || pointsOf(s).some((p) => gone.has(p)));
   sk.shapes = sk.shapes.filter((s) => !dropped.includes(s));
@@ -114,7 +123,7 @@ export function deleteItems(sk: Sketch, ids: Iterable<string>) {
   Object.assign(sk, tidy(sk));
 }
 
-const isFixed = (sk: Sketch, pid: string) => sk.constraints.some((c) => c.kind === "fix" && c.refs[0] === pid);
+const isFixed = (sk: Sketch, pid: string) => pid === ORIGIN || sk.constraints.some((c) => c.kind === "fix" && c.refs[0] === pid);
 
 /**
  * Join two points into one: everything using either uses the one left, which stays where it is.
@@ -163,7 +172,8 @@ export type Picked = { points: string[]; lines: string[]; round: string[] };
 export function picked(sk: Sketch, ids: string[]): Picked {
   const out: Picked = { points: [], lines: [], round: [] };
   for (const x of ids) {
-    if (sk.points.some((p) => p.id === x)) out.points.push(x);
+    if (x === ORIGIN || sk.points.some((p) => p.id === x)) out.points.push(x);
+    else if (AXES.includes(x)) out.lines.push(x);
     else {
       const s = shapeById(sk, x);
       if (s?.kind === "line") out.lines.push(x);
@@ -180,20 +190,23 @@ export function relationOptions(sk: Sketch, ids: string[]): RelationOption[] {
   const { points: P, lines: L, round: R } = picked(sk, ids);
   const n = P.length + L.length + R.length;
   const out: RelationOption[] = [];
-  if (n === L.length && L.length >= 1) {
+  // An axis can be the other line of a relation (parallel to it, a point on it), not the one changed.
+  const axis = L.some((x) => AXES.includes(x));
+  if (n === L.length && L.length >= 1 && !(L.length === 1 && axis) && !L.every((x) => AXES.includes(x))) {
     if (L.length === 1) out.push({ kind: "horizontal", label: "Horizontal", refs: L }, { kind: "vertical", label: "Vertical", refs: L });
     if (L.length === 2) {
-      out.push({ kind: "parallel", label: "Parallel", refs: L }, { kind: "perpendicular", label: "Perpendicular", refs: L },
-        { kind: "equal", label: "Equal length", refs: L });
+      out.push({ kind: "parallel", label: "Parallel", refs: L }, { kind: "perpendicular", label: "Perpendicular", refs: L });
+      if (!axis) out.push({ kind: "equal", label: "Equal length", refs: L });
     }
   }
   if (n === 2 && P.length === 2) {
-    out.push({ kind: "coincident", label: "Join", refs: P });
+    out.push({ kind: "coincident", label: P.includes(ORIGIN) ? "Join to origin" : "Join", refs: P });
   }
-  if (n === 2 && P.length === 1 && L.length === 1) {
-    out.push({ kind: "on_line", label: "On line", refs: [P[0], L[0]] }, { kind: "midpoint", label: "Midpoint", refs: [P[0], L[0]] });
+  if (n === 2 && P.length === 1 && L.length === 1 && P[0] !== ORIGIN) {
+    out.push({ kind: "on_line", label: AXES.includes(L[0]) ? "On axis" : "On line", refs: [P[0], L[0]] });
+    if (!axis) out.push({ kind: "midpoint", label: "Midpoint", refs: [P[0], L[0]] });
   }
-  if (n === 2 && P.length === 1 && R.length === 1) out.push({ kind: "on_circle", label: "On circle", refs: [P[0], R[0]] });
+  if (n === 2 && P.length === 1 && R.length === 1 && P[0] !== ORIGIN) out.push({ kind: "on_circle", label: "On circle", refs: [P[0], R[0]] });
   if (n === 2 && L.length === 1 && R.length === 1) {
     out.push({ kind: "tangent", label: "Tangent", refs: [L[0], R[0]], side: tangentSide(sk, L[0], R[0]) });
   }
@@ -201,7 +214,7 @@ export function relationOptions(sk: Sketch, ids: string[]): RelationOption[] {
     out.push({ kind: "equal", label: "Equal radius", refs: R }, { kind: "tangent", label: "Tangent", refs: R, side: circlesSide(sk, R[0], R[1]) });
   }
   if (n >= 1 && n === P.length) {
-    const loose = P.filter((p) => !sk.constraints.some((c) => c.kind === "fix" && c.refs[0] === p));
+    const loose = P.filter((p) => !isFixed(sk, p));
     if (loose.length) out.push({ kind: "fix", label: n > 1 ? "Fix in place" : "Fix", refs: loose });
   }
   // Not the ones already there (the same relation on the same things, either way round).
@@ -212,9 +225,9 @@ export function relationOptions(sk: Sketch, ids: string[]): RelationOption[] {
 
 /** Which side of the line the circle's centre is on, as drawn (+1 left of a→b, −1 right). */
 function tangentSide(sk: Sketch, lineId: string, roundId: string): number {
-  const l = shapeById(sk, lineId), r = shapeById(sk, roundId);
-  if (l?.kind !== "line" || !r || r.kind === "line") return 1;
-  const [a, b, c] = [pointAt(sk, l.a), pointAt(sk, l.b), pointAt(sk, r.c)];
+  const l = lineOf(sk, lineId), r = shapeById(sk, roundId);
+  if (!l || !r || r.kind === "line") return 1;
+  const [a, b, c] = [l[0], l[1], pointAt(sk, r.c)];
   return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) >= 0 ? 1 : -1;
 }
 
@@ -245,8 +258,9 @@ export function dimensionFor(sk: Sketch, ids: string[]): { kind: ConstraintKind;
     const a = measure(sk, { id: "", kind: "angle", refs: L, value: null, driving: true, side: null });
     // Parallel lines have no angle to speak of: their gap instead (from one line's end to the other).
     if (Math.abs(Math.sin((a * Math.PI) / 180)) < 1e-3) {
-      const first = shapeById(sk, L[0]);
-      return first?.kind === "line" ? { kind: "point_line_distance", refs: [first.a, L[1]] } : null;
+      const [line, other] = AXES.includes(L[0]) ? [L[1], L[0]] : [L[0], L[1]];
+      const first = shapeById(sk, line);
+      return first?.kind === "line" ? { kind: "point_line_distance", refs: [first.a, other] } : null;
     }
     return c;
   }
@@ -276,9 +290,9 @@ export function addDimension(sk: Sketch, kind: ConstraintKind, refs: string[]): 
  * between the longer part of each line. −1 when that needs the second line turned round.
  */
 export function cornerSide(sk: Sketch, refs: string[]): number {
-  const [l1, l2] = refs.map((r) => shapeById(sk, r));
-  if (l1?.kind !== "line" || l2?.kind !== "line") return 1;
-  const [a1, b1, a2, b2] = [pointAt(sk, l1.a), pointAt(sk, l1.b), pointAt(sk, l2.a), pointAt(sk, l2.b)];
+  const [l1, l2] = refs.map((r) => lineOf(sk, r));
+  if (!l1 || !l2) return 1;
+  const [[a1, b1], [a2, b2]] = [l1, l2];
   const d1: V2 = [b1[0] - a1[0], b1[1] - a1[1]], d2: V2 = [b2[0] - a2[0], b2[1] - a2[1]];
   const den = d1[0] * d2[1] - d1[1] * d2[0];
   if (Math.abs(den) < 1e-9) return 1;
@@ -337,6 +351,7 @@ export function itemNames(sk: Sketch): Map<string, string> {
   const name = (kind: string) => `${kind} ${(count[kind] = (count[kind] ?? 0) + 1)}`;
   for (const s of sk.shapes) out.set(s.id, name(s.kind === "line" ? "Line" : s.kind === "circle" ? "Circle" : "Arc"));
   for (const p of sk.points) out.set(p.id, name("Point"));
+  out.set(ORIGIN, "Origin").set(X_AXIS, "X axis").set(Y_AXIS, "Y axis");
   return out;
 }
 

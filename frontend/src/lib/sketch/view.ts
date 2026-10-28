@@ -5,8 +5,8 @@
  */
 
 import { measure, type V2 } from "./solve";
-import { pointAt, shapeById } from "./model";
-import type { Constraint, Shape, Sketch } from "./types";
+import { lineOf, pointAt, shapeById } from "./model";
+import { ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Shape, type Sketch } from "./types";
 
 const sub = (a: V2, b: V2): V2 => [a[0] - b[0], a[1] - b[1]];
 const add = (a: V2, b: V2): V2 => [a[0] + b[0], a[1] + b[1]];
@@ -20,6 +20,8 @@ export type View = { cx: number; cy: number; scale: number }; // centre (mm) and
 export function bounds(sk: Sketch): { min: V2; max: V2 } | null {
   const xs: number[] = [], ys: number[] = [];
   for (const p of sk.points) { xs.push(p.x); ys.push(p.y); }
+  // The origin, when the drawing is attached to it.
+  if (sk.shapes.some((s) => (s.kind === "line" ? [s.a, s.b] : [s.c]).includes(ORIGIN))) { xs.push(0); ys.push(0); }
   for (const s of sk.shapes) {
     if (s.kind === "line") continue;
     const c = pointAt(sk, s.c), r = radiusOf(sk, s);
@@ -72,13 +74,18 @@ export function distToShape(sk: Sketch, s: Shape, p: V2): number {
   return Math.min(len(sub(p, pointAt(sk, s.a))), len(sub(p, pointAt(sk, s.b))));
 }
 
-/** The point, else the shape, within `tol` mm of `at` (points win: they sit on shapes). */
-export function hitTest(sk: Sketch, at: V2, tol: number, skip: Set<string> = new Set()): string | null {
+/**
+ * The point (the origin too), else the shape, else an axis, within `tol` mm of `at`: points win
+ * because they sit on shapes, and shapes win over the axes they're often drawn along.
+ */
+export function hitTest(sk: Sketch, at: V2, tol: number, skip: Set<string> = new Set(), builtIn = true): string | null {
   let best: string | null = null, bestD = tol;
-  for (const p of sk.points) {
-    if (skip.has(p.id)) continue;
-    const d = len(sub([p.x, p.y], at));
-    if (d <= bestD) { best = p.id; bestD = d; }
+  const pts: [string, V2][] = sk.points.map((p) => [p.id, [p.x, p.y]]);
+  if (builtIn) pts.push([ORIGIN, [0, 0]]);
+  for (const [id, p] of pts) {
+    if (skip.has(id)) continue;
+    const d = len(sub(p, at));
+    if (d <= bestD) { best = id; bestD = d; }
   }
   if (best) return best;
   bestD = tol;
@@ -87,11 +94,16 @@ export function hitTest(sk: Sketch, at: V2, tol: number, skip: Set<string> = new
     const d = distToShape(sk, s, at);
     if (d <= bestD) { best = s.id; bestD = d; }
   }
-  return best;
+  if (best || !builtIn) return best;
+  if (Math.abs(at[1]) <= tol * 0.8 && !skip.has(X_AXIS)) return X_AXIS;
+  if (Math.abs(at[0]) <= tol * 0.8 && !skip.has(Y_AXIS)) return Y_AXIS;
+  return null;
 }
 
 /** Where a shape's relation glyphs sit: the middle of a line, the top of a circle or an arc's middle. */
 export function glyphAnchor(sk: Sketch, id: string): { at: V2; along: V2 } | null {
+  if (id === X_AXIS || id === Y_AXIS) return null; // the axes don't carry badges
+  if (id === ORIGIN) return { at: [0, 0], along: [1, 0] };
   const s = shapeById(sk, id);
   if (!s) {
     const p = sk.points.find((q) => q.id === id);
@@ -130,20 +142,22 @@ export function dimensionMarks(sk: Sketch, c: Pick<Constraint, "kind" | "refs"> 
       }
       case "point_line_distance": {
         const p = pointAt(sk, c.refs[0]);
-        const l = shapeById(sk, c.refs[1]);
-        if (l?.kind !== "line") return null;
-        const [a, b] = [pointAt(sk, l.a), pointAt(sk, l.b)];
+        const l = lineOf(sk, c.refs[1]);
+        if (!l) return null;
+        const [a, b] = l;
         const d = unit(sub(b, a));
         const t = (p[0] - a[0]) * d[0] + (p[1] - a[1]) * d[1];
         const foot = add(a, mul(d, t));
         // Out to the line, extended if the foot falls beyond its ends.
-        const ext: [V2, V2][] = t < 0 ? [[a, foot]] : t > len(sub(b, a)) ? [[b, foot]] : [];
+        // (The axes run on forever: nothing to extend.)
+        const axis = c.refs[1] === X_AXIS || c.refs[1] === Y_AXIS;
+        const ext: [V2, V2][] = axis ? [] : t < 0 ? [[a, foot]] : t > len(sub(b, a)) ? [[b, foot]] : [];
         return { lines: [[p, foot], ...ext], label: mul(add(p, foot), 0.5) };
       }
       case "angle": {
-        const [l1, l2] = [shapeById(sk, c.refs[0]), shapeById(sk, c.refs[1])];
-        if (l1?.kind !== "line" || l2?.kind !== "line") return null;
-        const [a1, b1, a2, b2] = [pointAt(sk, l1.a), pointAt(sk, l1.b), pointAt(sk, l2.a), pointAt(sk, l2.b)];
+        const [l1, l2] = [lineOf(sk, c.refs[0]), lineOf(sk, c.refs[1])];
+        if (!l1 || !l2) return null;
+        const [[a1, b1], [a2, b2]] = [l1, l2];
         const d1 = sub(b1, a1), d2 = sub(b2, a2);
         const den = d1[0] * d2[1] - d1[1] * d2[0];
         // Parallel (0° or 180°): no corner to draw, the value sits between the two lines.
@@ -162,8 +176,8 @@ export function dimensionMarks(sk: Sketch, c: Pick<Constraint, "kind" | "refs"> 
         if (sweep < 0) { start += sweep; sweep = -sweep; }
         const mid = start + sweep / 2;
         const ext: [V2, V2][] = [];
-        for (const [a, b] of [[a1, b1], [a2, b2]] as [V2, V2][]) {
-          if (Math.min(len(sub(a, meet)), len(sub(b, meet))) > 1e-6 && distToSegment(meet, a, b) > 1e-6) {
+        for (const [a, b, ref] of [[a1, b1, c.refs[0]], [a2, b2, c.refs[1]]] as [V2, V2, string][]) {
+          if (ref !== X_AXIS && ref !== Y_AXIS && Math.min(len(sub(a, meet)), len(sub(b, meet))) > 1e-6 && distToSegment(meet, a, b) > 1e-6) {
             ext.push([len(sub(a, meet)) < len(sub(b, meet)) ? a : b, meet]);
           }
         }

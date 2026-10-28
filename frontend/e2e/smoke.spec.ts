@@ -127,7 +127,9 @@ test("sketch: draw roughly, pin sizes, read off the rest", async ({ page }, info
   await page.getByLabel("Name").fill("E2E sketch");
   await page.getByRole("button", { name: "Create" }).click();
 
-  await page.getByRole("button", { name: "New sketch" }).click();
+  // From the project's New menu (Build's Sketches card has the same button).
+  await page.getByRole("button", { name: "New", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Sketch" }).click();
   await expect(page).toHaveURL(/\/sketch\//);
   await expect(page.getByText("Empty: draw something to start.")).toBeVisible();
 
@@ -171,6 +173,16 @@ test("sketch: draw roughly, pin sizes, read off the rest", async ({ page }, info
   await saved;
   await page.reload();
   await expect(diagonal).toBeVisible();
+  // A rectangle typed from the origin is held in place: fully defined.
   await page.getByRole("link", { name: "Back to Build" }).click();
   await expect(page.getByText("Fully defined")).toBeVisible();
+  await page.getByRole("button", { name: "New sketch" }).click();
+  await page.getByRole("radio", { name: "Rectangle" }).click();
+  const box2 = (await page.getByRole("img", { name: "Sketch" }).boundingBox())!;
+  await page.mouse.click(box2.x + box2.width / 2, box2.y + box2.height / 2); // the origin
+  await page.mouse.move(box2.x + box2.width / 2 + 100, box2.y + box2.height / 2 - 100);
+  await page.keyboard.type("1200x600");
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Fully defined: every size is pinned down.")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Dimensions" }).getByRole("button", { name: "Line 2 length: 600 mm" })).toBeVisible();
 });

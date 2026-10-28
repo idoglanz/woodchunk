@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { addCircle, addConstraint, addDimension, addLine, addPoint, addRectangle, addRelation, deleteItems, dimensionFor, mergePoints, newSketch, relationOptions, setDimension, tidy } from "./model";
 import { LIMIT, measure, solve } from "./solve";
-import type { Sketch } from "./types";
+import { ORIGIN, X_AXIS, type Sketch } from "./types";
 
 function rectangle() {
   const sk = newSketch([]);
@@ -171,5 +171,34 @@ describe("sketch editing", () => {
     expect(r.dof).toBe(2); // the second rectangle can slide anywhere (both stay level)
     expect(pieces[0].some((l) => r.free.has(l))).toBe(false);
     expect(pieces[1].every((l) => r.free.has(l))).toBe(true);
+  });
+
+  it("holds a drawing attached to the origin: a dimensioned rectangle from it is fully defined", () => {
+    const sk = newSketch([]);
+    const lines = addRectangle(sk, ORIGIN, [1150, 610]);
+    addDimension(sk, "distance", [lines[0]]);
+    addDimension(sk, "distance", [lines[1]]);
+    const r = solve(sk);
+    expect(r.ok).toBe(true);
+    expect(r.dof).toBe(0); // no longer free to slide or turn
+    expect(r.free.size).toBe(0);
+    // Dragging a corner can't move it now.
+    const corner = sk.points[1].id;
+    const held = solve(sk, { drag: [{ point: corner, to: [2000, 2000] }] });
+    expect(held.sketch.points[1]).toEqual(sk.points[1]);
+  });
+
+  it("measures from the axes and keeps a point on one", () => {
+    const sk = newSketch([]);
+    const p = addPoint(sk, [300, 7]);
+    expect(dimensionFor(sk, [p, X_AXIS])).toEqual({ kind: "point_line_distance", refs: [p, X_AXIS] });
+    expect(addRelation(sk, { kind: "on_line", label: "", refs: [p, X_AXIS] }).ok).toBe(true);
+    expect(Math.abs(sk.points[0].y)).toBeLessThan(1e-9);
+    // The origin and axes can't be deleted, and a point joined to the origin goes to it.
+    deleteItems(sk, [ORIGIN, X_AXIS]);
+    expect(sk.constraints).toHaveLength(1);
+    const q = addPoint(sk, [5, 5]);
+    expect(addRelation(sk, { kind: "coincident", label: "", refs: [ORIGIN, q] }).ok).toBe(true);
+    expect(sk.points.some((x) => x.id === q)).toBe(false);
   });
 });

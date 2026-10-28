@@ -153,3 +153,14 @@ describe("sketch solver", () => {
     near(lengthOf(r.sketch, "ab"), lengthOf(sk, "ab"), 1);
   });
 });
+
+describe("pieces held by the axes", () => {
+  it("keeps a dimension to an axis when the sketch has other, separate pieces", () => {
+    const sk = sketch([P(310, 0, "a"), P(360, 0, "b"), P(800, 0, "c"), P(900, 0, "d")],
+      [line("one", "a", "b"), line("two", "c", "d")],
+      [C("point_line_distance", ["a", "y_axis"], 200), C("on_line", ["a", "x_axis"])]);
+    const r = solve(sk);
+    expect(r.ok).toBe(true);
+    near(r.sketch.points.find((p) => p.id === "a")!.x, 200);
+  });
+});

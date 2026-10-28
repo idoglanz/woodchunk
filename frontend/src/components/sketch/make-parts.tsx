@@ -53,7 +53,7 @@ export function MakeParts({ sk, lines, open, onOpenChange }: { sk: Sketch; lines
       fresh.forEach((l, i) => {
         a!.parts.push(newPart({
           name: fresh.length > 1 ? `${name} ${i + 1}` : name, item_id: item, qty,
-          length_mm: lineLength(sk, l) ?? 0, sketch: { sketch_id: sk.id, shape_id: l },
+          length_mm: Math.min(lineLength(sk, l) ?? 0, 100_000), sketch: { sketch_id: sk.id, shape_id: l },
         }));
       });
       [letter, asmName] = [a.letter, a.name];

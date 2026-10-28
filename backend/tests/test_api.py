@@ -525,3 +525,17 @@ async def test_material_without_a_section_still_counts_in_the_shares(client):
     lb = sum(x["length_mm"] * x["qty"] for x in b["buy"])
     expected = (m["used_pct"] * lm + b["used_pct"] * lb) / (lm + lb)
     assert abs(plan["totals"]["used_pct"] - expected) <= 0.1
+
+
+async def test_duplicate_keeps_sketches_with_their_assemblies(client):
+    p = await new_project(client, assemblies=[{"name": "Bench", "qty": 1, "parts": []}])
+    asm = p["assemblies"][0]["id"]
+    body = {**{k: p[k] for k in CONTENT}, "version": p["version"],
+            "sketches": [{"name": "Side", "assembly_id": asm, "points": [], "shapes": [], "constraints": []}]}
+    r = await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))
+    assert r.status_code == 200, r.text
+    r = await client.post(f"/api/projects/{p['id']}/duplicate", headers=auth(USER))
+    assert r.status_code == 201, r.text
+    copy = r.json()
+    assert copy["assemblies"][0]["id"] != asm
+    assert copy["sketches"][0]["assembly_id"] == copy["assemblies"][0]["id"]

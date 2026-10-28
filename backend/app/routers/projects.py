@@ -42,14 +42,18 @@ Lang = Literal["en", "he"]
 
 def _fresh_ids(content: ProjectContent) -> ProjectContent:
     c = content.model_copy(deep=True)
+    renamed: dict[str, str] = {}
     for a in c.assemblies:
-        a.id = new_id()
+        old, a.id = a.id, new_id()
+        renamed[old] = a.id
         for p in a.parts:
             p.id = new_id()
         for h in a.hardware:
             h.id = new_id()
     for h in c.extras:
         h.id = new_id()
+    for sk in c.sketches:  # still drawn for the same (renamed) assembly
+        sk.assembly_id = renamed.get(sk.assembly_id) if sk.assembly_id else None
     return c
 
 

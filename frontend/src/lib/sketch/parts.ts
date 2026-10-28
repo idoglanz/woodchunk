@@ -9,6 +9,9 @@ import { measure } from "./solve";
 import { connected } from "./model";
 import type { Sketch } from "./types";
 
+/** The longest part the server takes (100 m). */
+const MAX_PART = 100_000;
+
 /** A line's length as a part is cut: to a tenth of a millimetre. */
 export function lineLength(sk: Sketch, lineId: string): number | null {
   const s = sk.shapes.find((x) => x.id === lineId);
@@ -27,7 +30,7 @@ export function syncParts(content: ProjectContent, sketchId: string) {
   for (const { p } of linkedParts(content, sketchId)) {
     const len = sk ? lineLength(sk, p.sketch!.shape_id) : null;
     if (len === null) p.sketch = null;
-    else if (Math.abs(p.length_mm - len) > 1e-9) p.length_mm = len;
+    else if (Math.abs(p.length_mm - Math.min(len, MAX_PART)) > 1e-9) p.length_mm = Math.min(len, MAX_PART);
   }
 }
 
@@ -53,7 +56,11 @@ export function partLines(sk: Sketch, ids: string[]): string[] {
   for (const id of picked) {
     if (done.has(id)) continue;
     const loop = connected(sk, id);
-    const closed = loop.length === 4 && loop.every((l) => picked.has(l) && sk.shapes.find((s) => s.id === l)?.kind === "line");
+    // Closed: four lines, four corners, each corner shared by exactly two of them.
+    const ends = loop.flatMap((l) => { const s = sk.shapes.find((x) => x.id === l); return s?.kind === "line" ? [s.a, s.b] : []; });
+    const uses = new Map<string, number>();
+    ends.forEach((p) => uses.set(p, (uses.get(p) ?? 0) + 1));
+    const closed = loop.length === 4 && ends.length === 8 && uses.size === 4 && [...uses.values()].every((n) => n === 2) && loop.every((l) => picked.has(l));
     if (closed) {
       loop.forEach((l) => done.add(l));
       out.push(loop.reduce((best, l) => ((lineLength(sk, l) ?? 0) > (lineLength(sk, best) ?? 0) ? l : best)));

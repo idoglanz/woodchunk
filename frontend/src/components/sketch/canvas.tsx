@@ -258,6 +258,8 @@ export function SketchCanvas(props: CanvasProps) {
     const first = anchors[0];
     if (tool === "line") {
       if (first.point && first.point === here.point) { ui.set({ anchors: [] }); return; }
+      // Landing where it started (the same grid spot): no zero-length line.
+      if (Math.hypot(here.at[0] - first.at[0], here.at[1] - first.at[1]) * view.scale < 2) return;
       let end = "";
       props.onEdit((d) => { const a = place(d, first); end = place(d, here); addLine(d, a, end); });
       // Ending on a point that was already there closes the chain; otherwise it carries on.

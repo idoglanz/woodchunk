@@ -175,6 +175,7 @@ def apply_ops(
                 part.qty = _qty(op.qty)
             if op.length_mm:
                 part.length_mm = _mm(op.length_mm)
+                part.sketch = None  # a length set by hand no longer follows a sketch line
             new_item = valid_item(op.item_id, cuttable)
             if new_item:
                 part.item_id = new_item

@@ -134,6 +134,10 @@ test("sketch: draw roughly, pin sizes, read off the rest", async ({ page }, info
   await expect(page.getByText("Empty: draw something to start.")).toBeVisible();
 
   if (info.project.name !== "desktop") {
+    // The project header fits the phone: nothing to scroll sideways.
+    await page.getByRole("link", { name: "Back to Build" }).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.getByRole("link", { name: /^Sketch 1/ }).first().click();
     // Phones look and change numbers; drawing needs a bigger screen.
     await expect(page.getByText(/To draw, open the sketch on a larger screen/)).toBeVisible();
     await expect(page.getByRole("radio", { name: "Line" })).toHaveCount(0);

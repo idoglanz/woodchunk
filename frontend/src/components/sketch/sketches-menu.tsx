@@ -28,8 +28,9 @@ export function SketchesMenu() {
   return (
     <Pop open={open} onOpenChange={setOpen} align="end" className="w-[300px] p-2"
       trigger={
-        // Filled, so it reads apart from the plain header actions around it.
-        <Button size="sm" variant="secondary" aria-label={`Sketches (${sketches.length})`} title="Sketches" className="max-sm:w-8 max-sm:px-0"
+        // Filled, so it reads apart from the plain header actions around it. Not on phones: the
+        // header is tight there, and Build lists the sketches.
+        <Button size="sm" variant="secondary" aria-label={`Sketches (${sketches.length})`} title="Sketches" className="max-sm:hidden"
           icon={<PencilRuler size={15} />}>
           <span className="hidden sm:inline">Sketches</span>
           {sketches.length ? <span className="tnum hidden h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1.5 text-[11px] font-semibold text-surface sm:inline-flex">{sketches.length}</span> : null}

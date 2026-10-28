@@ -7560,6 +7560,18 @@
       "title": "Name",
       "default": "Sketch"
      },
+     "assembly_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Assembly Id"
+     },
      "points": {
       "items": {
        "$ref": "#/components/schemas/SketchPoint"
@@ -7623,6 +7635,18 @@
       "title": "Name",
       "default": "Sketch"
      },
+     "assembly_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Assembly Id"
+     },
      "points": {
       "items": {
        "$ref": "#/components/schemas/SketchPoint"
@@ -7673,6 +7697,7 @@
     "required": [
      "id",
      "name",
+     "assembly_id",
      "points",
      "shapes",
      "constraints"

@@ -313,6 +313,7 @@ function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimens
             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
             className="w-full rounded-lg bg-transparent px-1 py-0.5 text-[17px] font-semibold outline-none hover:bg-surface-2 focus:bg-surface-2" />
         )}
+        <AssemblyPicker sk={sk} readOnly={readOnly} editSketch={editSketch} />
         <StatusLine sk={sk} status={status} names={names} />
       </div>
 
@@ -443,5 +444,23 @@ function DimensionRow({ c, sk, name, units, readOnly, conflict, onSet, onDelete 
       )}
       {onDelete ? <IconButton label={`Remove ${name}`} size="sm" className="opacity-60 group-hover:opacity-100" onClick={onDelete}><Trash2 size={14} /></IconButton> : null}
     </li>
+  );
+}
+
+/** Which assembly the sketch is drawn for: it shows on that assembly's card, and its parts go there. */
+function AssemblyPicker({ sk, readOnly, editSketch }: { sk: Sketch; readOnly: boolean; editSketch: (fn: (d: Sketch) => void) => void }) {
+  const assemblies = useEditor((s) => s.content?.assemblies ?? []);
+  const current = assemblies.find((a) => a.id === sk.assembly_id);
+  if (readOnly) return current ? <p className="mt-1 flex items-center gap-1.5 text-[13px] text-ink-2">For <AsmChip letter={current.letter} /> {current.name}</p> : null;
+  return (
+    <label className="mt-1.5 flex items-center gap-2 text-[13px] text-ink-2">
+      For
+      <select aria-label="Assembly this sketch is for" value={current?.id ?? ""}
+        onChange={(e) => editSketch((d) => { d.assembly_id = e.target.value || null; })}
+        className="min-w-0 flex-1 truncate rounded-lg bg-surface-2 px-2 py-1 text-[13px] text-ink outline-none focus:shadow-[0_0_0_2px_var(--accent)]">
+        <option value="">No assembly</option>
+        {assemblies.map((a) => <option key={a.id} value={a.id}>{a.letter} · {a.name || "Assembly"}</option>)}
+      </select>
+    </label>
   );
 }

@@ -9,11 +9,13 @@ import { AXES, DIMENSIONS, isBuiltIn, ORIGIN, X_AXIS, Y_AXIS, type Constraint, t
 const newId = () => crypto.randomUUID().replace(/-/g, "");
 const id = () => newId().slice(0, 10);
 
-export function newSketch(existing: { name: string }[]): Sketch {
+/** An empty sketch: "Sketch 3", or named for the assembly it's drawn for ("Bench sketch"). */
+export function newSketch(existing: { name: string }[], assembly?: { id: string; name: string }): Sketch {
   const names = new Set(existing.map((s) => s.name));
-  let n = existing.length + 1;
-  while (names.has(`Sketch ${n}`)) n++;
-  return { id: newId(), name: `Sketch ${n}`, points: [], shapes: [], constraints: [] };
+  const base = assembly?.name ? `${assembly.name} sketch` : null;
+  let name = base ?? `Sketch ${existing.length + 1}`;
+  for (let n = base ? 2 : existing.length + 1; names.has(name); n++) name = base ? `${base} ${n}` : `Sketch ${n}`;
+  return { id: newId(), name: name.slice(0, 80), assembly_id: assembly?.id ?? null, points: [], shapes: [], constraints: [] };
 }
 
 /** Uses of a shape's points: line ends, a circle's centre, an arc's centre and ends. */

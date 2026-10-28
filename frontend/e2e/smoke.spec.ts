@@ -261,4 +261,7 @@ test("sketch to parts: slats repeated with even gaps, cut as parts that follow t
   await page.getByRole("link", { name: "Back to Build" }).click();
   await expect(page.getByRole("link", { name: /length 550 mm, from a sketch/ })).toHaveCount(7);
   await expect(page.getByRole("link", { name: /length 1200 mm, from a sketch/ })).toHaveCount(1);
+  // The new assembly is the sketch's: it shows on its card, one click back to the drawing.
+  await page.getByRole("link", { name: /^Sketch 1/ }).first().click();
+  await expect(page.getByLabel("Assembly this sketch is for")).toHaveValue(/.+/);
 });

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useProjectCtx } from "@/components/project/context";
 import { SketchThumb, useNewSketch } from "@/components/sketch/sketch-card";
 import { Button } from "@/components/ui/button";
+import { AsmChip } from "@/components/ui/misc";
 import { Pop } from "@/components/ui/overlay";
 import { useEditor } from "@/lib/editor";
 import { solve } from "@/lib/sketch/solve";
@@ -21,6 +22,8 @@ export function SketchesMenu() {
   const readOnly = useEditor((s) => s.readOnly);
   const create = useNewSketch();
   const [open, setOpen] = useState(false);
+  const assemblies = useEditor((s) => s.content?.assemblies ?? []);
+  const asmOf = (asmId: string | null) => assemblies.find((a) => a.id === asmId);
   if (!sketches.length && readOnly) return null;
   return (
     <Pop open={open} onOpenChange={setOpen} align="end" className="w-[300px] p-2"
@@ -40,7 +43,10 @@ export function SketchesMenu() {
             <SketchThumb sk={sk} className="h-10 w-16 shrink-0 rounded-md bg-surface-2/70" />
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-[14px] font-medium">{sk.name}</span>
-              <span className="truncate text-[12px] text-ink-3">{sketchNote(sk)}</span>
+              <span className="flex items-center gap-1.5 truncate text-[12px] text-ink-3">
+                {asmOf(sk.assembly_id) ? <AsmChip letter={asmOf(sk.assembly_id)!.letter} className="h-4 min-w-4 px-1 text-[10px]" /> : null}
+                {sketchNote(sk)}
+              </span>
             </span>
           </Link>
         ))}

@@ -64,3 +64,12 @@ export function partLines(sk: Sketch, ids: string[]): string[] {
   }
   return out;
 }
+
+/** The sketches an assembly is drawn in: attached to it, or that its parts are cut from. */
+export function sketchesOf(content: Pick<ProjectContent, "assemblies" | "sketches">, assemblyId: string): { sketch: Sketch; attached: boolean }[] {
+  const a = content.assemblies.find((x) => x.id === assemblyId);
+  const cutFrom = new Set((a?.parts ?? []).map((p) => p.sketch?.sketch_id).filter(Boolean));
+  return content.sketches
+    .filter((s) => s.assembly_id === assemblyId || cutFrom.has(s.id))
+    .map((s) => ({ sketch: s, attached: s.assembly_id === assemblyId }));
+}

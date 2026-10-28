@@ -27,7 +27,7 @@ export function NewMenu() {
     <>
       {/* Icon only on phones, where the header is tight. */}
       <Menu trigger={<Button size="sm" variant="ghost" aria-label="New" title="New sketch, 3D frame or assembly" className="max-sm:w-8 max-sm:px-0" icon={<Plus size={15} strokeWidth={2.4} />}><span className="hidden sm:inline">New</span></Button>}>
-        <MenuItem icon={<PencilRuler size={16} />} onSelect={newSketch}>Sketch</MenuItem>
+        <MenuItem icon={<PencilRuler size={16} />} onSelect={() => newSketch()}>Sketch</MenuItem>
         <MenuItem icon={<Box size={16} />} onSelect={() => setFrame(true)}>3D frame</MenuItem>
         <MenuItem icon={<Layers size={16} />} onSelect={addAssembly}>Assembly</MenuItem>
       </Menu>

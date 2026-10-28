@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Box, CheckSquare, Copy, LayoutTemplate, MoreHorizontal, PencilRuler, Plus, Sparkles, Trash2, Unlink, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Box, CheckSquare, Copy, LayoutTemplate, MoreHorizontal, Paperclip, PencilRuler, Plus, Sparkles, Trash2, Unlink, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { cutSummary } from "@/components/frame/cut-list";
 import { TemplateDialog } from "@/components/frame/template-dialog";
-import { SketchesCard } from "@/components/sketch/sketch-card";
+import { AssemblySketches, AttachSketches } from "@/components/sketch/assembly-sketches";
+import { SketchesCard, useNewSketch } from "@/components/sketch/sketch-card";
 import { useProjectCtx } from "@/components/project/context";
 import { ItemPicker, rememberMaterial } from "@/components/project/material-picker";
 import { SelectionBar, selectableParts } from "@/components/project/selection-bar";
@@ -97,6 +98,8 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
   const upd = (fn: (x: Assembly) => void, key?: string) => edit((d) => { const x = d.assemblies.find((y) => y.id === a.id); if (x) fn(x); }, key);
   const { id: projectId } = useProjectCtx();
   const [drawing, setDrawing] = useState(false);
+  const [attaching, setAttaching] = useState(false);
+  const newSketch = useNewSketch();
   const drawn = !!a.frame;
 
   const addPart = () => upd((x) => {
@@ -145,15 +148,22 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
               ) : (
                 <MenuItem icon={<Box size={15} />} onSelect={() => setDrawing(true)}>Design in 3D…</MenuItem>
               )}
+              <MenuItem icon={<PencilRuler size={15} />} onSelect={() => newSketch(a)}>New sketch for this</MenuItem>
+              <MenuItem icon={<Paperclip size={15} />} onSelect={() => setAttaching(true)}>Attach sketches…</MenuItem>
               <MenuItem icon={<ArrowUp size={15} />} disabled={index === 0} onSelect={() => move(-1)}>Move up</MenuItem>
               <MenuItem icon={<ArrowDown size={15} />} disabled={index === count - 1} onSelect={() => move(1)}>Move down</MenuItem>
               <MenuSeparator />
-              <MenuItem danger icon={<Trash2 size={15} />} onSelect={() => edit((d) => { d.assemblies = d.assemblies.filter((y) => y.id !== a.id); })}>Delete assembly</MenuItem>
+              <MenuItem danger icon={<Trash2 size={15} />} onSelect={() => edit((d) => {
+                d.assemblies = d.assemblies.filter((y) => y.id !== a.id);
+                for (const sk of d.sketches) if (sk.assembly_id === a.id) sk.assembly_id = null; // its sketches stay, unattached
+              })}>Delete assembly</MenuItem>
             </Menu>
           ) : null}
         </div>
       </div>
 
+      <AssemblySketches a={a} />
+      {attaching ? <AttachSketches a={a} open={attaching} onOpenChange={setAttaching} /> : null}
       {drawing ? <TemplateDialog open={drawing} onOpenChange={setDrawing} assemblyId={a.id} /> : null}
       {drawn ? <DrawnParts a={a} byId={byId} projectId={projectId} /> : (
       <div className="px-2 sm:px-3">

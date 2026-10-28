@@ -477,3 +477,24 @@ async def test_plan_shares_used_offcut_waste(client):
     v_bar = sum(b["length_mm"] * b["qty"] for b in bar["buy"]) * 40 * 40
     expected = (sheet["used_pct"] * v_sheet + bar["used_pct"] * v_bar) / (v_sheet + v_bar)
     assert abs(t["used_pct"] - expected) <= 0.1
+
+
+async def test_material_without_a_section_still_counts_in_the_shares(client):
+    """A custom bar with no known cross-section weighs like a typical one of the project's, not ~nothing."""
+    r = await client.post("/api/catalog", headers=auth(), json={
+        "kind": "lumber", "name": {"en": "Mystery batten"}, "lumber_stock": [{"length_mm": 3000, "price": 10}]})
+    assert r.status_code == 201, r.text
+    mystery = r.json()
+    board = await find_item(client, "45 x 95", "lumber")
+    p = await new_project(client, assemblies=[{"name": "Box", "qty": 1, "parts": [
+        {"name": "Batten", "item_id": mystery["id"], "qty": 1, "length_mm": 2000},
+        {"name": "Rail", "item_id": board["id"], "qty": 1, "length_mm": 2900},
+    ]}])
+    plan = (await client.get(f"/api/projects/{p['id']}/plan", headers=auth(USER))).json()
+    by_item = {lp["item_id"]: lp for lp in plan["lumber"]}
+    m, b = by_item[mystery["id"]], by_item[board["id"]]
+    # Same section as the board, so the totals sit between the two materials, near their stock-weighted mean.
+    lm = sum(x["length_mm"] * x["qty"] for x in m["buy"])
+    lb = sum(x["length_mm"] * x["qty"] for x in b["buy"])
+    expected = (m["used_pct"] * lm + b["used_pct"] * lb) / (lm + lb)
+    assert abs(plan["totals"]["used_pct"] - expected) <= 0.1

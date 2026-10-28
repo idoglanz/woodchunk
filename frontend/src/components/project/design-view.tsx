@@ -250,7 +250,7 @@ function PartRow({ a, p, label, items, byId, problem }: {
         {readOnly ? (problem ? <Tip content={problem}><span>{chip}</span></Tip> : chip) : (
           // The label is the part's select toggle (shift-click: a range), for batch changes.
           <Tip content={problem ?? (selected ? "Selected · click to unselect" : "Select · shift-click for a range")}>
-            <button type="button" aria-pressed={selected} aria-label={`Select ${label}`} className="-m-1 rounded-lg p-1"
+            <button type="button" aria-pressed={selected} aria-label={`Select ${label}`} data-part-toggle className="-m-1 rounded-lg p-1"
               onClick={(e) => usePartSelection.getState().toggle(p.id, e.shiftKey, selectableParts(useEditor.getState().content))}>
               {chip}
             </button>

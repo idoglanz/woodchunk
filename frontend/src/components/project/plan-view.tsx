@@ -11,9 +11,9 @@ import { Tip } from "@/components/ui/overlay";
 import type { LumberPlan, SheetPlan } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { useActivePart } from "@/lib/focus";
-import { costText, money, pct, plural } from "@/lib/format";
+import { costText, money, pct, plural, shares } from "@/lib/format";
 import { fmtMeters } from "@/lib/units";
-import { share, StockSplit } from "@/components/project/stock-split";
+import { StockSplit } from "@/components/project/stock-split";
 
 export const materialCardId = (itemId: string) => `mat-${itemId}`;
 
@@ -23,13 +23,14 @@ export function PlanSummary({ onIssues, compact }: { onIssues?: () => void; comp
   if (!plan) return <span className="flex items-center gap-2 text-[14px] text-ink-3"><Spinner className="h-3.5 w-3.5" />Planning…</span>;
   const t = plan.totals;
   const stock = [t.boards ? plural(t.boards, "board") : "", t.sheets ? plural(t.sheets, "sheet") : ""].filter(Boolean).join(" + ") || "Nothing to buy";
+  const [used, offcuts, waste] = shares([t.used_pct, t.offcut_pct, t.waste_pct]);
   return (
     <div className={cn("flex min-w-0 items-baseline gap-x-3 gap-y-1", compact ? "flex-nowrap" : "flex-wrap")}>
       <span className={cn("tnum shrink-0 font-bold tracking-[-0.01em]", t.unpriced_materials && !t.cost ? "text-[16px] text-ink-2" : "text-[20px]")}>
         {costText(t.cost, plan.currency, t.unpriced_materials > 0)}
       </span>
       <span className={cn("tnum text-[14px] text-ink-2", compact && "min-w-0 truncate")}>
-        {stock}{t.used_pct ? ` · ${share(t.used_pct)} used` : ""}{!compact && t.offcut_pct ? ` · ${share(t.offcut_pct)} offcuts` : ""}{t.used_pct ? ` · ${share(t.waste_pct)} waste` : ""}
+        {stock}{t.used_pct ? ` · ${used} used` : ""}{!compact && t.offcut_pct ? ` · ${offcuts} offcuts` : ""}{t.used_pct ? ` · ${waste} waste` : ""}
         {t.unpriced_lines ? <span className="text-warn"> · {t.unpriced_lines} unpriced</span> : null}
       </span>
       {plan.unplaced.length ? (
@@ -154,7 +155,7 @@ function MaterialCard({ id, name, buy, cost, priced, currency, meta, badge, shee
           </div>
         </div>
       </div>
-      <StockSplit used={split.used_pct} offcut={split.offcut_pct} waste={split.waste_pct} />
+      {split.used_pct + split.offcut_pct + split.waste_pct > 0 ? <StockSplit used={split.used_pct} offcut={split.offcut_pct} waste={split.waste_pct} /> : null}
       {children}
     </div>
   );

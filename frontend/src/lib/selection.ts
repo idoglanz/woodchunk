@@ -25,6 +25,7 @@ export const usePartSelection = create<PartSelection>((set, get) => ({
     }
     set({ ids: ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id], anchor: id });
   },
-  set: (ids) => set({ ids, anchor: ids.at(-1) ?? null }),
+  // Keeps the anchor while it's still selected (parts removed elsewhere shouldn't move it).
+  set: (ids) => set({ ids, anchor: get().anchor && ids.includes(get().anchor!) ? get().anchor : ids.at(-1) ?? null }),
   clear: () => set({ ids: [], anchor: null }),
 }));

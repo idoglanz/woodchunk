@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useProjectCtx } from "@/components/project/context";
 import { Spinner } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { share } from "@/components/project/stock-split";
-import { costText, plural } from "@/lib/format";
+import { costText, plural, shares } from "@/lib/format";
 
 export function SummaryBar() {
   const { plan, planFetching, id } = useProjectCtx();
   if (!plan) return <div className="flex h-9 items-center text-[14px] text-ink-3"><Spinner className="me-2 h-3.5 w-3.5" />Planning…</div>;
   const t = plan.totals;
+  const [used, offcuts, waste] = shares([t.used_pct, t.offcut_pct, t.waste_pct]);
   const stock = [t.boards ? plural(t.boards, "board") : "", t.sheets ? plural(t.sheets, "sheet") : ""].filter(Boolean).join(" + ") || "Nothing to buy";
   return (
     <div className={cn("flex flex-wrap items-center gap-x-5 gap-y-1 text-[14px] transition-opacity duration-200", planFetching && "opacity-60")}>
@@ -19,9 +19,9 @@ export function SummaryBar() {
         hint={t.unpriced_lines || (t.unpriced_materials && t.cost) ? "some unpriced" : undefined} />
       <Stat label="To buy" value={stock} />
       {t.used_pct ? <>
-        <Stat label="Used" value={share(t.used_pct)} />
-        <Stat label="Offcuts" value={share(t.offcut_pct)} />
-        <Stat label="Waste" value={share(t.waste_pct)} />
+        <Stat label="Used" value={used} />
+        <Stat label="Offcuts" value={offcuts} />
+        <Stat label="Waste" value={waste} />
       </> : null}
       <Stat label="Parts" value={String(t.parts)} />
       {plan.unplaced.length ? (

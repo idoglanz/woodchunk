@@ -430,14 +430,20 @@ async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
     weight = 0.0
     from_inventory = 0
 
+    # A material without a known section (or sheet thickness) counts as a typical one of the project's.
+    sections = [sec.w * sec.h for iid in lumber_pieces if (sec := inp.items[iid].section())]
+    thicknesses = [t for iid in sheet_panels if (t := inp.items[iid].thickness_mm)]
+    typical_section = sum(sections) / len(sections) if sections else 1.0
+    typical_thickness = sum(thicknesses) / len(thicknesses) if thicknesses else 1.0
+
     def volume(item_id: str, lines, sheet: bool) -> float:
         """How much stock a material takes (mm³, whoever paid for it): what the project shares are
         weighted by, so boards, bars and sheets compare fairly, priced or not."""
         it = inp.items[item_id]
         if sheet:
-            return sum(b.length_mm * (b.width_mm or 0) * b.qty for b in lines) * (it.thickness_mm or 1.0)
+            return sum(b.length_mm * (b.width_mm or 0) * b.qty for b in lines) * (it.thickness_mm or typical_thickness)
         sec = it.section()
-        return sum(b.length_mm * b.qty for b in lines) * (sec.w * sec.h if sec else 1.0)
+        return sum(b.length_mm * b.qty for b in lines) * (sec.w * sec.h if sec else typical_section)
 
     def weigh(plan, sheet: bool) -> None:
         nonlocal weight

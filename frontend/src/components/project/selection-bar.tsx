@@ -81,7 +81,8 @@ export function SelectionBar({ items, byId }: { items: CatalogItem[]; byId: Map<
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === "Escape") { usePartSelection.getState().clear(); e.preventDefault(); }
-      else if (e.key === "Delete" || e.key === "Backspace") { remove(); e.preventDefault(); }
+      // Delete only from the page or a part's select toggle, never another focused button.
+      else if ((e.key === "Delete" || e.key === "Backspace") && onPageOrToggle(e.target)) { remove(); e.preventDefault(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -89,20 +90,29 @@ export function SelectionBar({ items, byId }: { items: CatalogItem[]; byId: Map<
 
   if (!ids.length || readOnly) return null;
   return (
-    <div role="toolbar" aria-label="Selected parts"
-      className="no-print animate-sheet fixed inset-x-3 z-[36] mx-auto flex max-w-[560px] items-center gap-1.5 rounded-2xl bg-surface p-1.5 ps-3 shadow-[var(--shadow-pop)] dark:border dark:border-line bottom-[calc(var(--bottom-nav,0px)_+_76px)] lg:bottom-6">
-      <span className="tnum shrink-0 text-[14px] font-semibold">{parts.length} <span className="hidden font-normal text-ink-2 sm:inline">selected</span></span>
-      <div className="min-w-0 flex-1">
-        <ItemPicker items={items} value={common} kinds={["lumber", "sheet"]} ariaLabel="Material for the selected parts" placeholder="Change material"
-          className="h-9 bg-surface-2" onChange={(id) => { if (id) setMaterial(id); }} />
+    <>
+      {/* Room at the end of the page, so the bar doesn't cover the last row. */}
+      <div aria-hidden="true" className="h-16 lg:hidden" />
+      <div role="toolbar" aria-label="Selected parts"
+        className="no-print animate-sheet fixed inset-x-3 z-[29] mx-auto flex max-w-[560px] items-center gap-1.5 rounded-2xl bg-surface p-1.5 ps-3 shadow-[var(--shadow-pop)] dark:border dark:border-line bottom-[calc(var(--bottom-nav,0px)_+_76px)] lg:bottom-6">
+        <span className="tnum shrink-0 text-[14px] font-semibold">{parts.length} <span className="hidden font-normal text-ink-2 sm:inline">selected</span></span>
+        <div className="min-w-0 flex-1">
+          <ItemPicker items={items} value={common} kinds={["lumber", "sheet"]} ariaLabel="Material for the selected parts" placeholder="Change material"
+            className="h-9 bg-surface-2" onChange={(id) => { if (id) setMaterial(id); }} />
+        </div>
+        <Button size="sm" variant="ghost" icon={<Copy size={15} />} onClick={duplicate} aria-label="Duplicate the selected parts">
+          <span className="hidden sm:inline">Duplicate</span>
+        </Button>
+        <Button size="sm" variant="destructive" icon={<Trash2 size={15} />} onClick={remove} aria-label="Delete the selected parts">
+          <span className="hidden sm:inline">Delete</span>
+        </Button>
+        <IconButton label="Clear the selection (Esc)" size="sm" onClick={() => usePartSelection.getState().clear()}><X size={16} /></IconButton>
       </div>
-      <Button size="sm" variant="ghost" icon={<Copy size={15} />} onClick={duplicate} aria-label="Duplicate the selected parts">
-        <span className="hidden sm:inline">Duplicate</span>
-      </Button>
-      <Button size="sm" variant="destructive" icon={<Trash2 size={15} />} onClick={remove} aria-label="Delete the selected parts">
-        <span className="hidden sm:inline">Delete</span>
-      </Button>
-      <IconButton label="Clear the selection (Esc)" size="sm" onClick={() => usePartSelection.getState().clear()}><X size={16} /></IconButton>
-    </div>
+    </>
   );
+}
+
+function onPageOrToggle(target: EventTarget | null): boolean {
+  if (!target || target === document.body || target === document.documentElement) return true;
+  return target instanceof HTMLElement && !!target.closest("[data-part-toggle]");
 }

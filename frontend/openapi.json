@@ -5912,6 +5912,16 @@
       ],
       "title": "Face Up",
       "default": ""
+     },
+     "sketch": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SketchLink"
+       },
+       {
+        "type": "null"
+       }
+      ]
      }
     },
     "type": "object",
@@ -6015,6 +6025,16 @@
       ],
       "title": "Face Up",
       "default": ""
+     },
+     "sketch": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/SketchLink"
+       },
+       {
+        "type": "null"
+       }
+      ]
      }
     },
     "type": "object",
@@ -6030,7 +6050,8 @@
      "members",
      "short_mm",
      "cuts",
-     "face_up"
+     "face_up",
+     "sketch"
     ],
     "title": "Part"
    },
@@ -8023,6 +8044,29 @@
      "b"
     ],
     "title": "SketchLine"
+   },
+   "SketchLink": {
+    "properties": {
+     "sketch_id": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Sketch Id"
+     },
+     "shape_id": {
+      "type": "string",
+      "maxLength": 40,
+      "minLength": 1,
+      "title": "Shape Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "sketch_id",
+     "shape_id"
+    ],
+    "title": "SketchLink",
+    "description": "A part cut to a line in one of the project's sketches: its length follows the line."
    },
    "SketchPoint": {
     "properties": {

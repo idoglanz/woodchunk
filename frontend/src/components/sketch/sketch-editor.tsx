@@ -1,19 +1,23 @@
 "use client";
 
-import { ArrowLeft, Circle, Maximize, MousePointer2, PenLine, Redo2, Ruler, Spline, Square, Trash2, Undo2 } from "lucide-react";
+import { ArrowLeft, Circle, Hammer, Maximize, Rows3, MousePointer2, PenLine, Redo2, Ruler, Spline, Square, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useProjectCtx } from "@/components/project/context";
 import { SaveIndicator } from "@/components/project/workspace";
 import { DimensionInput, fmt, SketchCanvas } from "@/components/sketch/canvas";
+import { GridControl } from "@/components/sketch/grid-control";
+import { MakeParts } from "@/components/sketch/make-parts";
+import { RepeatDialog } from "@/components/sketch/repeat-dialog";
 import { RELATION_KEYS, ShortcutsHelp } from "@/components/sketch/shortcuts";
 import { Button, IconButton } from "@/components/ui/button";
 import { Switch } from "@/components/ui/field";
-import { EmptyState } from "@/components/ui/misc";
+import { AsmChip, EmptyState } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { useEditor } from "@/lib/editor";
 import { useMediaQuery } from "@/lib/focus";
 import { addDimension, addRelation, constraintName, deleteItems, dimensionFor, dimensionValue, isDimension, itemNames, movable, pointAt, relationOptions, setDimension, take, type RelationOption } from "@/lib/sketch/model";
+import { partLabels, partLines, syncParts } from "@/lib/sketch/parts";
 import { solve } from "@/lib/sketch/solve";
 import { isBuiltIn, type Constraint, type Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Tool } from "@/lib/sketch/ui";
@@ -59,10 +63,13 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
       fn(d);
       const r = solve(d, { quick: true });
       if (r.ok) take(d, r.sketch);
+      syncParts(c, d.id); // parts cut to its lines follow, in the same undo step
     }, key);
   }, [edit, sk.id]);
 
   const status = useMemo(() => solve(sk), [sk]);
+  const content = useEditor((s) => s.content);
+  const parts = useMemo(() => (content ? partLabels(content, sk.id) : new Map<string, { label: string; letter: string; name: string }>()), [content, sk.id]);
   const shown = useMemo(() => (ui.drag ? solve(sk, { drag: ui.drag, quick: true }).sketch : sk), [sk, ui.drag]);
 
   // The canvas fills its box; the view starts fitted to the sketch.
@@ -161,6 +168,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
         return;
       }
       if (key === "m" && !e.shiftKey) { s.set({ showAll: !s.showAll }); return; }
+      if (key === "g" && !e.shiftKey) { s.setGrid({ snap: !s.snap }); toast.info(`Snap to grid ${s.snap ? "off" : "on"}`); return; }
       if (!canDraw) return;
       if ((e.key === "Delete" || e.key === "Backspace") && s.selected.length) { e.preventDefault(); deleteSelected(); return; }
       if (e.key.startsWith("Arrow") && s.selected.length) {
@@ -198,7 +206,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
       <div className="relative min-h-[46dvh] min-w-0 flex-1" ref={box}>
         {view && size.w ? (
           <SketchCanvas sketch={shown} status={status} canDraw={canDraw} canType={canType} units={units} view={view} setView={updateView} size={size}
-            onEdit={editSketch} onSetDimension={onSetDimension} onDimension={onDimension} onFit={fitView} />
+            onEdit={editSketch} onSetDimension={onSetDimension} onDimension={onDimension} onFit={fitView} parts={parts} />
         ) : null}
         <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex flex-wrap items-center gap-2 [&>*]:pointer-events-auto">
           <Link href={`/projects/${projectId}/build`} aria-label="Back to Build"
@@ -217,6 +225,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
           ) : null}
           <div className="ms-auto flex items-center gap-2">
             <span className="inline-flex rounded-full bg-surface/90 py-1 ps-3 shadow-[var(--shadow-card)] backdrop-blur empty:hidden"><SaveIndicator /></span>
+            {canDraw && view ? <GridControl view={view} units={units} /> : null}
             <IconButton label="Fit to sketch (F)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={fitView}><Maximize size={16} /></IconButton>
             <span className="hidden md:inline-flex"><ShortcutsHelp open={help} onOpenChange={setHelp} /></span>
             {!readOnly ? <>
@@ -246,7 +255,7 @@ function ToolHint({ sketch: sk, empty }: { sketch: Sketch; empty: boolean }) {
     switch (tool) {
       case "select": return empty
         ? "Start at the origin (the circle where the axes cross): pick Rectangle (R), click the origin, type 1200x600 and press Enter. Rough drawing is fine too: pin the sizes after."
-        : "Click to select (Shift for more), drag to move. Click a number to change it. Attach to the origin or an axis to hold the drawing in place.";
+        : "Click to select (Shift for more; double-click for a whole shape), drag to move. Click a number to change it. Attach to the origin or an axis to hold the drawing in place.";
       case "line": return anchors ? "Click the next point, or type a length and press Enter. End on a point to close; Esc to stop." : "Click where the line starts: the origin, a point, an axis or anywhere.";
       case "rect": return anchors ? "Click the opposite corner, or type width x height (1200x600) and press Enter." : "Click one corner (the origin is a good start).";
       case "circle": return anchors ? "Click to set the size, or type the diameter and press Enter." : "Click the centre.";
@@ -283,6 +292,17 @@ function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimens
   const options = canDraw ? relationOptions(sk, ui.selected) : [];
   const dim = canDraw ? dimensionFor(sk, ui.selected) : null;
   const selectedConstraint = ui.selected.length === 1 ? sk.constraints.find((c) => c.id === ui.selected[0]) : undefined;
+  const selectedLines = ui.selected.filter((x) => sk.shapes.find((s) => s.id === x)?.kind === "line");
+  const content = useEditor((s) => s.content);
+  const labels = useMemo(() => (content ? partLabels(content, sk.id) : new Map<string, { label: string; letter: string; name: string }>()), [content, sk.id]);
+  const [making, setMaking] = useState(false);
+  const [repeating, setRepeating] = useState(false);
+  const selectedShapes = ui.selected.filter((x) => sk.shapes.some((s) => s.id === x));
+  const edit = useEditor((s) => s.edit);
+  /** The part keeps its length, and no longer follows the line. */
+  const unlink = (line: string) => edit((c) => {
+    for (const a of c.assemblies) for (const p of a.parts) if (p.sketch?.sketch_id === sk.id && p.sketch.shape_id === line) p.sketch = null;
+  });
 
   return (
     <div className="flex flex-col">
@@ -300,13 +320,29 @@ function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimens
         <section aria-label="Selection" className="flex flex-col gap-2 border-b border-line px-4 py-3">
           <div className="flex items-center gap-2">
             <h2 className="text-[13px] font-semibold text-ink-2">
-              {selectedConstraint ? constraintName(selectedConstraint, names) : ui.selected.map((x) => names.get(x)).filter(Boolean).join(", ")}
+              {selectedConstraint ? constraintName(selectedConstraint, names)
+                : ui.selected.length > 3 ? `${ui.selected.length} selected`
+                : ui.selected.map((x) => names.get(x)).filter(Boolean).join(", ")}
             </h2>
             {ui.selected.some((x) => !isBuiltIn(x)) ? <IconButton label="Delete (Del)" size="sm" variant="destructive" className="ms-auto" onClick={onDelete}><Trash2 size={15} /></IconButton> : null}
           </div>
           {!selectedConstraint && ui.selected.length === 1 ? <Measures sk={sk} id={ui.selected[0]} units={units} /> : null}
-          {options.length || dim ? (
+          {selectedLines.length === 1 && labels.get(selectedLines[0]) ? (() => {
+            const part = labels.get(selectedLines[0])!;
+            return (
+              <p className="flex items-center gap-2 text-[13px] text-ink-2">
+                <AsmChip letter={part.letter}>{part.label}</AsmChip>
+                <span className="min-w-0 flex-1 truncate">Cut as {part.name || "a part"}: its length follows this line.</span>
+                <Button size="sm" variant="ghost" onClick={() => unlink(selectedLines[0])}>Unlink</Button>
+              </p>
+            );
+          })() : null}
+          {options.length || dim || selectedShapes.length ? (
             <div className="flex flex-wrap gap-1.5">
+              {selectedShapes.length ? <Button size="sm" icon={<Rows3 size={14} />} onClick={() => setRepeating(true)}>Repeat</Button> : null}
+              {selectedLines.length && selectedLines.some((l) => !labels.has(l)) ? (
+                <Button size="sm" icon={<Hammer size={14} />} onClick={() => setMaking(true)}>Make {partLines(sk, selectedLines).length > 1 ? "parts" : "a part"}</Button>
+              ) : null}
               {dim ? <Button size="sm" variant="primary" icon={<Ruler size={14} />} title="D" onClick={() => onDimension(dim.kind, dim.refs)}>{dim.kind === "angle" ? "Angle" : "Dimension"}<span className="hidden text-[11px] font-medium opacity-60 lg:inline">D</span></Button> : null}
               {options.map((o) => (
                 <Button key={o.kind} size="sm" onClick={() => onRelate(o)} title={RELATION_KEYS[o.kind] ? `Shift ${RELATION_KEYS[o.kind]}` : undefined}>
@@ -346,6 +382,8 @@ function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimens
         </section>
       ) : null}
 
+      {making ? <MakeParts sk={sk} lines={partLines(sk, selectedLines)} open={making} onOpenChange={setMaking} /> : null}
+      {repeating ? <RepeatDialog sk={sk} ids={selectedShapes} open={repeating} onOpenChange={setRepeating} onApply={(fn) => editSketch(fn)} /> : null}
       <div className="mt-auto border-t border-line px-4 py-3">
         <Switch checked={ui.showAll} onChange={(v) => ui.set({ showAll: v })} label="Show all measurements" description="Every line's length and every circle's size, worked out." />
         {!canDraw && !readOnly ? <p className="mt-3 text-[13px] text-ink-2">Change any number here or on the drawing. To draw, open the sketch on a larger screen.</p> : null}

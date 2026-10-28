@@ -49,6 +49,13 @@ class EndCutSpec(Model):
     bevel: float = Field(default=0, ge=0, le=90)
 
 
+class SketchLink(Model):
+    """A part cut to a line in one of the project's sketches: its length follows the line."""
+
+    sketch_id: str = Field(min_length=1, max_length=40)
+    shape_id: str = Field(min_length=1, max_length=40)
+
+
 class Part(Model):
     id: str = Field(default_factory=new_id)
     name: str = ""
@@ -63,6 +70,7 @@ class Part(Model):
     short_mm: float | None = Field(default=None, ge=0)  # short point
     cuts: list[EndCutSpec] = Field(default=[], max_length=2)  # the two ends
     face_up: Literal["top", "side", ""] = ""
+    sketch: SketchLink | None = None  # its length comes from this sketch line
 
 
 class HardwareLine(Model):

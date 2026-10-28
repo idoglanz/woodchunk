@@ -12,6 +12,7 @@ import { NewMenu } from "@/components/project/new-menu";
 import { ShareSheet } from "@/components/project/share";
 import { StatusMenu } from "@/components/project/status-menu";
 import { SummaryBar } from "@/components/project/summary-bar";
+import { SketchesMenu } from "@/components/sketch/sketches-menu";
 import { Avatars } from "@/components/ui/avatars";
 import { Button, IconButton, Spinner } from "@/components/ui/button";
 import { EmptyState, Skeleton } from "@/components/ui/misc";
@@ -243,6 +244,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
                           <Avatars people={others.map((m) => ({ user_id: m.user_id, name: m.name || m.email }))} size={26} />
                         </button>
                       ) : null}
+                      <SketchesMenu />
                       <NewMenu />
                       {role ? <Button size="sm" variant="ghost" icon={<Share size={15} />} onClick={() => setSharing(true)}>{role === "owner" ? "Share" : "People"}</Button> : null}
                       <Button size="sm" variant={aiOpen ? "secondary" : "ghost"} icon={<Sparkles size={15} />} onClick={() => setAIOpen((o) => !o)} aria-pressed={aiOpen}>Ask</Button>

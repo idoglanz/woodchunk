@@ -2236,6 +2236,7 @@ export interface components {
              * @enum {string}
              */
             face_up: "top" | "side" | "";
+            sketch?: components["schemas"]["SketchLink"] | null;
         };
         /** Part */
         "Part-Output": {
@@ -2288,6 +2289,7 @@ export interface components {
              * @enum {string}
              */
             face_up: "top" | "side" | "";
+            sketch: components["schemas"]["SketchLink"] | null;
         };
         /**
          * Person
@@ -3151,6 +3153,16 @@ export interface components {
             a: string;
             /** B */
             b: string;
+        };
+        /**
+         * SketchLink
+         * @description A part cut to a line in one of the project's sketches: its length follows the line.
+         */
+        SketchLink: {
+            /** Sketch Id */
+            sketch_id: string;
+            /** Shape Id */
+            shape_id: string;
         };
         /** SketchPoint */
         SketchPoint: {

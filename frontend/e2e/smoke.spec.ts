@@ -191,11 +191,74 @@ test("sketch: draw roughly, pin sizes, read off the rest", async ({ page }, info
   await expect(page.getByText("Nudge 1 mm (Shift: 10 mm)")).toBeVisible();
   await page.keyboard.press("Escape");
   await page.keyboard.press("l");
-  await page.mouse.click(box2.x + 60, box2.y + 80);
-  await page.mouse.click(box2.x + 260, box2.y + 60);
+  // (Clear of the toolbar along the top.)
+  await page.mouse.click(box2.x + 60, box2.y + 160);
+  await page.mouse.click(box2.x + 260, box2.y + 140);
   await page.keyboard.press("Escape");
   await page.keyboard.press("v");
-  await page.mouse.click(box2.x + 160, box2.y + 70);
+  await page.mouse.click(box2.x + 160, box2.y + 150);
   await page.keyboard.press("Shift+H");
   await expect(page.getByRole("region", { name: "Relations" }).getByText("Line 5 horizontal")).toBeVisible();
+});
+
+test("sketch to parts: slats repeated with even gaps, cut as parts that follow the sketch", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "drawing needs a bigger screen");
+  await page.goto("/sign-in");
+  await page.getByLabel("Email").fill(`e2e-slats-${Date.now()}@test.dev`);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "New project" }).first().click();
+  await page.getByRole("button", { name: "Blank" }).click();
+  await page.getByLabel("Name").fill("E2E slats");
+  await page.getByRole("button", { name: "Create" }).click();
+  await page.getByRole("button", { name: "New sketch" }).click();
+
+  const svg = page.getByRole("img", { name: "Sketch" });
+  const box = (await svg.boundingBox())!;
+  const corners = () => svg.evaluate((el) => [...el.querySelectorAll("circle")].filter((c) => c.getAttribute("r") === "3.2")
+    .map((c) => [Number(c.getAttribute("cx")), Number(c.getAttribute("cy"))]));
+  // A 1200 × 600 frame from the origin.
+  await page.keyboard.press("r");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.move(box.x + box.width / 2 + 80, box.y + box.height / 2 - 80);
+  await page.keyboard.type("1200x600");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("f");
+  let pts = await corners();
+  const [left, right] = [Math.min(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[0]))];
+  const [top, bottom] = [Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[1]))];
+  // One 50 × 600 slat standing on the X axis.
+  await page.keyboard.press("r");
+  await page.mouse.click(box.x + left + (right - left) * 0.1, box.y + bottom);
+  await page.mouse.move(box.x + left + (right - left) * 0.3, box.y + top);
+  await page.keyboard.type("50x600");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("v");
+  pts = await corners();
+  const slatRight = Math.max(...pts.map((p) => p[0]).filter((x) => x > left + 1 && x < right - 1));
+  await page.mouse.dblclick(box.x + slatRight, box.y + (top + bottom) / 2);
+
+  // Seven between the sides, with even gaps: (1200 − 7 × 50) / 8.
+  await page.getByRole("button", { name: "Repeat", exact: true }).click();
+  await page.getByRole("textbox", { name: "How many in all" }).fill("7");
+  await page.getByRole("textbox", { name: "How many in all" }).press("Enter");
+  await expect(page.getByRole("status").filter({ hasText: "Gap between" })).toContainText("106.3 mm");
+  await page.getByRole("button", { name: "Repeat ×7" }).click();
+  await expect(page.getByText("Fully defined: every size is pinned down.")).toBeVisible();
+
+  // Everything as parts: the frame's long side and seven slats.
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.getByRole("button", { name: "Make parts" }).click();
+  await page.getByRole("button", { name: "Material for the parts" }).click();
+  await page.getByLabel("Search catalog").fill("44 100 rough");
+  await page.getByLabel("Search catalog").press("Enter");
+  await page.getByRole("button", { name: "Add 8 parts" }).click();
+  await page.keyboard.press("Escape");
+
+  // Shorter slats in the sketch: the parts follow.
+  await page.getByRole("button", { name: /^Line 6 length:/ }).click();
+  await page.getByRole("region", { name: "Dimensions" }).getByLabel("Value").fill("550");
+  await page.getByRole("region", { name: "Dimensions" }).getByLabel("Value").press("Enter");
+  await page.getByRole("link", { name: "Back to Build" }).click();
+  await expect(page.getByRole("link", { name: /length 550 mm, from a sketch/ })).toHaveCount(7);
+  await expect(page.getByRole("link", { name: /length 1200 mm, from a sketch/ })).toHaveCount(1);
 });

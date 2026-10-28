@@ -2,13 +2,14 @@
 
 import { Pin } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { AsmChip } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { useEditor } from "@/lib/editor";
-import { addArc, addCircle, addConstraint, addLine, addPoint, addRectangle, cornerSide, dimensionFor, isDimension, mergePoints, movable, pointAt, round, take } from "@/lib/sketch/model";
+import { addArc, addCircle, addConstraint, addLine, addPoint, addRectangle, connected, cornerSide, dimensionFor, isDimension, mergePoints, movable, pointAt, round, take } from "@/lib/sketch/model";
 import { LIMIT, solve, type SolveResult, type V2 } from "@/lib/sketch/solve";
 import { AXES, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Anchor } from "@/lib/sketch/ui";
-import { arcSweep, bounds, dimensionMarks, glyphAnchor, gridStep, hitTest, measured, measurementsFor, radiusOf, type Marks, type View } from "@/lib/sketch/view";
+import { arcSweep, bounds, dimensionMarks, glyphAnchor, gridOf, hitTest, measured, measurementsFor, radiusOf, type Marks, type View } from "@/lib/sketch/view";
 import { toast } from "@/lib/toast";
 import { isTyping } from "@/lib/typing";
 import { lengthInput, parseLength, type Units } from "@/lib/units";
@@ -35,6 +36,8 @@ export type CanvasProps = {
   onDimension: (kind: Constraint["kind"], refs: string[]) => void;
   /** Fit the view to the sketch. */
   onFit: () => void;
+  /** Lines cut as parts: their part's label ("B3"), by line id. */
+  parts: Map<string, { label: string; letter: string; name: string }>;
 };
 
 type Gesture =
@@ -59,12 +62,19 @@ export function SketchCanvas(props: CanvasProps) {
     const r = svg.current!.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top];
   };
-  /** A point (or the origin) near `at` to attach to, else an axis to land on. */
-  const snapAt = (at: V2, skip?: Set<string>): Anchor | null => {
+  const grid = gridOf(view.scale, ui.grid);
+  const onGrid = (v: number) => Math.round(v / grid.snap) * grid.snap;
+  /**
+   * Where a click or drag lands: a point (or the origin) near it to attach to, else an axis (at
+   * a grid step along it), else the nearest grid point, unless snapping is off or Alt is held.
+   */
+  const snapAt = (at: V2, skip?: Set<string>, free = false): Anchor | null => {
     const id = hitTest({ ...sk, shapes: [] }, at, SNAP_PX * px, skip);
-    if (!id) return null;
-    if (AXES.includes(id)) return { axis: id, at: id === X_AXIS ? [round(at[0]), 0] : [0, round(at[1])] };
-    return { point: id, at: pointAt(sk, id) };
+    const snapping = ui.snap && !free;
+    const along = (v: number) => (snapping ? onGrid(v) : round(v));
+    if (id && AXES.includes(id)) return { axis: id, at: id === X_AXIS ? [along(at[0]), 0] : [0, along(at[1])] };
+    if (id) return { point: id, at: pointAt(sk, id) };
+    return snapping ? { at: [onGrid(at[0]), onGrid(at[1])] } : null;
   };
 
   // Zoom with the wheel (pinch on a trackpad sends ctrl+wheel), scroll to pan, around the pointer.
@@ -160,17 +170,19 @@ export function SketchCanvas(props: CanvasProps) {
       if (!cur.moved && Math.hypot(d[0], d[1]) * view.scale < CLICK_PX) return;
       cur.moved = true;
       const single = cur.points.length === 1 ? cur.points[0] : null;
-      // A single point dropped on another one joins it: snap to it while over it.
-      const snap = single ? snapAt([single.from[0] + d[0], single.from[1] + d[1]], new Set([single.point])) : null;
-      ui.set({ drag: cur.points.map((p) => ({ point: p.point, to: snap ? snap.at : [p.from[0] + d[0], p.from[1] + d[1]] })) });
+      // A single point dropped on another one joins it: snap to it while over it (or to the grid).
+      const snap = single ? snapAt([single.from[0] + d[0], single.from[1] + d[1]], new Set([single.point]), e.altKey) : null;
+      // A whole shape moves in grid steps.
+      const step: V2 = ui.snap && !e.altKey ? [onGrid(d[0]), onGrid(d[1])] : d;
+      ui.set({ drag: cur.points.map((p) => ({ point: p.point, to: snap ? snap.at : [p.from[0] + step[0], p.from[1] + step[1]] })) });
       setHover({ at, item: null, snap: snap?.point ?? snap?.axis ?? null });
       return;
     }
     hoverAt.current = at;
     if (e.pointerType !== "touch") {
       const drawing = ["line", "rect", "circle", "arc"].includes(ui.tool);
-      const snap = drawing ? snapAt(at) : null;
-      setHover({ at: snap?.axis ? snap.at : at, item: drawing ? null : hitTest(sk, at, HIT_PX * px), snap: snap?.point ?? snap?.axis ?? null });
+      const snap = drawing ? snapAt(at, undefined, e.altKey) : null;
+      setHover({ at: snap?.at ?? at, item: drawing ? null : hitTest(sk, at, HIT_PX * px), snap: snap?.point ?? snap?.axis ?? null });
     }
   }
 
@@ -184,14 +196,14 @@ export function SketchCanvas(props: CanvasProps) {
     if (g?.kind === "drag") {
       const drag = useSketchUI.getState().drag;
       ui.set({ drag: null });
-      if (!g.moved || !drag) { click(at, e.shiftKey); return; }
+      if (!g.moved || !drag) { click(at, e.shiftKey, e.altKey); return; }
       const point = g.points[0].point;
-      const join = g.points.length === 1 ? snapAt(drag[0].to, new Set([point])) : null;
+      const join = g.points.length === 1 ? snapAt(drag[0].to, new Set([point]), true) : null;
       const moved = solve(sk, { drag, quick: true }).sketch;
       // Dropped on another point (or an axis): attach to it, if the point really got there and the result solves.
       const got = moved.points.find((p) => p.id === point);
       let joined: Sketch | null = null;
-      if (join && got && Math.hypot(got.x - join.at[0], got.y - join.at[1]) < 1e-3) {
+      if (join && (join.point || join.axis) && got && Math.hypot(got.x - join.at[0], got.y - join.at[1]) < 1e-3) {
         const trial = structuredClone(moved);
         const attached = join.point ? mergePoints(trial, point, join.point) : (addConstraint(trial, "on_line", [point, join.axis!]), true);
         if (attached && solve(trial, { quick: true }).ok) joined = trial;
@@ -204,7 +216,7 @@ export function SketchCanvas(props: CanvasProps) {
       return;
     }
     if (g?.kind !== "click") return;
-    click(at, e.shiftKey);
+    click(at, e.shiftKey, e.altKey);
   }
 
   /** The system took the touch (palm, a gesture): forget it, place nothing. */
@@ -214,7 +226,7 @@ export function SketchCanvas(props: CanvasProps) {
     ui.set({ drag: null });
   }
 
-  function click(at: V2, shift: boolean) {
+  function click(at: V2, shift: boolean, alt = false) {
     const { tool, anchors, picks, selected } = useSketchUI.getState();
     if (tool === "select") {
       const hit = hitTest(sk, at, HIT_PX * px);
@@ -239,9 +251,9 @@ export function SketchCanvas(props: CanvasProps) {
       } else ui.set({ picks: next });
       return;
     }
-    const snap = snapAt(at);
-    const clamp = (v: number) => Math.max(-LIMIT, Math.min(LIMIT, round(v)));
-    const here: Anchor = snap ?? { at: [clamp(at[0]), clamp(at[1])] };
+    const clamp = (v: number) => Math.max(-LIMIT, Math.min(LIMIT, v));
+    const snap = snapAt(at, undefined, alt);
+    const here: Anchor = snap ? { ...snap, at: [clamp(snap.at[0]), clamp(snap.at[1])] } : { at: [clamp(round(at[0])), clamp(round(at[1]))] };
     if (!anchors.length) { ui.set({ anchors: [here], typed: "" }); return; }
     const first = anchors[0];
     if (tool === "line") {
@@ -380,8 +392,15 @@ export function SketchCanvas(props: CanvasProps) {
       <svg ref={svg} width={size.w} height={size.h} role="img" aria-label="Sketch"
         className={cn("block touch-none select-none", panning ? "cursor-grab active:cursor-grabbing" : ui.tool !== "select" && canDraw ? "cursor-crosshair" : hover?.item ? "cursor-pointer" : "cursor-grab")}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
-        onPointerLeave={() => setHover(null)}>
-        <Grid view={view} w={size.w} h={size.h} />
+        onPointerLeave={() => setHover(null)}
+        onDoubleClick={(e) => {
+          // Double-click a shape: select everything joined to it (all four sides of a rectangle).
+          if (ui.tool !== "select" || !canDraw) return;
+          const hit = hitTest(sk, toWorld(local(e)), HIT_PX * px);
+          const group = hit ? connected(sk, hit) : [];
+          if (group.length) ui.select(e.shiftKey ? [...new Set([...ui.selected, ...group])] : group);
+        }}>
+        <Grid view={view} w={size.w} h={size.h} step={grid.draw} />
         {/* The axes and the origin: fixed, to draw from and attach to. */}
         <g aria-hidden="true">
           {lit.has(X_AXIS) || hover?.snap === X_AXIS ? <path d={`M0,${origin[1]}H${size.w}`} stroke="var(--accent)" strokeWidth={5} opacity={0.6} /> : null}
@@ -435,10 +454,27 @@ export function SketchCanvas(props: CanvasProps) {
           <circle cx={origin[0]} cy={origin[1]} r={1.6} fill="var(--ink)" />
         </g>
         {preview ? <DimensionLines marks={preview.marks} toScreen={toScreen} scale={view.scale} color="var(--info)" dashed /> : null}
-        <Preview sketch={sk} hover={hover} toScreen={toScreen} scale={view.scale} />
+        <Preview hover={hover} toScreen={toScreen} scale={view.scale} />
+        {hover && !hover.snap && canDraw && ["line", "rect", "circle", "arc"].includes(ui.tool) ? (() => {
+          // Where the next click lands (on the grid when snapping).
+          const [x, y] = toScreen(hover.at);
+          return <path d={`M${x - 6},${y}h12M${x},${y - 6}v12`} stroke="var(--info)" strokeWidth={1.2} pointerEvents="none" />;
+        })() : null}
       </svg>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <Glyphs sketch={sk} toScreen={toScreen} conflicts={status.conflicts} middle={toScreen(middle)} />
+        {[...props.parts].map(([line, part]) => {
+          // A line cut as a part wears its label, a third of the way along.
+          const s = sk.shapes.find((x) => x.id === line);
+          if (s?.kind !== "line") return null;
+          const [a, b] = [toScreen(pointAt(sk, s.a)), toScreen(pointAt(sk, s.b))];
+          return (
+            <span key={line} title={`Cut as ${part.label}${part.name ? ` · ${part.name}` : ""}`}
+              className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: a[0] + (b[0] - a[0]) / 3, top: a[1] + (b[1] - a[1]) / 3 }}>
+              <AsmChip letter={part.letter} className="h-5 min-w-5 px-1 text-[11px]">{part.label}</AsmChip>
+            </span>
+          );
+        })}
         {dims.map((c) => {
           const m = marksOf(c);
           return m ? <DimensionLabel key={c.id} c={c} sketch={sk} at={toScreen(m.label)} units={props.units} canType={props.canType}
@@ -496,8 +532,7 @@ export function fmt(kind: Constraint["kind"], v: number, units: Units): string {
   return `${prefix}${lengthInput(v, units) || "0"}`;
 }
 
-function Grid({ view, w, h }: { view: View; w: number; h: number }) {
-  const step = gridStep(view.scale);
+function Grid({ view, w, h, step }: { view: View; w: number; h: number; step: number }) {
   const lines: { d: string; major: boolean }[] = [];
   const x0 = view.cx - w / 2 / view.scale, x1 = view.cx + w / 2 / view.scale;
   const y0 = view.cy - h / 2 / view.scale, y1 = view.cy + h / 2 / view.scale;
@@ -534,13 +569,14 @@ function DimensionLines({ marks, toScreen, scale, color, dashed }: {
 }
 
 /** What the next click would make: a line, rectangle, circle or arc from the clicks so far. */
-function Preview({ sketch: sk, hover, toScreen, scale }: {
-  sketch: Sketch; hover: { at: V2; snap: string | null } | null; toScreen: (p: V2) => V2; scale: number;
+function Preview({ hover, toScreen, scale }: {
+  hover: { at: V2; snap: string | null } | null; toScreen: (p: V2) => V2; scale: number;
 }) {
   const tool = useSketchUI((s) => s.tool);
   const anchors = useSketchUI((s) => s.anchors);
   if (!hover || !anchors.length) return null;
-  const to = hover.snap ? pointAt(sk, hover.snap) : hover.at;
+  // Where the pointer landed after snapping (a point, along an axis, or the grid).
+  const to = hover.at;
   const [a, b] = [toScreen(anchors[0].at), toScreen(to)];
   const style = { fill: "none", stroke: "var(--info)", strokeWidth: 1.5, strokeDasharray: "5 4" };
   const length = Math.hypot(to[0] - anchors[0].at[0], to[1] - anchors[0].at[1]);
@@ -591,12 +627,17 @@ function Glyphs({ sketch: sk, toScreen, conflicts, middle }: { sketch: Sketch; t
   const selected = useSketchUI((s) => s.selected);
   const tool = useSketchUI((s) => s.tool);
   const stack = new Map<string, number>();
+  const shown = new Set<string>();
   const out: { key: string; c: Constraint; at: V2 }[] = [];
   for (const c of sk.constraints) {
     if (isDimension(c)) continue;
     // On every shape the relation ties (a point relation sits at its point).
     const on = c.kind === "on_line" || c.kind === "on_circle" || c.kind === "midpoint" ? [c.refs[0]] : c.refs;
     for (const ref of on) {
+      // One badge per kind on a shape (copies made equal to it would stack a column of "=").
+      const kind = `${ref}:${c.kind}`;
+      if (shown.has(kind)) continue;
+      shown.add(kind);
       const g = glyphAnchor(sk, ref);
       if (!g) continue;
       const i = stack.get(ref) ?? 0;

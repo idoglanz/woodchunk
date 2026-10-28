@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
       <main className="flex-1">{children}</main>
       {/* The frame editor fills the window: no footer under it. */}
-      {pathname.includes("/frame/") ? null : <Credit />}
+      {pathname.includes("/frame/") || pathname.includes("/sketch/") ? null : <Credit />}
     </div>
   );
 }

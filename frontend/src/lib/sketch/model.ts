@@ -166,6 +166,24 @@ export function movable(sk: Sketch, id: string): string[] {
   return s ? pointsOf(s).filter((p) => p !== ORIGIN) : [];
 }
 
+/** Every shape joined to this one through shared points (a whole rectangle from one side). */
+export function connected(sk: Sketch, id: string): string[] {
+  const start = shapeById(sk, id);
+  if (!start) return [];
+  const seen = new Set([start.id]);
+  const points = new Set(pointsOf(start).filter((p) => p !== ORIGIN));
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const s of sk.shapes) {
+      if (seen.has(s.id) || !pointsOf(s).some((p) => points.has(p))) continue;
+      seen.add(s.id);
+      pointsOf(s).filter((p) => p !== ORIGIN).forEach((p) => points.add(p));
+      grew = true;
+    }
+  }
+  return sk.shapes.filter((s) => seen.has(s.id)).map((s) => s.id);
+}
+
 /** Copy solved positions and radii into the sketch. */
 export function take(sk: Sketch, solved: Sketch) {
   sk.points = solved.points;

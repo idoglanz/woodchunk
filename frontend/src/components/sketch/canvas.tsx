@@ -454,7 +454,7 @@ export function SketchCanvas(props: CanvasProps) {
           <circle cx={origin[0]} cy={origin[1]} r={1.6} fill="var(--ink)" />
         </g>
         {preview ? <DimensionLines marks={preview.marks} toScreen={toScreen} scale={view.scale} color="var(--info)" dashed /> : null}
-        <Preview sketch={sk} hover={hover} toScreen={toScreen} scale={view.scale} />
+        <Preview hover={hover} toScreen={toScreen} scale={view.scale} />
         {hover && !hover.snap && canDraw && ["line", "rect", "circle", "arc"].includes(ui.tool) ? (() => {
           // Where the next click lands (on the grid when snapping).
           const [x, y] = toScreen(hover.at);
@@ -569,13 +569,14 @@ function DimensionLines({ marks, toScreen, scale, color, dashed }: {
 }
 
 /** What the next click would make: a line, rectangle, circle or arc from the clicks so far. */
-function Preview({ sketch: sk, hover, toScreen, scale }: {
-  sketch: Sketch; hover: { at: V2; snap: string | null } | null; toScreen: (p: V2) => V2; scale: number;
+function Preview({ hover, toScreen, scale }: {
+  hover: { at: V2; snap: string | null } | null; toScreen: (p: V2) => V2; scale: number;
 }) {
   const tool = useSketchUI((s) => s.tool);
   const anchors = useSketchUI((s) => s.anchors);
   if (!hover || !anchors.length) return null;
-  const to = hover.snap ? pointAt(sk, hover.snap) : hover.at;
+  // Where the pointer landed after snapping (a point, along an axis, or the grid).
+  const to = hover.at;
   const [a, b] = [toScreen(anchors[0].at), toScreen(to)];
   const style = { fill: "none", stroke: "var(--info)", strokeWidth: 1.5, strokeDasharray: "5 4" };
   const length = Math.hypot(to[0] - anchors[0].at[0], to[1] - anchors[0].at[1]);

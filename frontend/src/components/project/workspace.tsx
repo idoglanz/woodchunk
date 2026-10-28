@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AIPanel } from "@/components/project/ai-panel";
 import { ProjectContext, useProjectCtx } from "@/components/project/context";
 import { MoreMenu, TemplateSheet } from "@/components/project/more-menu";
+import { NewMenu } from "@/components/project/new-menu";
 import { ShareSheet } from "@/components/project/share";
 import { StatusMenu } from "@/components/project/status-menu";
 import { SummaryBar } from "@/components/project/summary-bar";
@@ -193,7 +194,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
   }), [id, me.data, readOnly, plan.data, plan.isFetching, aiOpen]);
 
   // The 3D frame editor takes the whole page below the app bar.
-  const fullBleed = pathname.includes("/frame/");
+  const fullBleed = pathname.includes("/frame/") || pathname.includes("/sketch/");
 
   if (project.isError) {
     return <EmptyState title="Project not found" text="It may have been deleted, or you don't have access to it." action={<Link href="/" className="font-semibold text-info">Back to projects</Link>} />;
@@ -242,6 +243,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
                           <Avatars people={others.map((m) => ({ user_id: m.user_id, name: m.name || m.email }))} size={26} />
                         </button>
                       ) : null}
+                      <NewMenu />
                       {role ? <Button size="sm" variant="ghost" icon={<Share size={15} />} onClick={() => setSharing(true)}>{role === "owner" ? "Share" : "People"}</Button> : null}
                       <Button size="sm" variant={aiOpen ? "secondary" : "ghost"} icon={<Sparkles size={15} />} onClick={() => setAIOpen((o) => !o)} aria-pressed={aiOpen}>Ask</Button>
                       <MoreMenu owner={role === "owner"} onTemplate={() => setTemplating(true)} />
@@ -296,7 +298,7 @@ const FIELD_NAMES: Record<string, string> = {
   qty: "quantity", length_mm: "length", width_mm: "width", item_id: "material", name: "name", notes: "notes",
   grain_locked: "grain", settings: "cutting settings", description: "description",
 };
-const CONTAINERS = new Set(["assemblies", "parts", "hardware", "extras", "frame", "nodes", "members", "joints"]);
+const CONTAINERS = new Set(["assemblies", "parts", "hardware", "extras", "frame", "nodes", "members", "joints", "sketches", "points", "shapes", "constraints"]);
 
 /** "Frame › Leg › quantity" from a merge path. */
 function conflictLabel(c: Conflict): string {
@@ -318,7 +320,7 @@ function TitleInput() {
   );
 }
 
-function SaveIndicator() {
+export function SaveIndicator() {
   const save = useEditor((s) => s.save);
   const readOnly = useEditor((s) => s.readOnly);
   const project = useEditor((s) => s.project);

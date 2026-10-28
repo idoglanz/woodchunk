@@ -28,12 +28,15 @@ def op(**kw) -> AIOp:
     return AIOp(**{**base, **kw})
 
 
+CONTENT = ("name", "description", "settings", "assemblies", "extras", "sketches")
+
+
 async def new_project(client, email=USER, **content) -> dict:
     r = await client.post("/api/projects", json={"name": content.pop("name", "Test bench")}, headers=auth(email))
     assert r.status_code == 201, r.text
     p = r.json()
     if content:
-        body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, **content,
+        body = {**{k: p[k] for k in CONTENT}, **content,
                 "version": p["version"]}
         r = await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(email))
         assert r.status_code == 200, r.text
@@ -79,7 +82,7 @@ async def test_plan_shop_buy_cut_cycle(client):
     r = await client.post(f"/api/projects/{p['id']}/status", json={"status": "bought"}, headers=auth(USER))
     assert r.status_code == 409
     p["assemblies"][1]["parts"].pop()
-    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    body = {**{k: p[k] for k in CONTENT}, "version": p["version"]}
     p = (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).json()
 
     # Stale version is rejected.
@@ -103,7 +106,7 @@ async def test_plan_shop_buy_cut_cycle(client):
 
     # Add a part after buying: only the extra stock appears.
     p["assemblies"][0]["parts"].append({"name": "Shelf rail", "item_id": beam["id"], "qty": 4, "length_mm": 2000})
-    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    body = {**{k: p[k] for k in CONTENT}, "version": p["version"]}
     p = (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).json()
     shop = (await client.get(f"/api/projects/{p['id']}/shopping", headers=auth(USER))).json()
     extra = [ln for g in shop["groups"] for ln in g["lines"] if ln["kind"] == "lumber"]
@@ -116,7 +119,7 @@ async def test_plan_shop_buy_cut_cycle(client):
     assert any(e["kind"] == "offcut" and e["source_project_id"] == p["id"] for e in inv)
     # Done projects are read-only.
     p = (await client.post(f"/api/projects/{p['id']}/status", json={"status": "done"}, headers=auth(USER))).json()
-    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    body = {**{k: p[k] for k in CONTENT}, "version": p["version"]}
     assert (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).status_code == 409
 
 
@@ -189,7 +192,7 @@ async def test_ai_chat_proposal_apply(client):
                                    headers=auth(USER))).json()
         prop = [x for x in convo["proposals"] if x["status"] == "pending"][0]
         # Someone edits first: the suggestion becomes stale.
-        body = {**{k: p2[k] for k in ("name", "description", "settings", "assemblies", "extras")},
+        body = {**{k: p2[k] for k in CONTENT},
                 "version": p2["version"]}
         await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))
         assert (await client.post(f"/api/ai/proposals/{prop['id']}/apply", headers=auth(USER))).status_code == 409
@@ -258,7 +261,7 @@ async def test_sharing_and_permissions(client):
     r = await client.post(f"/api/invites/{inv['token']}/accept", headers=auth(other))
     assert r.status_code == 200
     assert (await client.get(f"/api/projects/{p['id']}", headers=auth(other))).status_code == 200
-    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    body = {**{k: p[k] for k in CONTENT}, "version": p["version"]}
     assert (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(other))).status_code == 403
 
 
@@ -273,7 +276,7 @@ async def test_collaboration(client):
         links[role] = inv["token"]
 
     # An editor's save is attributed to them, and the sync check says so.
-    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    body = {**{k: p[k] for k in CONTENT}, "version": p["version"]}
     saved = (await client.put(f"/api/projects/{pid}", json={**body, "name": "Together v2"}, headers=auth(editor))).json()
     sync = (await client.get(f"/api/projects/{pid}/sync", headers=auth(USER))).json()
     assert sync["version"] == saved["version"] and sync["updated_by_name"] == "Editor"
@@ -355,7 +358,7 @@ async def test_drawn_assembly_parts_come_from_its_frame(client):
     assert sum(b["qty"] for b in lp["buy"]) >= 1
 
     # Change a parameter: the parts follow on save.
-    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    body = {**{k: p[k] for k in CONTENT}, "version": p["version"]}
     body["assemblies"][0]["frame"]["params"][0]["mm"] = 1200
     p = (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).json()
     assert sorted(pt["length_mm"] for pt in p["assemblies"][0]["parts"])[-1] == 1120
@@ -382,7 +385,7 @@ async def test_mitered_frame_through_plan_and_exports(client):
     assert not any("miter" in w for w in plan["warnings"])
 
     # A saw that only turns to 40° can't make these cuts.
-    body = {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    body = {**{k: p[k] for k in CONTENT}, "version": p["version"]}
     body["settings"]["max_miter_deg"] = 40
     p = (await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))).json()
     plan = (await client.get(f"/api/projects/{p['id']}/plan", headers=auth(USER))).json()
@@ -401,7 +404,7 @@ def test_angle_allowance():
 
 
 def _body(p: dict) -> dict:
-    return {**{k: p[k] for k in ("name", "description", "settings", "assemblies", "extras")}, "version": p["version"]}
+    return {**{k: p[k] for k in CONTENT}, "version": p["version"]}
 
 
 async def test_bad_input_is_rejected_or_contained(client):
@@ -452,6 +455,30 @@ async def test_ai_cannot_edit_drawn_parts():
     content = ProjectContent(assemblies=[Assembly(name="Frame", frame={"nodes": [], "members": []})])
     new, diff = apply_ops(content, [op(action="add_part", assembly="A", name="Leg", qty=99999, length_mm=1e12)], {})
     assert new.assemblies[0].parts == [] and diff[0].kind == "note"
+
+
+async def test_sketches_are_saved_and_checked(client):
+    sketch = {"name": "Side", "points": [{"id": "a", "x": 0, "y": 0}, {"id": "b", "x": 600, "y": 0}],
+              "shapes": [{"id": "l", "kind": "line", "a": "a", "b": "b"}],
+              "constraints": [{"id": "c", "kind": "distance", "refs": ["l"], "value": 600, "driving": True}]}
+    p = await new_project(client, sketches=[sketch])
+    assert p["sketches"][0]["shapes"][0] == {"id": "l", "kind": "line", "a": "a", "b": "b"}
+    assert p["sketches"][0]["constraints"][0]["value"] == 600
+    # A shape on a point that isn't there, or a constraint on nothing, is refused.
+    bad = {**sketch, "shapes": [{"id": "l", "kind": "line", "a": "a", "b": "zz"}]}
+    body = {**{k: p[k] for k in CONTENT}, "sketches": [bad], "version": p["version"]}
+    r = await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))
+    assert r.status_code == 422
+    bad = {**sketch, "constraints": [{"id": "c", "kind": "radius", "refs": ["nope"], "value": 5}]}
+    body["sketches"] = [bad]
+    r = await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))
+    assert r.status_code == 422
+    # The origin and axes are built in: a line can start at the origin, a point sit on an axis.
+    attached = {**sketch, "shapes": [{"id": "l", "kind": "line", "a": "origin", "b": "b"}],
+                "constraints": [{"id": "c", "kind": "on_line", "refs": ["b", "x_axis"]}]}
+    body["sketches"] = [attached]
+    r = await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))
+    assert r.status_code == 200, r.text
 
 
 async def test_plan_shares_used_offcut_waste(client):

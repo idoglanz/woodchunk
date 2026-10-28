@@ -2,7 +2,9 @@
 
 import { create } from "zustand";
 import { api, ApiError, unwrap, type Assembly, type Part, type Project, type ProjectContent } from "@/lib/api/client";
-import { equal, merge3, type Conflict } from "@/lib/merge";
+import { equal, merge3, type Conflict, type MergeResult } from "@/lib/merge";
+import { tidy } from "@/lib/sketch/model";
+import { solve } from "@/lib/sketch/solve";
 import { toast } from "@/lib/toast";
 
 type SaveState = "idle" | "pending" | "saving" | "saved" | "error" | "conflict";
@@ -59,7 +61,22 @@ export function hasUnsaved(): boolean {
 const MERGE_TRIES = 3;
 
 export function contentOf(p: Project): ProjectContent {
-  return structuredClone({ name: p.name, description: p.description, settings: p.settings, assemblies: p.assemblies, extras: p.extras });
+  return structuredClone({ name: p.name, description: p.description, settings: p.settings, assemblies: p.assemblies, extras: p.extras, sketches: p.sketches });
+}
+
+/**
+ * Combine two people's changes. A combined sketch can refer to points one of them deleted, or
+ * have points each moved apart: tidy it and solve it again.
+ */
+function combine(base: ProjectContent, mine: ProjectContent, theirs: ProjectContent): MergeResult<ProjectContent> {
+  const r = merge3(base, mine, theirs);
+  const sketches = r.value.sketches.map((sk) => {
+    if (mine.sketches.includes(sk) || theirs.sketches.includes(sk)) return sk; // one side's, as it was
+    const clean = tidy(sk);
+    const solved = solve(clean, { quick: true });
+    return solved.ok ? solved.sketch : clean;
+  });
+  return { ...r, value: { ...r.value, sketches } };
 }
 
 export const useEditor = create<Editor>((set, get) => {
@@ -91,7 +108,7 @@ export const useEditor = create<Editor>((set, get) => {
           return false;
         }
         const theirs = contentOf(latest);
-        const merged = merge3(saved, get().content!, theirs);
+        const merged = combine(saved, get().content!, theirs);
         if (merged.conflicts.length) {
           clashBase = saved;
           set({ save: "conflict", latest, conflicts: merged.conflicts });
@@ -192,7 +209,7 @@ export const useEditor = create<Editor>((set, get) => {
         // Everything combined, our values where we both changed something.
         const theirs = contentOf(latest);
         saved = theirs;
-        set({ project: latest, version: latest.version, content: merge3(clashBase, theirs, content).value, latest: null, conflicts: [], past: [], future: [], save: "pending" });
+        set({ project: latest, version: latest.version, content: combine(clashBase, theirs, content).value, latest: null, conflicts: [], past: [], future: [], save: "pending" });
       } else {
         saved = null; // force a save of our content over theirs
         set({ version: latest.version, project: latest, latest: null, conflicts: [], save: "pending" });
@@ -207,7 +224,7 @@ export const useEditor = create<Editor>((set, get) => {
         // Everything combined, their values where we both changed something.
         const theirs = contentOf(latest);
         saved = theirs;
-        set({ project: latest, version: latest.version, content: merge3(clashBase, content, theirs).value, latest: null, conflicts: [], past: [], future: [], save: "pending" });
+        set({ project: latest, version: latest.version, content: combine(clashBase, content, theirs).value, latest: null, conflicts: [], past: [], future: [], save: "pending" });
         clashBase = null;
         void enqueue();
       } else {

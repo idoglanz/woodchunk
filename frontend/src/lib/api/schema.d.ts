@@ -2516,6 +2516,11 @@ export interface components {
              * @default []
              */
             extras: components["schemas"]["HardwareLine-Output"][];
+            /**
+             * Sketches
+             * @default []
+             */
+            sketches: components["schemas"]["Sketch-Output"][];
             /** Id */
             id: string;
             /** Owner Id */
@@ -2680,6 +2685,11 @@ export interface components {
              * @default []
              */
             extras: components["schemas"]["HardwareLine-Input"][];
+            /**
+             * Sketches
+             * @default []
+             */
+            sketches: components["schemas"]["Sketch-Input"][];
             /** Version */
             version: number;
         };
@@ -2955,6 +2965,201 @@ export interface components {
             suggestions: components["schemas"]["Suggestion"][];
             /** Already Bought */
             already_bought: boolean;
+        };
+        /** Sketch */
+        "Sketch-Input": {
+            /** Id */
+            id?: string;
+            /**
+             * Name
+             * @default Sketch
+             */
+            name: string;
+            /**
+             * Points
+             * @default []
+             */
+            points: components["schemas"]["SketchPoint"][];
+            /**
+             * Shapes
+             * @default []
+             */
+            shapes: (components["schemas"]["SketchLine-Input"] | components["schemas"]["SketchCircle-Input"] | components["schemas"]["SketchArc-Input"])[];
+            /**
+             * Constraints
+             * @default []
+             */
+            constraints: components["schemas"]["SketchConstraint-Input"][];
+        };
+        /** Sketch */
+        "Sketch-Output": {
+            /** Id */
+            id: string;
+            /**
+             * Name
+             * @default Sketch
+             */
+            name: string;
+            /**
+             * Points
+             * @default []
+             */
+            points: components["schemas"]["SketchPoint"][];
+            /**
+             * Shapes
+             * @default []
+             */
+            shapes: (components["schemas"]["SketchLine-Output"] | components["schemas"]["SketchCircle-Output"] | components["schemas"]["SketchArc-Output"])[];
+            /**
+             * Constraints
+             * @default []
+             */
+            constraints: components["schemas"]["SketchConstraint-Output"][];
+        };
+        /**
+         * SketchArc
+         * @description Centre, start and end, counter-clockwise from start to end.
+         */
+        "SketchArc-Input": {
+            /** Id */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "arc";
+            /** C */
+            c: string;
+            /** A */
+            a: string;
+            /** B */
+            b: string;
+        };
+        /**
+         * SketchArc
+         * @description Centre, start and end, counter-clockwise from start to end.
+         */
+        "SketchArc-Output": {
+            /** Id */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "arc";
+            /** C */
+            c: string;
+            /** A */
+            a: string;
+            /** B */
+            b: string;
+        };
+        /** SketchCircle */
+        "SketchCircle-Input": {
+            /** Id */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "circle";
+            /** C */
+            c: string;
+            /** R */
+            r: number;
+        };
+        /** SketchCircle */
+        "SketchCircle-Output": {
+            /** Id */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "circle";
+            /** C */
+            c: string;
+            /** R */
+            r: number;
+        };
+        /** SketchConstraint */
+        "SketchConstraint-Input": {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "coincident" | "horizontal" | "vertical" | "parallel" | "perpendicular" | "equal" | "tangent" | "on_line" | "on_circle" | "midpoint" | "fix" | "distance" | "point_line_distance" | "angle" | "radius" | "diameter";
+            /** Refs */
+            refs: string[];
+            /** Value */
+            value?: number | null;
+            /**
+             * Driving
+             * @default true
+             */
+            driving: boolean;
+            /** Side */
+            side?: number | null;
+        };
+        /** SketchConstraint */
+        "SketchConstraint-Output": {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "coincident" | "horizontal" | "vertical" | "parallel" | "perpendicular" | "equal" | "tangent" | "on_line" | "on_circle" | "midpoint" | "fix" | "distance" | "point_line_distance" | "angle" | "radius" | "diameter";
+            /** Refs */
+            refs: string[];
+            /** Value */
+            value: number | null;
+            /**
+             * Driving
+             * @default true
+             */
+            driving: boolean;
+            /** Side */
+            side: number | null;
+        };
+        /** SketchLine */
+        "SketchLine-Input": {
+            /** Id */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "line";
+            /** A */
+            a: string;
+            /** B */
+            b: string;
+        };
+        /** SketchLine */
+        "SketchLine-Output": {
+            /** Id */
+            id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "line";
+            /** A */
+            a: string;
+            /** B */
+            b: string;
+        };
+        /** SketchPoint */
+        SketchPoint: {
+            /** Id */
+            id: string;
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
         };
         /** Stats */
         Stats: {

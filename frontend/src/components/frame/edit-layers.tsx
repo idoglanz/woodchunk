@@ -10,6 +10,7 @@ import type { MemberResult, Vec } from "@/lib/frame/kernel";
 import { snapDrag, snapPoint, typedEnd, type Axis, type DragSnap, type DrawPlane, type Projector, type Snap } from "@/lib/frame/snap";
 import type { Frame } from "@/lib/frame/types";
 import { FLAT, flatPlane, useFrameUI, type DrawStart } from "@/lib/frame/ui";
+import { isTyping } from "@/lib/typing";
 
 /** Frames are Z-up; three.js is Y-up (the scene group is turned -90° about X). */
 export const toThree = ([x, y, z]: Vec): [number, number, number] => [x, z, -y];
@@ -21,12 +22,6 @@ const AXIS_COLORS = ["#e5484d", "#30a46c", "#3b82f6"];
  * Editor shortcuts act when focus is on the page, the 3D view or an element that opts in
  * (cut-list rows: pick a bar there, press Delete); never in fields, menus or other buttons.
  */
-/** Focus is somewhere you type or pick from a list: no single-key shortcuts there. */
-export function isTyping(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return true;
-  return !!target.closest('[role="menu"], [role="listbox"], [role="dialog"], [role="combobox"]');
-}
 
 export function onCanvasOrPage(target: EventTarget | null): boolean {
   if (!target || target === document.body || target instanceof HTMLCanvasElement) return true;

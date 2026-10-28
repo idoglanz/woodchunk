@@ -452,3 +452,28 @@ async def test_ai_cannot_edit_drawn_parts():
     content = ProjectContent(assemblies=[Assembly(name="Frame", frame={"nodes": [], "members": []})])
     new, diff = apply_ops(content, [op(action="add_part", assembly="A", name="Leg", qty=99999, length_mm=1e12)], {})
     assert new.assemblies[0].parts == [] and diff[0].kind == "note"
+
+
+async def test_plan_shares_used_offcut_waste(client):
+    """Each material's stock splits into used, kept offcuts and waste (adding up to 100), and the
+    project's split is weighted by how much stock each material takes, not by price."""
+    ply = await find_item(client, "18 mm birch", "sheet")
+    steel = await find_item(client, "40 40 2 square tube", "lumber")
+    p = await new_project(client, assemblies=[
+        {"name": "Top", "qty": 1, "parts": [{"name": "Top", "item_id": ply["id"], "qty": 1, "length_mm": 2000, "width_mm": 1000}]},
+        {"name": "Frame", "qty": 1, "parts": [{"name": "Rail", "item_id": steel["id"], "qty": 1, "length_mm": 1000}]},
+    ])
+    plan = (await client.get(f"/api/projects/{p['id']}/plan", headers=auth(USER))).json()
+    sheet, bar = plan["sheets"][0], plan["lumber"][0]
+    # One 2440 × 1220 sheet: the top uses 2,000,000 mm², two offcuts are kept, three saw cuts are waste.
+    assert (sheet["used_pct"], sheet["waste_pct"]) == (67.2, 0.3)
+    assert abs(sheet["used_pct"] + sheet["offcut_pct"] + sheet["waste_pct"] - 100) <= 0.15
+    # A 6 m tube for a 1 m rail: mostly offcut, and it counts although steel has no price.
+    assert bar["used_pct"] < 20 and bar["offcut_pct"] > 80
+    t = plan["totals"]
+    assert abs(t["used_pct"] + t["offcut_pct"] + t["waste_pct"] - 100) <= 0.15
+    # Weighted by stock volume: the sheet is 2440 × 1220 × 18 mm, the tube its length × 40 × 40.
+    v_sheet = 2440 * 1220 * 18
+    v_bar = sum(b["length_mm"] * b["qty"] for b in bar["buy"]) * 40 * 40
+    expected = (sheet["used_pct"] * v_sheet + bar["used_pct"] * v_bar) / (v_sheet + v_bar)
+    assert abs(t["used_pct"] - expected) <= 0.1

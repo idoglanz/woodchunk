@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useProjectCtx } from "@/components/project/context";
 import { Spinner } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { costText, pct, plural } from "@/lib/format";
+import { share } from "@/components/project/stock-split";
+import { costText, plural } from "@/lib/format";
 
 export function SummaryBar() {
   const { plan, planFetching, id } = useProjectCtx();
@@ -17,7 +18,11 @@ export function SummaryBar() {
       <Stat label="Total" value={costText(t.cost, plan.currency, t.unpriced_materials > 0)} strong
         hint={t.unpriced_lines || (t.unpriced_materials && t.cost) ? "some unpriced" : undefined} />
       <Stat label="To buy" value={stock} />
-      <Stat label="Waste" value={pct(t.waste_pct)} />
+      {t.used_pct ? <>
+        <Stat label="Used" value={share(t.used_pct)} />
+        <Stat label="Offcuts" value={share(t.offcut_pct)} />
+        <Stat label="Waste" value={share(t.waste_pct)} />
+      </> : null}
       <Stat label="Parts" value={String(t.parts)} />
       {plan.unplaced.length ? (
         <Link href={`/projects/${id}/build`} className="inline-flex items-center gap-1.5 rounded-full bg-kerf-soft px-2.5 py-1 text-[13px] font-semibold text-kerf">

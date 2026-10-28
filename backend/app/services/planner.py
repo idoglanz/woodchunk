@@ -161,11 +161,16 @@ def _plan_lumber(inp: PlanInputs, item: CatalogItem, pieces: list[Piece], meta: 
     cost = sum((ln.unit_price or 0) * ln.qty for ln in buy_lines if ln.source == "buy")
     stock_len = res.stock_length
     allowance = sum(sum(meta[c.piece.part_id]["allow"]) for b in res.boards for c in b.cuts)
+    # A piece's footprint includes its angle allowance, which is wood cut away: waste, not part.
+    used_len = sum(b.used for b in res.boards) - allowance
+    kept_len = sum(b.leftover for b in res.boards if b.is_offcut)
     plan = LumberPlan(
         item_id=item.id, name=item.display_name(inp.lang),
         supplier_name=inp.suppliers[item.supplier_id].name if item.supplier_id in inp.suppliers else "",
         kerf=s.kerf_lumber_mm, cost=round(cost, 2),
         waste_pct=round(100 * (res.waste + allowance) / stock_len, 1) if stock_len else 0.0,
+        used_pct=round(100 * used_len / stock_len, 1) if stock_len else 0.0,
+        offcut_pct=round(100 * kept_len / stock_len, 1) if stock_len else 0.0,
         optimal=res.optimal, longest_stock=max((o.length for o in opts), default=0.0),
         buy=buy_lines, patterns=patterns,
     )
@@ -267,6 +272,8 @@ def _plan_sheets(inp: PlanInputs, item: CatalogItem, panels: list[Panel], meta: 
         thickness_mm=item.thickness_mm, has_grain=item.has_grain, kerf=s.kerf_sheet_mm,
         edge_trim=s.edge_trim_mm, cost=round(cost, 2),
         waste_pct=round(100 * waste / area, 1) if area else 0.0, buy=buy_lines, layouts=layouts,
+        used_pct=round(100 * res.used_area / area, 1) if area else 0.0,
+        offcut_pct=round(100 * res.offcut_area / area, 1) if area else 0.0,
     )
     unplaced = []
     for pn in res.unplaced:
@@ -419,14 +426,26 @@ async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
 
     lumber_plans, sheet_plans = [], []
     offcuts = 0
-    weighted_waste, weight = 0.0, 0.0
+    shares = {"used": 0.0, "offcut": 0.0, "waste": 0.0}
+    weight = 0.0
     from_inventory = 0
-    def gross(item_id: str, lines, sheet: bool) -> float:
-        # Weight each material's waste by what its stock is worth, whoever paid for it.
+
+    def volume(item_id: str, lines, sheet: bool) -> float:
+        """How much stock a material takes (mm³, whoever paid for it): what the project shares are
+        weighted by, so boards, bars and sheets compare fairly, priced or not."""
         it = inp.items[item_id]
         if sheet:
-            return sum((_sheet_price(it, b.length_mm, b.width_mm or 0) or 0) * b.qty for b in lines)
-        return sum((it.stock_price(b.length_mm) or 0) * b.qty for b in lines)
+            return sum(b.length_mm * (b.width_mm or 0) * b.qty for b in lines) * (it.thickness_mm or 1.0)
+        sec = it.section()
+        return sum(b.length_mm * b.qty for b in lines) * (sec.w * sec.h if sec else 1.0)
+
+    def weigh(plan, sheet: bool) -> None:
+        nonlocal weight
+        w = volume(plan.item_id, plan.buy, sheet)
+        shares["used"] += plan.used_pct * w
+        shares["offcut"] += plan.offcut_pct * w
+        shares["waste"] += plan.waste_pct * w
+        weight += w
 
     for plan, unp, known, leftovers, _res in lumber_results:
         lumber_plans.append(plan)
@@ -435,9 +454,7 @@ async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
         plan.priced = known
         if not known:
             warnings.append(f"Some lengths of {plan.name} have no price; its cost is incomplete.")
-        w = gross(plan.item_id, plan.buy, False) or 1.0
-        weighted_waste += plan.waste_pct * w
-        weight += w
+        weigh(plan, False)
         from_inventory += sum(b.qty for b in plan.buy if b.source == "inventory")
     for plan, unp, known, n_off, _res in sheet_results:
         sheet_plans.append(plan)
@@ -446,9 +463,7 @@ async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
         plan.priced = known
         if not known:
             warnings.append(f"Some sizes of {plan.name} have no price; its cost is incomplete.")
-        w = gross(plan.item_id, plan.buy, True) or 1.0
-        weighted_waste += plan.waste_pct * w
-        weight += w
+        weigh(plan, True)
         from_inventory += sum(b.qty for b in plan.buy if b.source == "inventory")
 
     hardware = hardware_totals(inp)
@@ -478,7 +493,9 @@ async def _compute_async(inp: PlanInputs, h: str) -> PlanOut:
         boards=sum(b.qty for pl in lumber_plans for b in pl.buy if b.source != "inventory"),
         sheets=sum(b.qty for pl in sheet_plans for b in pl.buy if b.source != "inventory"),
         from_inventory=from_inventory,
-        waste_pct=round(weighted_waste / weight, 1) if weight else 0.0,
+        waste_pct=round(shares["waste"] / weight, 1) if weight else 0.0,
+        used_pct=round(shares["used"] / weight, 1) if weight else 0.0,
+        offcut_pct=round(shares["offcut"] / weight, 1) if weight else 0.0,
         parts=part_count, offcuts=offcuts,
     )
     lumber_plans.sort(key=lambda x: -x.cost)

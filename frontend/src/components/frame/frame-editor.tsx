@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { CutList } from "@/components/frame/cut-list";
 import { Inspector } from "@/components/frame/inspector";
-import { barAnchors, DimensionLabels, dimensionAnchors, isTyping, onCanvasOrPage } from "@/components/frame/edit-layers";
+import { barAnchors, DimensionLabels, dimensionAnchors, onCanvasOrPage } from "@/components/frame/edit-layers";
 import { DepthChip } from "@/components/frame/depth-chip";
 import { useFrameEdit } from "@/components/frame/use-frame-edit";
 import { MiniView, Viewport, type EditHandlers, type JointMarker } from "@/components/frame/viewport";
@@ -24,6 +24,7 @@ import { solveFrame } from "@/lib/frame/parts";
 import type { Frame } from "@/lib/frame/types";
 import { FLAT, flatPlane, resetFrameUI, useFrameUI, type Tool, type View } from "@/lib/frame/ui";
 import { useCatalog, useItemMap } from "@/lib/queries";
+import { isTyping } from "@/lib/typing";
 
 const VIEWS: { value: View; label: string }[] = [
   { value: "iso", label: "3D" }, { value: "front", label: "Front" }, { value: "side", label: "Side" }, { value: "top", label: "Top" },

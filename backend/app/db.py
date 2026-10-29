@@ -51,4 +51,6 @@ async def create_indexes(db: AsyncDatabase) -> None:
     await db.invites.create_index("token", unique=True)
     await db.ai_conversations.create_index([("project_id", ASCENDING), ("user_id", ASCENDING)])
     await db.ai_usage.create_index([("day", ASCENDING), ("model", ASCENDING)], unique=True)
+    await db.user_activity.create_index([("user_id", ASCENDING), ("day", ASCENDING)], unique=True)
+    await db.user_activity.create_index("day")
     await db.translations.create_index([("project_id", ASCENDING), ("lang", ASCENDING)], unique=True)

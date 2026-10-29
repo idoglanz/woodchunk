@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from app.config import get_settings
 from app.db import get_db
+from app.services import activity
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,18 @@ class AIClient:
     ) -> tuple[T, str]:
         if self._client is None:
             raise AINotConfigured("AI is not set up on this server (GOOGLE_API_KEY is missing).")
+        ok = False
+        try:
+            out = await self._generate(schema, system, contents, what=what, temperature=temperature)
+            ok = True
+            return out
+        finally:
+            activity.ai_call(what, ok)
+
+    async def _generate(
+        self, schema: type[T], system: str, contents: str | list, *, what: str, temperature: float
+    ) -> tuple[T, str]:
+        assert self._client is not None
         attempts: list[str] = []
         started = time.monotonic()
         config = types.GenerateContentConfig(

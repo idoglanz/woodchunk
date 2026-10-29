@@ -690,15 +690,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/stats": {
+    "/api/admin/overview": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Stats */
-        get: operations["stats_api_admin_stats_get"];
+        /** Overview */
+        get: operations["overview_api_admin_overview_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -724,6 +724,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Person */
+        get: operations["person_api_admin_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/users/{user_id}/role": {
         parameters: {
             query?: never;
@@ -734,23 +751,6 @@ export interface paths {
         get?: never;
         /** Set Role */
         put: operations["set_role_api_admin_users__user_id__role_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/archived": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Archived */
-        get: operations["archived_api_admin_archived_get"];
-        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -877,6 +877,28 @@ export interface components {
         ArchiveIn: {
             /** Archived */
             archived: boolean;
+        };
+        /**
+         * ArchivedProject
+         * @description An archived project as admins see it: enough to restore the right one, nothing about what it is.
+         */
+        ArchivedProject: {
+            /** Id */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Assemblies */
+            assemblies: number;
+            /** Parts */
+            parts: number;
         };
         /** Assembly */
         "Assembly-Input": {
@@ -1517,6 +1539,21 @@ export interface components {
              */
             max_bevel_deg: number;
         };
+        /** Day */
+        Day: {
+            /** Day */
+            day: string;
+            /** Signups */
+            signups: number;
+            /** Active Users */
+            active_users: number;
+            /** Projects Created */
+            projects_created: number;
+            /** Ai Calls */
+            ai_calls: number;
+            /** Ai Ok */
+            ai_ok: number;
+        };
         /** DiffLine */
         DiffLine: {
             /**
@@ -1558,6 +1595,13 @@ export interface components {
              * @default 0
              */
             bevel: number;
+        };
+        /** FeatureUse */
+        FeatureUse: {
+            /** Feature */
+            feature: string;
+            /** Calls */
+            calls: number;
         };
         /** Frame */
         "Frame-Input": {
@@ -2177,6 +2221,26 @@ export interface components {
              */
             role: "editor" | "viewer";
         };
+        /** ModelDay */
+        ModelDay: {
+            /** Day */
+            day: string;
+            /** Model */
+            model: string;
+            /** Calls */
+            calls: number;
+            /** Ok */
+            ok: number;
+        };
+        /** ModelUsage */
+        ModelUsage: {
+            /** Model */
+            model: string;
+            /** Calls */
+            calls: number;
+            /** Ok */
+            ok: number;
+        };
         /** OrganizeIn */
         OrganizeIn: {
             /**
@@ -2184,6 +2248,41 @@ export interface components {
              * @default []
              */
             item_ids: string[];
+        };
+        /** Overview */
+        Overview: {
+            /** Users */
+            users: number;
+            /** Admins */
+            admins: number;
+            /** Active 1D */
+            active_1d: number;
+            /** Active 7D */
+            active_7d: number;
+            /** Active 30D */
+            active_30d: number;
+            /** New 7D */
+            new_7d: number;
+            /** New 30D */
+            new_30d: number;
+            /** Projects */
+            projects: number;
+            /** Templates */
+            templates: number;
+            /** Catalog Items */
+            catalog_items: number;
+            /** Suggested Items */
+            suggested_items: number;
+            /** Ai Calls Today */
+            ai_calls_today: number;
+            /** Tracking Since */
+            tracking_since: string | null;
+            /** Days */
+            days: components["schemas"]["Day"][];
+            /** Ai Models */
+            ai_models: components["schemas"]["ModelUsage"][];
+            /** Ai By Day */
+            ai_by_day: components["schemas"]["ModelDay"][];
         };
         /** Part */
         "Part-Input": {
@@ -2301,6 +2400,68 @@ export interface components {
             /** Name */
             name: string;
             role: components["schemas"]["Role"];
+        };
+        /** PersonDay */
+        PersonDay: {
+            /** Day */
+            day: string;
+            /** Active Minutes */
+            active_minutes: number;
+            /** Ai Calls */
+            ai_calls: number;
+            /** Ai Ok */
+            ai_ok: number;
+            /** Projects Created */
+            projects_created: number;
+        };
+        /** PersonDetail */
+        PersonDetail: {
+            person: components["schemas"]["PersonUsage"];
+            /** Days */
+            days: components["schemas"]["PersonDay"][];
+            /** Ai Features */
+            ai_features: components["schemas"]["FeatureUse"][];
+            /** Archived */
+            archived: components["schemas"]["ArchivedProject"][];
+        };
+        /** PersonUsage */
+        PersonUsage: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Email */
+            email: string;
+            role: components["schemas"]["UserRole"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+            /** Projects */
+            projects: number;
+            /** Shared */
+            shared: number;
+            /** Ai Calls 7D */
+            ai_calls_7d: number;
+            /** Ai Calls 30D */
+            ai_calls_30d: number;
+            /** Active Days 7D */
+            active_days_7d: number;
+            /** Active Days 30D */
+            active_days_30d: number;
+            /** Active Minutes 30D */
+            active_minutes_30d: number;
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "high" | "regular" | "light" | "inactive";
         };
         /** PlacedPart */
         PlacedPart: {
@@ -3177,25 +3338,6 @@ export interface components {
             /** Y */
             y: number;
         };
-        /** Stats */
-        Stats: {
-            /** Users */
-            users: number;
-            /** Active Users 7D */
-            active_users_7d: number;
-            /** Projects */
-            projects: number;
-            /** Templates */
-            templates: number;
-            /** Catalog Items */
-            catalog_items: number;
-            /** Suggested Items */
-            suggested_items: number;
-            /** Ai Calls Today */
-            ai_calls_today: number;
-            /** Ai Usage */
-            ai_usage: components["schemas"]["UsageDay"][];
-        };
         /**
          * StockKind
          * @enum {string}
@@ -3390,17 +3532,6 @@ export interface components {
             item_id: string | null;
             /** Reason */
             reason: string;
-        };
-        /** UsageDay */
-        UsageDay: {
-            /** Day */
-            day: string;
-            /** Model */
-            model: string;
-            /** Calls */
-            calls: number;
-            /** Ok */
-            ok: number;
         };
         /** User */
         User: {
@@ -5112,9 +5243,12 @@ export interface operations {
             };
         };
     };
-    stats_api_admin_stats_get: {
+    overview_api_admin_overview_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description How many days back the series go */
+                days?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5127,7 +5261,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Stats"];
+                    "application/json": components["schemas"]["Overview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5147,7 +5290,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"][];
+                    "application/json": components["schemas"]["PersonUsage"][];
+                };
+            };
+        };
+    };
+    person_api_admin_users__user_id__get: {
+        parameters: {
+            query?: {
+                /** @description How many days back the series go */
+                days?: number;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5183,26 +5360,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    archived_api_admin_archived_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectSummary"][];
                 };
             };
         };

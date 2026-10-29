@@ -49,7 +49,7 @@ export function OverviewView({ o }: { o: Overview }) {
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Stat label="People" value={o.users.toLocaleString("en-US")} sub={`+${o.new_7d} this week`} />
-        <Stat label="Active today" value={o.active_1d} sub={`${percent(o.active_1d, o.users)} of everyone`} />
+        <Stat label="Active, last 24 h" value={o.active_1d} sub={`${percent(o.active_1d, o.users)} of everyone`} />
         <Stat label="Active this week" value={o.active_7d} sub={`${percent(o.active_7d, o.users)} of everyone`} />
         <Stat label="Active this month" value={o.active_30d} sub={`${percent(o.active_30d, o.users)} of everyone`} />
         <Stat label="Projects" value={o.projects.toLocaleString("en-US")} sub={`${o.templates} templates`} />

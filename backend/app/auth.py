@@ -14,6 +14,7 @@ from app.config import get_settings
 from app.db import get_db
 from app.models.common import now
 from app.models.user import User, UserRole
+from app.services import activity
 
 logger = logging.getLogger(__name__)
 bearer = HTTPBearer(auto_error=False)
@@ -86,6 +87,7 @@ async def current_user(creds: HTTPAuthorizationCredentials | None = Depends(bear
         updates["last_seen"] = now()
     if updates:
         await db.users.update_one({"_id": user.id}, {"$set": updates})
+    activity.seen(user.id)
     return user
 
 

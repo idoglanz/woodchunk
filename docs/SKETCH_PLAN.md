@@ -26,13 +26,17 @@ link to parts yet.
 Sketch     { id, name, points: Point[], shapes: Shape[], constraints: Constraint[] }
 Point      { id, x, y }                                   // mm, y up
 Shape      line { id, a, b } | circle { id, c, r } | arc { id, c, a, b }   // arc: centre, start, end (counter-clockwise)
+           + construction: bool                          // a helper: positions the rest, not a part
 Constraint { id, kind, refs: string[], value?, driving: bool, side? }   // side: which way round a tangent is
 ```
 
 Kinds: `coincident`, `horizontal`, `vertical`, `parallel`, `perpendicular`, `equal`, `tangent`,
-`on_line`, `on_circle`, `midpoint`, `fix`, and dimensions `distance` (point–point or a line's length),
+`on_line`, `on_circle`, `midpoint`, `fix`, `collinear`, `symmetric` (two points and a mirror line),
+and dimensions `distance` (point–point or a line's length),
 `point_line_distance`, `angle` (signed, from line 1 to line 2), `radius`, `diameter`. A dimension with
-`driving: false` is a reference: it shows the measured value and constrains nothing.
+`driving: false` is a reference: it shows the measured value and constrains nothing. `horizontal`
+and `vertical` also take two points (level with / plumb with each other). Anywhere a point is
+taken, a line's midpoint will do: `mid:<line id>`, worked out from its ends, never stored.
 
 The geometry stored is the solved geometry, so opening a sketch shows it as it was; the server only
 validates shape and bounds (no solving on the server).
@@ -98,3 +102,24 @@ length while drawing, label positions you can drag, and linking sketch lengths t
   or ones its parts are cut from); attach from the assembly menu or the sketch's For picker.
   Copies (duplicate project/template) keep the attachment; duplicated parts and assemblies don't
   follow the sketch.
+
+## Relations, helpers, dragging (2026-10-29)
+
+- **Midpoints:** a line's middle (▲, shown on the line under the pointer and on selected lines)
+  is a point to relate, dimension, draw from and drop onto (`mid:<line>` refs; drawing or dropping
+  onto one adds a `midpoint` relation, since a worked-out point can't be merged into). Picked on
+  its own it stands for its line (`acting()`), so clicking a line's middle still selects the line.
+- **More relations:** points aligned horizontally / vertically (any number, to the first),
+  collinear lines (or a line on an axis), symmetric (two points and a line, or two lines and a
+  mirror line: the helper one if there is one; a shared end goes on the mirror), concentric
+  circles, and horizontal / vertical / parallel / equal for several lines at once.
+- **Helper (construction) lines and circles** (X): dashed, not parts (Make parts skips them; a
+  linked part unlinks), and their own freedom doesn't count: "fully defined" is about the
+  drawing (the freedom is measured on the drawing's points only, held by one of them).
+- **Driven lengths:** lines whose length the rest decides (`SolveResult.driven`) show it in grey,
+  unless it only repeats a parallel side's dimension (a rectangle's other side).
+- **Dragging:** a dragged shape is held at the pointer when the constraints allow; otherwise it
+  starts there and is pulled back only as far as it must (dragged points weigh 20× the rest), so
+  a line attached at one end swings round it instead of not moving. Dragging one of several
+  selected moves them all.
+

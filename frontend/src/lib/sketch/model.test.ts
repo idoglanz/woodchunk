@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { addCircle, addConstraint, addDimension, addLine, addPoint, addRectangle, addRelation, deleteItems, dimensionFor, mergePoints, newSketch, relationOptions, setDimension, tidy } from "./model";
+import { addCircle, addConstraint, addDimension, addLine, addPoint, addRectangle, addRelation, deleteItems, dimensionFor, mergePoints, newSketch, pointAt, relationOptions, setConstruction, setDimension, tidy } from "./model";
 import { LIMIT, measure, solve } from "./solve";
-import { ORIGIN, X_AXIS, type Sketch } from "./types";
+import { midOf, ORIGIN, X_AXIS, Y_AXIS, type Sketch } from "./types";
+import { hitTest } from "./view";
 
 function rectangle() {
   const sk = newSketch([]);
@@ -56,7 +57,7 @@ describe("sketch editing", () => {
 
   it("offers the relations and dimension that fit the selection", () => {
     const { sk, a, lines } = rectangle();
-    expect(relationOptions(sk, [lines[0], lines[2]]).map((o) => o.kind)).toEqual(["parallel", "perpendicular", "equal"]);
+    expect(relationOptions(sk, [lines[0], lines[2]]).map((o) => o.kind)).toEqual(["parallel", "perpendicular", "equal", "collinear"]);
     expect(relationOptions(sk, [a]).map((o) => o.kind)).toEqual(["fix"]);
     expect(dimensionFor(sk, [lines[0]])?.kind).toBe("distance");
     expect(dimensionFor(sk, [lines[0], lines[1]])?.kind).toBe("angle");
@@ -202,3 +203,151 @@ describe("sketch editing", () => {
     expect(sk.points.some((x) => x.id === q)).toBe(false);
   });
 });
+
+describe("relations like a sketch tool has them", () => {
+  const relate = (sk: Sketch, ids: string[], label: string) => {
+    const o = relationOptions(sk, ids).find((x) => x.label === label);
+    expect(o, `${label} offered`).toBeDefined();
+    expect(addRelation(sk, o!).ok).toBe(true);
+  };
+
+  it("lines up two lines' midpoints, and joins a point to one", () => {
+    const sk = newSketch([]);
+    const top = addLine(sk, addPoint(sk, [0, 300]), addPoint(sk, [800, 300]));
+    const shelf = addLine(sk, addPoint(sk, [60, 0]), addPoint(sk, [500, 0]));
+    relate(sk, [midOf(top), midOf(shelf)], "Align vertically");
+    expect(pointAt(sk, midOf(shelf))[0]).toBeCloseTo(pointAt(sk, midOf(top))[0], 6);
+    // Still level, still its own length: only slid along.
+    expect(lengthOf(sk, shelf)).toBeCloseTo(440, 6);
+    const p = addPoint(sk, [390, 160]);
+    const o = relationOptions(sk, [p, midOf(top)]).find((x) => x.label === "Join to midpoint")!;
+    expect(o.refs).toEqual([p, top]);
+    expect(addRelation(sk, o).ok).toBe(true);
+    expect(pointAt(sk, p)).toEqual(pointAt(sk, midOf(top)).map((v) => expect.closeTo(v, 6)));
+    // Deleting the line drops what referred to its midpoint.
+    deleteItems(sk, [shelf]);
+    expect(sk.constraints.some((c) => c.refs.includes(midOf(shelf)))).toBe(false);
+  });
+
+  it("picks a line's midpoint only right at its middle, and attaches to points, midpoints and axes", () => {
+    const sk = newSketch([]);
+    const l = addLine(sk, addPoint(sk, [100, 100]), addPoint(sk, [500, 100]));
+    expect(hitTest(sk, [302, 103], 10)).toBe(midOf(l));
+    expect(hitTest(sk, [380, 103], 10)).toBe(l);
+    // Attaching (no shapes): the midpoint, else an axis, never the line itself.
+    expect(hitTest(sk, [300, 95], 10, new Set(), true, false)).toBe(midOf(l));
+    expect(hitTest(sk, [380, 103], 10, new Set(), true, false)).toBeNull();
+    expect(hitTest(sk, [380, 4], 10, new Set(), true, false)).toBe(X_AXIS);
+  });
+
+  it("puts lines in line, and mirrors points about a line or an axis", () => {
+    const sk = newSketch([]);
+    const a = addLine(sk, addPoint(sk, [0, 0]), addPoint(sk, [100, 100]), false);
+    const b = addLine(sk, addPoint(sk, [300, 260]), addPoint(sk, [400, 410]), false);
+    relate(sk, [a, b], "Collinear");
+    // All four ends on one straight line (both lines moved as little as they could to get there).
+    const [o, d, p, q] = sk.points.map((x) => pointAt(sk, x.id));
+    const across = (r: number[]) => ((d[0] - o[0]) * (r[1] - o[1]) - (d[1] - o[1]) * (r[0] - o[0])) / Math.hypot(d[0] - o[0], d[1] - o[1]);
+    expect(across(p)).toBeCloseTo(0, 6);
+    expect(across(q)).toBeCloseTo(0, 6);
+
+    const m = newSketch([]);
+    const [u, v] = [addPoint(m, [-210, 50]), addPoint(m, [190, 70])];
+    relate(m, [u, v, Y_AXIS], "Symmetric about axis");
+    expect(pointAt(m, u)[0]).toBeCloseTo(-pointAt(m, v)[0], 6);
+    expect(pointAt(m, u)[1]).toBeCloseTo(pointAt(m, v)[1], 6);
+  });
+
+  it("mirrors two lines about a centre line, the shared end on it", () => {
+    const sk = newSketch([]);
+    const apex = addPoint(sk, [10, 300]);
+    const left = addLine(sk, addPoint(sk, [-400, 0]), apex, false);
+    const right = addLine(sk, apex, addPoint(sk, [380, 20]), false);
+    const centre = addLine(sk, addPoint(sk, [0, -50]), addPoint(sk, [0, 400]), false);
+    addConstraint(sk, "vertical", [centre]);
+    setConstruction(sk, [centre], true);
+    // The helper is the mirror, whichever order they were picked in.
+    relate(sk, [centre, left, right], "Symmetric");
+    const r = solve(sk);
+    expect(r.ok).toBe(true);
+    const x0 = pointAt(sk, sk.points[3].id)[0];
+    expect(pointAt(sk, apex)[0]).toBeCloseTo(x0, 6);
+    expect(lengthOf(sk, left)).toBeCloseTo(lengthOf(sk, right), 6);
+  });
+
+  it("makes several lines parallel or equal to the first, and circles concentric", () => {
+    const sk = newSketch([]);
+    const ls = [0, 1, 2].map((i) => addLine(sk, addPoint(sk, [i * 100, 0]), addPoint(sk, [i * 100 + 50 + i * 20, 300 - i * 40]), false));
+    const par = relationOptions(sk, ls).find((o) => o.kind === "parallel")!;
+    expect(par.each).toEqual([[ls[0], ls[1]], [ls[0], ls[2]]]);
+    relate(sk, ls, "Equal length");
+    expect(lengthOf(sk, ls[2])).toBeCloseTo(lengthOf(sk, ls[0]), 6);
+    // Already equal: not offered again.
+    expect(relationOptions(sk, ls).some((o) => o.label === "Equal length")).toBe(false);
+
+    const c = newSketch([]);
+    const [c1, c2] = [addCircle(c, addPoint(c, [0, 0]), 40), addCircle(c, addPoint(c, [12, 9]), 70)];
+    relate(c, [c1, c2], "Concentric");
+    expect(c.points).toHaveLength(1);
+  });
+
+  it("aligns any number of points with the first", () => {
+    const sk = newSketch([]);
+    const ps = [addPoint(sk, [0, 0]), addPoint(sk, [100, 20]), addPoint(sk, [300, -15])];
+    relate(sk, ps, "Align horizontally");
+    expect(sk.points.every((p) => Math.abs(p.y - sk.points[0].y) < 1e-6)).toBe(true);
+  });
+});
+
+describe("helpers and driven lengths", () => {
+  it("doesn't count what helper lines can do as freedom", () => {
+    const sk = newSketch([]);
+    const lines = addRectangle(sk, ORIGIN, [1200, 600]);
+    addDimension(sk, "distance", [lines[0]]);
+    addDimension(sk, "distance", [lines[1]]);
+    expect(solve(sk).dof).toBe(0);
+    // A centre line hanging off the top, free to swing: still fully defined.
+    const top = sk.shapes.find((s) => s.id === lines[2]) as { a: string };
+    const centre = addLine(sk, addPoint(sk, [600, 600]), addPoint(sk, [600, 900]), false);
+    setConstruction(sk, [centre], true);
+    expect(addRelation(sk, { kind: "midpoint", label: "", refs: [(sk.shapes.find((s) => s.id === centre) as { a: string }).a, lines[2]] }).ok).toBe(true);
+    expect(solve(sk).dof).toBe(0);
+    // And one off on its own.
+    setConstruction(sk, [addLine(sk, addPoint(sk, [-500, -500]), addPoint(sk, [-100, -300]), false)], true);
+    expect(solve(sk).dof).toBe(0);
+    // As drawing, the same line is two more things to pin (where it ends): no longer defined.
+    setConstruction(sk, [centre], false);
+    expect(solve(sk).dof).toBeGreaterThan(0);
+    expect(top.a).toBeTruthy();
+  });
+
+  it("knows which lines' lengths the rest decides", () => {
+    const sk = newSketch([]);
+    const lines = addRectangle(sk, ORIGIN, [1200, 600]);
+    const corner = (sk.shapes.find((s) => s.id === lines[1]) as { b: string }).b;
+    const brace = addLine(sk, ORIGIN, corner, false);
+    expect(solve(sk).driven.has(brace)).toBe(false);
+    addDimension(sk, "distance", [lines[0]]);
+    addDimension(sk, "distance", [lines[1]]);
+    const r = solve(sk);
+    expect([...r.driven].sort()).toEqual([...lines, brace].sort());
+    // Sliding but square: a free rectangle's width is decided by its dimension, not its place.
+    const free = newSketch([]);
+    const fl = addRectangle(free, addPoint(free, [100, 100]), [300, 200]);
+    addDimension(free, "distance", [fl[0]]);
+    expect(solve(free).driven).toEqual(new Set([fl[0], fl[2]]));
+  });
+
+  it("swings a dragged line round where it's held, as far as it can", () => {
+    const sk = newSketch([]);
+    const end = addPoint(sk, [100, 0]);
+    const l = addLine(sk, ORIGIN, end, false);
+    addConstraint(sk, "distance", [l], 100);
+    const r = solve(sk, { drag: [{ point: end, to: [0, 250] }], quick: true });
+    expect(r.ok).toBe(true);
+    const p = pointAt(r.sketch, end);
+    expect(p[0]).toBeCloseTo(0, 3);
+    expect(p[1]).toBeCloseTo(100, 3);
+  });
+});
+

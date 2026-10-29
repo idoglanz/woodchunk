@@ -6,7 +6,7 @@
 
 import { measure, type V2 } from "./solve";
 import { lineOf, pointAt, shapeById } from "./model";
-import { ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Shape, type Sketch } from "./types";
+import { isMid, midOf, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Shape, type Sketch } from "./types";
 
 const sub = (a: V2, b: V2): V2 => [a[0] - b[0], a[1] - b[1]];
 const add = (a: V2, b: V2): V2 => [a[0] + b[0], a[1] + b[1]];
@@ -75,10 +75,12 @@ export function distToShape(sk: Sketch, s: Shape, p: V2): number {
 }
 
 /**
- * The point (the origin too), else the shape, else an axis, within `tol` mm of `at`: points win
- * because they sit on shapes, and shapes win over the axes they're often drawn along.
+ * The point (the origin too), else a line's midpoint, else the shape, else an axis, within `tol`
+ * mm of `at`: points win because they sit on shapes, and shapes win over the axes they're often
+ * drawn along. A midpoint needs the pointer closer (or the middle of a line would always be it).
+ * Without `shapes`, only points, midpoints and the axes: what to attach to.
  */
-export function hitTest(sk: Sketch, at: V2, tol: number, skip: Set<string> = new Set(), builtIn = true): string | null {
+export function hitTest(sk: Sketch, at: V2, tol: number, skip: Set<string> = new Set(), builtIn = true, shapes = true): string | null {
   let best: string | null = null, bestD = tol;
   const pts: [string, V2][] = sk.points.map((p) => [p.id, [p.x, p.y]]);
   if (builtIn) pts.push([ORIGIN, [0, 0]]);
@@ -88,8 +90,15 @@ export function hitTest(sk: Sketch, at: V2, tol: number, skip: Set<string> = new
     if (d <= bestD) { best = id; bestD = d; }
   }
   if (best) return best;
-  bestD = tol;
+  bestD = tol * 0.6;
   for (const s of sk.shapes) {
+    if (s.kind !== "line" || skip.has(s.id) || skip.has(midOf(s.id))) continue;
+    const d = len(sub(pointAt(sk, midOf(s.id)), at));
+    if (d <= bestD) { best = midOf(s.id); bestD = d; }
+  }
+  if (best) return best;
+  bestD = tol;
+  for (const s of shapes ? sk.shapes : []) {
     if (skip.has(s.id)) continue;
     const d = distToShape(sk, s, at);
     if (d <= bestD) { best = s.id; bestD = d; }
@@ -104,6 +113,7 @@ export function hitTest(sk: Sketch, at: V2, tol: number, skip: Set<string> = new
 export function glyphAnchor(sk: Sketch, id: string): { at: V2; along: V2 } | null {
   if (id === X_AXIS || id === Y_AXIS) return null; // the axes don't carry badges
   if (id === ORIGIN) return { at: [0, 0], along: [1, 0] };
+  if (isMid(id)) return { at: pointAt(sk, id), along: [1, 0] };
   const s = shapeById(sk, id);
   if (!s) {
     const p = sk.points.find((q) => q.id === id);

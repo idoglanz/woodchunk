@@ -4,7 +4,7 @@ import type { Constraint, ConstraintKind, Shape, Sketch, SketchPoint } from "./t
 
 let n = 0;
 const P = (x: number, y: number, id = `p${++n}`): SketchPoint => ({ id, x, y });
-const line = (id: string, a: string, b: string): Shape => ({ id, kind: "line", a, b });
+const line = (id: string, a: string, b: string): Shape => ({ id, kind: "line", a, b, construction: false });
 const C = (kind: ConstraintKind, refs: string[], value: number | null = null, extra: Partial<Constraint> = {}): Constraint =>
   ({ id: `c${++n}`, kind, refs, value, driving: true, side: null, ...extra });
 const sketch = (points: SketchPoint[], shapes: Shape[], constraints: Constraint[]): Sketch => ({ id: "s", name: "s", assembly_id: null, points, shapes, constraints });
@@ -98,7 +98,7 @@ describe("sketch solver", () => {
 
   it("keeps a line tangent to a circle", () => {
     const pts = [P(0, 0, "a"), P(400, 0, "b"), P(150, 70, "o")];
-    const sk = sketch(pts, [line("ab", "a", "b"), { id: "circ", kind: "circle", c: "o", r: 40 }], [
+    const sk = sketch(pts, [line("ab", "a", "b"), { id: "circ", kind: "circle", c: "o", r: 40, construction: false }], [
       C("horizontal", ["ab"]), C("fix", ["a"]), C("radius", ["circ"], 50), C("tangent", ["ab", "circ"], null, { side: 1 }),
     ]);
     const r = solve(sk);
@@ -108,7 +108,7 @@ describe("sketch solver", () => {
   });
 
   it("makes radii equal", () => {
-    const sk = sketch([P(0, 0, "o1"), P(300, 0, "o2")], [{ id: "c1", kind: "circle", c: "o1", r: 30 }, { id: "c2", kind: "circle", c: "o2", r: 50 }],
+    const sk = sketch([P(0, 0, "o1"), P(300, 0, "o2")], [{ id: "c1", kind: "circle", c: "o1", r: 30, construction: false }, { id: "c2", kind: "circle", c: "o2", r: 50, construction: false }],
       [C("equal", ["c1", "c2"]), C("diameter", ["c1"], 80)]);
     const r = solve(sk);
     expect(r.ok).toBe(true);
@@ -116,7 +116,7 @@ describe("sketch solver", () => {
   });
 
   it("keeps an arc's ends on its radius", () => {
-    const sk = sketch([P(0, 0, "o"), P(90, 0, "s"), P(0, 110, "e")], [{ id: "arc", kind: "arc", c: "o", a: "s", b: "e" }],
+    const sk = sketch([P(0, 0, "o"), P(90, 0, "s"), P(0, 110, "e")], [{ id: "arc", kind: "arc", c: "o", a: "s", b: "e", construction: false }],
       [C("fix", ["o"]), C("radius", ["arc"], 100)]);
     const r = solve(sk);
     expect(r.ok).toBe(true);

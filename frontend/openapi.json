@@ -8187,6 +8187,11 @@
      "b": {
       "type": "string",
       "title": "B"
+     },
+     "construction": {
+      "type": "boolean",
+      "title": "Construction",
+      "default": false
      }
     },
     "type": "object",
@@ -8224,6 +8229,11 @@
      "b": {
       "type": "string",
       "title": "B"
+     },
+     "construction": {
+      "type": "boolean",
+      "title": "Construction",
+      "default": false
      }
     },
     "type": "object",
@@ -8232,7 +8242,8 @@
      "kind",
      "c",
      "a",
-     "b"
+     "b",
+     "construction"
     ],
     "title": "SketchArc",
     "description": "Centre, start and end, counter-clockwise from start to end."
@@ -8260,6 +8271,11 @@
       "maximum": 100000.0,
       "exclusiveMinimum": 0.0,
       "title": "R"
+     },
+     "construction": {
+      "type": "boolean",
+      "title": "Construction",
+      "default": false
      }
     },
     "type": "object",
@@ -8293,6 +8309,11 @@
       "maximum": 100000.0,
       "exclusiveMinimum": 0.0,
       "title": "R"
+     },
+     "construction": {
+      "type": "boolean",
+      "title": "Construction",
+      "default": false
      }
     },
     "type": "object",
@@ -8300,7 +8321,8 @@
      "id",
      "kind",
      "c",
-     "r"
+     "r",
+     "construction"
     ],
     "title": "SketchCircle"
    },
@@ -8326,6 +8348,8 @@
        "on_circle",
        "midpoint",
        "fix",
+       "collinear",
+       "symmetric",
        "distance",
        "point_line_distance",
        "angle",
@@ -8405,6 +8429,8 @@
        "on_circle",
        "midpoint",
        "fix",
+       "collinear",
+       "symmetric",
        "distance",
        "point_line_distance",
        "angle",
@@ -8486,6 +8512,11 @@
      "b": {
       "type": "string",
       "title": "B"
+     },
+     "construction": {
+      "type": "boolean",
+      "title": "Construction",
+      "default": false
      }
     },
     "type": "object",
@@ -8517,6 +8548,11 @@
      "b": {
       "type": "string",
       "title": "B"
+     },
+     "construction": {
+      "type": "boolean",
+      "title": "Construction",
+      "default": false
      }
     },
     "type": "object",
@@ -8524,7 +8560,8 @@
      "id",
      "kind",
      "a",
-     "b"
+     "b",
+     "construction"
     ],
     "title": "SketchLine"
    },

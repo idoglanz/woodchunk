@@ -6,7 +6,7 @@
 
 import { addConstraint, lineOf, pointAt, pointsOf, shapeById } from "./model";
 import { solve, type V2 } from "./solve";
-import { ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "./types";
+import { baseOf, isMid, midOf, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "./types";
 
 export type Axis = "x" | "y";
 
@@ -126,7 +126,8 @@ export function repeat(sk: Sketch, ids: string[], plan: RepeatPlan, newId: () =>
   // too (a slat standing on the X axis, repeated along X), but not what holds it across that
   // (a distance from the Y axis would pin every copy to the same place).
   const along = plan.axis === "x" ? X_AXIS : Y_AXIS;
-  const own = sk.constraints.filter((c) => c.refs.some((r) => group.has(r)) && c.refs.every((r) => group.has(r) || r === along));
+  // (A midpoint is in the group when its line is.)
+  const own = sk.constraints.filter((c) => c.refs.some((r) => group.has(baseOf(r))) && c.refs.every((r) => group.has(baseOf(r)) || r === along));
   // The point each copy is placed (and dimensioned) by: where the group starts along the axis.
   const lead = points.reduce((best, p) => (coord(pointAt(sk, p), plan.axis) < coord(pointAt(sk, best), plan.axis) ? p : best), points[0]);
   // How far that point is past the group's start (a circle's centre is a radius in).
@@ -161,7 +162,7 @@ export function repeat(sk: Sketch, ids: string[], plan: RepeatPlan, newId: () =>
         if (SIZES.includes(c.kind) && c.refs.length === 1 && c.driving) {
           // A size (a side's length, a radius): equal to the original's, so there's one number to change.
           addConstraint(trial, "equal", [c.refs[0], map.get(c.refs[0])!]);
-        } else trial.constraints.push({ ...c, id: newId(), refs: c.refs.map((r) => map.get(r) ?? r) } as Constraint);
+        } else trial.constraints.push({ ...c, id: newId(), refs: c.refs.map((r) => (isMid(r) ? midOf(map.get(baseOf(r))!) : map.get(r) ?? r)) } as Constraint);
       }
     }
     // Pinned in place (exact values: rounding would unbalance the gaps): the first from the

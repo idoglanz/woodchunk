@@ -3201,6 +3201,11 @@ export interface components {
             a: string;
             /** B */
             b: string;
+            /**
+             * Construction
+             * @default false
+             */
+            construction: boolean;
         };
         /**
          * SketchArc
@@ -3220,6 +3225,11 @@ export interface components {
             a: string;
             /** B */
             b: string;
+            /**
+             * Construction
+             * @default false
+             */
+            construction: boolean;
         };
         /** SketchCircle */
         "SketchCircle-Input": {
@@ -3234,6 +3244,11 @@ export interface components {
             c: string;
             /** R */
             r: number;
+            /**
+             * Construction
+             * @default false
+             */
+            construction: boolean;
         };
         /** SketchCircle */
         "SketchCircle-Output": {
@@ -3248,6 +3263,11 @@ export interface components {
             c: string;
             /** R */
             r: number;
+            /**
+             * Construction
+             * @default false
+             */
+            construction: boolean;
         };
         /** SketchConstraint */
         "SketchConstraint-Input": {
@@ -3257,7 +3277,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "coincident" | "horizontal" | "vertical" | "parallel" | "perpendicular" | "equal" | "tangent" | "on_line" | "on_circle" | "midpoint" | "fix" | "distance" | "point_line_distance" | "angle" | "radius" | "diameter";
+            kind: "coincident" | "horizontal" | "vertical" | "parallel" | "perpendicular" | "equal" | "tangent" | "on_line" | "on_circle" | "midpoint" | "fix" | "collinear" | "symmetric" | "distance" | "point_line_distance" | "angle" | "radius" | "diameter";
             /** Refs */
             refs: string[];
             /** Value */
@@ -3278,7 +3298,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "coincident" | "horizontal" | "vertical" | "parallel" | "perpendicular" | "equal" | "tangent" | "on_line" | "on_circle" | "midpoint" | "fix" | "distance" | "point_line_distance" | "angle" | "radius" | "diameter";
+            kind: "coincident" | "horizontal" | "vertical" | "parallel" | "perpendicular" | "equal" | "tangent" | "on_line" | "on_circle" | "midpoint" | "fix" | "collinear" | "symmetric" | "distance" | "point_line_distance" | "angle" | "radius" | "diameter";
             /** Refs */
             refs: string[];
             /** Value */
@@ -3304,6 +3324,11 @@ export interface components {
             a: string;
             /** B */
             b: string;
+            /**
+             * Construction
+             * @default false
+             */
+            construction: boolean;
         };
         /** SketchLine */
         "SketchLine-Output": {
@@ -3318,6 +3343,11 @@ export interface components {
             a: string;
             /** B */
             b: string;
+            /**
+             * Construction
+             * @default false
+             */
+            construction: boolean;
         };
         /**
          * SketchLink

@@ -1,11 +1,11 @@
 "use client";
 
-import { Pin } from "lucide-react";
+import { Pin, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { AsmChip } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { useEditor } from "@/lib/editor";
-import { acting, addArc, addCircle, addConstraint, addLine, addPoint, addRectangle, connected, cornerSide, dimensionFor, isDimension, mergePoints, movable, pointAt, round, take } from "@/lib/sketch/model";
+import { acting, addArc, addCircle, addConstraint, addLine, addPoint, addRectangle, connected, cornerSide, deleteItems, dimensionFor, isDimension, mergePoints, movable, pointAt, round, take } from "@/lib/sketch/model";
 import { LIMIT, solve, type SolveResult, type V2 } from "@/lib/sketch/solve";
 import { AXES, baseOf, isMid, midOf, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Anchor } from "@/lib/sketch/ui";
@@ -523,7 +523,8 @@ export function SketchCanvas(props: CanvasProps) {
         {dims.map((c) => {
           const m = marksOf(c);
           return m ? <DimensionLabel key={c.id} c={c} sketch={sk} at={toScreen(m.label)} units={props.units} canType={props.canType}
-            conflict={status.conflicts.includes(c.id)} onSet={props.onSetDimension} /> : null;
+            conflict={status.conflicts.includes(c.id)} onSet={props.onSetDimension}
+            onDelete={canDraw ? () => { useSketchUI.getState().select([]); props.onEdit((d) => deleteItems(d, [c.id])); } : undefined} /> : null;
         })}
         {preview ? (
           <span className="tnum absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-info px-1.5 py-0.5 text-[12px] font-semibold text-surface"
@@ -736,8 +737,10 @@ function Glyphs({ sketch: sk, toScreen, conflicts, middle }: { sketch: Sketch; t
 }
 
 /** A dimension's value; click to type a new one. References (worked out) show in brackets. */
-function DimensionLabel({ c, sketch, at, units, canType, conflict, onSet }: {
+function DimensionLabel({ c, sketch, at, units, canType, conflict, onSet, onDelete }: {
   c: Constraint; sketch: Sketch; at: V2; units: Units; canType: boolean; conflict: boolean; onSet: (id: string, v: number) => void;
+  /** Delete it (people who can draw): a button beside the value being typed. */
+  onDelete?: () => void;
 }) {
   const editing = useSketchUI((s) => s.editing === c.id);
   const selected = useSketchUI((s) => s.selected.includes(c.id));
@@ -746,12 +749,14 @@ function DimensionLabel({ c, sketch, at, units, canType, conflict, onSet }: {
   if (editing) {
     return (
       <DimensionInput kind={c.kind} value={value} units={units} at={at}
-        onDone={(v) => { useSketchUI.getState().set({ editing: null }); if (v !== null) onSet(c.id, v); }} />
+        onDone={(v) => { useSketchUI.getState().set({ editing: null }); if (v !== null) onSet(c.id, v); }}
+        onDelete={onDelete ? () => { useSketchUI.getState().set({ editing: null }); onDelete(); } : undefined} />
     );
   }
   return (
     <button type="button" disabled={!canType}
-      onClick={() => useSketchUI.getState().set({ editing: c.id })}
+      // Selected as well, so Delete removes it once the value is closed.
+      onClick={() => { useSketchUI.getState().set({ editing: c.id }); if (onDelete) useSketchUI.getState().select([c.id]); }}
       onContextMenu={(e) => { e.preventDefault(); useSketchUI.getState().select([c.id]); }}
       className={cn("tnum pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[13px] font-semibold shadow-[var(--shadow-card)] disabled:pointer-events-none",
         selected ? "bg-accent text-accent-ink" : conflict ? "bg-kerf-soft text-kerf" : c.driving ? "bg-surface text-ink hover:bg-surface-2" : "bg-surface/90 font-medium text-ink-3")}
@@ -762,8 +767,8 @@ function DimensionLabel({ c, sketch, at, units, canType, conflict, onSet }: {
 }
 
 /** Type a dimension's value: over its label on the drawing (`at`), or in place in a list. */
-export function DimensionInput({ kind, value, units, at, onDone }: {
-  kind: Constraint["kind"]; value: number; units: Units; at?: V2; onDone: (v: number | null) => void;
+export function DimensionInput({ kind, value, units, at, onDone, onDelete }: {
+  kind: Constraint["kind"]; value: number; units: Units; at?: V2; onDone: (v: number | null) => void; onDelete?: () => void;
 }) {
   const angle = kind === "angle";
   const initial = angle ? String(round(value)) : lengthInput(Math.abs(value), units);
@@ -778,13 +783,23 @@ export function DimensionInput({ kind, value, units, at, onDone }: {
     // Angles between lines are 0–180°; lengths above zero and within what a sketch can hold.
     onDone(angle ? Math.min(180, Math.abs(v)) : Math.max(0.1, Math.min(LIMIT, v)));
   };
-  return (
+  const input = (
     <input autoFocus inputMode="decimal" aria-label="Value" value={text} onChange={(e) => setText(e.target.value)}
       onFocus={(e) => e.target.select()}
       onBlur={() => finish(true)}
       onKeyDown={(e) => { if (e.key === "Enter") finish(true); if (e.key === "Escape") finish(false); e.stopPropagation(); }}
       className={cn("tnum h-8 w-24 rounded-lg bg-surface px-2 text-center text-[16px] font-semibold text-ink shadow-[0_0_0_2px_var(--accent),var(--shadow-pop)] outline-none",
-        at && "pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2")}
-      style={at ? { left: at[0], top: at[1] } : undefined} />
+        at && !onDelete && "pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2")}
+      style={at && !onDelete ? { left: at[0], top: at[1] } : undefined} />
+  );
+  if (!onDelete) return input;
+  return (
+    <span className={cn("flex items-center gap-1", at && "pointer-events-auto absolute -translate-y-1/2")} style={at ? { left: at[0] - 48, top: at[1] } : undefined}>
+      {input}
+      {/* (Pressed before the input loses focus, so the value isn't saved first.) */}
+      <button type="button" aria-label="Delete dimension" title="Delete dimension"
+        onPointerDown={(e) => { e.preventDefault(); done.current = true; onDelete(); }}
+        className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-kerf shadow-[var(--shadow-pop)] hover:bg-kerf-soft"><Trash2 size={15} /></button>
+    </span>
   );
 }

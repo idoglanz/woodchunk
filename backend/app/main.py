@@ -11,6 +11,7 @@ from app.catalog_sync import sync_noyman, sync_steel
 from app.config import get_settings
 from app.routers import admin, ai, catalog, inventory, me, projects
 from app.seed import seed_if_empty
+from app.services import activity
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI):
     await sync_steel(database)
     await sync_noyman(database)
     yield
+    await activity.flush()
     await db.close()
 
 

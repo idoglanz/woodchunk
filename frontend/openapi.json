@@ -2585,30 +2585,56 @@
     ]
    }
   },
-  "/api/admin/stats": {
+  "/api/admin/overview": {
    "get": {
     "tags": [
      "admin"
     ],
-    "summary": "Stats",
-    "operationId": "stats_api_admin_stats_get",
+    "summary": "Overview",
+    "operationId": "overview_api_admin_overview_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "days",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 365,
+       "minimum": 7,
+       "description": "How many days back the series go",
+       "default": 30,
+       "title": "Days"
+      },
+      "description": "How many days back the series go"
+     }
+    ],
     "responses": {
      "200": {
       "description": "Successful Response",
       "content": {
        "application/json": {
         "schema": {
-         "$ref": "#/components/schemas/Stats"
+         "$ref": "#/components/schemas/Overview"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
         }
        }
       }
      }
-    },
-    "security": [
-     {
-      "HTTPBearer": []
-     }
-    ]
+    }
    }
   },
   "/api/admin/users": {
@@ -2625,7 +2651,7 @@
        "application/json": {
         "schema": {
          "items": {
-          "$ref": "#/components/schemas/User"
+          "$ref": "#/components/schemas/PersonUsage"
          },
          "type": "array",
          "title": "Response Users Api Admin Users Get"
@@ -2639,6 +2665,67 @@
       "HTTPBearer": []
      }
     ]
+   }
+  },
+  "/api/admin/users/{user_id}": {
+   "get": {
+    "tags": [
+     "admin"
+    ],
+    "summary": "Person",
+    "operationId": "person_api_admin_users__user_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "User Id"
+      }
+     },
+     {
+      "name": "days",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 365,
+       "minimum": 7,
+       "description": "How many days back the series go",
+       "default": 30,
+       "title": "Days"
+      },
+      "description": "How many days back the series go"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PersonDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
    }
   },
   "/api/admin/users/{user_id}/role": {
@@ -2696,36 +2783,6 @@
       }
      }
     }
-   }
-  },
-  "/api/admin/archived": {
-   "get": {
-    "tags": [
-     "admin"
-    ],
-    "summary": "Archived",
-    "operationId": "archived_api_admin_archived_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "items": {
-          "$ref": "#/components/schemas/ProjectSummary"
-         },
-         "type": "array",
-         "title": "Response Archived Api Admin Archived Get"
-        }
-       }
-      }
-     }
-    },
-    "security": [
-     {
-      "HTTPBearer": []
-     }
-    ]
    }
   },
   "/api/admin/projects/{project_id}/restore": {
@@ -2994,6 +3051,42 @@
      "archived"
     ],
     "title": "ArchiveIn"
+   },
+   "ArchivedProject": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     },
+     "assemblies": {
+      "type": "integer",
+      "title": "Assemblies"
+     },
+     "parts": {
+      "type": "integer",
+      "title": "Parts"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "created_at",
+     "updated_at",
+     "assemblies",
+     "parts"
+    ],
+    "title": "ArchivedProject",
+    "description": "An archived project as admins see it: enough to restore the right one, nothing about what it is."
    },
    "Assembly-Input": {
     "properties": {
@@ -4323,6 +4416,44 @@
     "title": "CuttingSettings",
     "description": "How the shop cuts. Saw widths are separate because sheets are usually cut with a\ntrack/table saw and lumber with a miter or circular saw."
    },
+   "Day": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "signups": {
+      "type": "integer",
+      "title": "Signups"
+     },
+     "active_users": {
+      "type": "integer",
+      "title": "Active Users"
+     },
+     "projects_created": {
+      "type": "integer",
+      "title": "Projects Created"
+     },
+     "ai_calls": {
+      "type": "integer",
+      "title": "Ai Calls"
+     },
+     "ai_ok": {
+      "type": "integer",
+      "title": "Ai Ok"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "signups",
+     "active_users",
+     "projects_created",
+     "ai_calls",
+     "ai_ok"
+    ],
+    "title": "Day"
+   },
    "DiffLine": {
     "properties": {
      "kind": {
@@ -4392,6 +4523,24 @@
     ],
     "title": "EndCutSpec",
     "description": "Saw settings for one end of a bar: miter = table rotation, bevel = blade tilt (0 = square)."
+   },
+   "FeatureUse": {
+    "properties": {
+     "feature": {
+      "type": "string",
+      "title": "Feature"
+     },
+     "calls": {
+      "type": "integer",
+      "title": "Calls"
+     }
+    },
+    "type": "object",
+    "required": [
+     "feature",
+     "calls"
+    ],
+    "title": "FeatureUse"
    },
    "Frame-Input": {
     "properties": {
@@ -5800,6 +5949,57 @@
     ],
     "title": "MemberRoleIn"
    },
+   "ModelDay": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "calls": {
+      "type": "integer",
+      "title": "Calls"
+     },
+     "ok": {
+      "type": "integer",
+      "title": "Ok"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "model",
+     "calls",
+     "ok"
+    ],
+    "title": "ModelDay"
+   },
+   "ModelUsage": {
+    "properties": {
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "calls": {
+      "type": "integer",
+      "title": "Calls"
+     },
+     "ok": {
+      "type": "integer",
+      "title": "Ok"
+     }
+    },
+    "type": "object",
+    "required": [
+     "model",
+     "calls",
+     "ok"
+    ],
+    "title": "ModelUsage"
+   },
    "OrganizeIn": {
     "properties": {
      "item_ids": {
@@ -5813,6 +6013,110 @@
     },
     "type": "object",
     "title": "OrganizeIn"
+   },
+   "Overview": {
+    "properties": {
+     "users": {
+      "type": "integer",
+      "title": "Users"
+     },
+     "admins": {
+      "type": "integer",
+      "title": "Admins"
+     },
+     "active_1d": {
+      "type": "integer",
+      "title": "Active 1D"
+     },
+     "active_7d": {
+      "type": "integer",
+      "title": "Active 7D"
+     },
+     "active_30d": {
+      "type": "integer",
+      "title": "Active 30D"
+     },
+     "new_7d": {
+      "type": "integer",
+      "title": "New 7D"
+     },
+     "new_30d": {
+      "type": "integer",
+      "title": "New 30D"
+     },
+     "projects": {
+      "type": "integer",
+      "title": "Projects"
+     },
+     "templates": {
+      "type": "integer",
+      "title": "Templates"
+     },
+     "catalog_items": {
+      "type": "integer",
+      "title": "Catalog Items"
+     },
+     "suggested_items": {
+      "type": "integer",
+      "title": "Suggested Items"
+     },
+     "ai_calls_today": {
+      "type": "integer",
+      "title": "Ai Calls Today"
+     },
+     "tracking_since": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Tracking Since"
+     },
+     "days": {
+      "items": {
+       "$ref": "#/components/schemas/Day"
+      },
+      "type": "array",
+      "title": "Days"
+     },
+     "ai_models": {
+      "items": {
+       "$ref": "#/components/schemas/ModelUsage"
+      },
+      "type": "array",
+      "title": "Ai Models"
+     },
+     "ai_by_day": {
+      "items": {
+       "$ref": "#/components/schemas/ModelDay"
+      },
+      "type": "array",
+      "title": "Ai By Day"
+     }
+    },
+    "type": "object",
+    "required": [
+     "users",
+     "admins",
+     "active_1d",
+     "active_7d",
+     "active_30d",
+     "new_7d",
+     "new_30d",
+     "projects",
+     "templates",
+     "catalog_items",
+     "suggested_items",
+     "ai_calls_today",
+     "tracking_since",
+     "days",
+     "ai_models",
+     "ai_by_day"
+    ],
+    "title": "Overview"
    },
    "Part-Input": {
     "properties": {
@@ -6077,6 +6381,160 @@
     ],
     "title": "Person",
     "description": "Someone in a project, as project cards show them."
+   },
+   "PersonDay": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "active_minutes": {
+      "type": "integer",
+      "title": "Active Minutes"
+     },
+     "ai_calls": {
+      "type": "integer",
+      "title": "Ai Calls"
+     },
+     "ai_ok": {
+      "type": "integer",
+      "title": "Ai Ok"
+     },
+     "projects_created": {
+      "type": "integer",
+      "title": "Projects Created"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "active_minutes",
+     "ai_calls",
+     "ai_ok",
+     "projects_created"
+    ],
+    "title": "PersonDay"
+   },
+   "PersonDetail": {
+    "properties": {
+     "person": {
+      "$ref": "#/components/schemas/PersonUsage"
+     },
+     "days": {
+      "items": {
+       "$ref": "#/components/schemas/PersonDay"
+      },
+      "type": "array",
+      "title": "Days"
+     },
+     "ai_features": {
+      "items": {
+       "$ref": "#/components/schemas/FeatureUse"
+      },
+      "type": "array",
+      "title": "Ai Features"
+     },
+     "archived": {
+      "items": {
+       "$ref": "#/components/schemas/ArchivedProject"
+      },
+      "type": "array",
+      "title": "Archived"
+     }
+    },
+    "type": "object",
+    "required": [
+     "person",
+     "days",
+     "ai_features",
+     "archived"
+    ],
+    "title": "PersonDetail"
+   },
+   "PersonUsage": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "email": {
+      "type": "string",
+      "title": "Email"
+     },
+     "role": {
+      "$ref": "#/components/schemas/UserRole"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Seen"
+     },
+     "projects": {
+      "type": "integer",
+      "title": "Projects"
+     },
+     "shared": {
+      "type": "integer",
+      "title": "Shared"
+     },
+     "ai_calls_7d": {
+      "type": "integer",
+      "title": "Ai Calls 7D"
+     },
+     "ai_calls_30d": {
+      "type": "integer",
+      "title": "Ai Calls 30D"
+     },
+     "active_days_7d": {
+      "type": "integer",
+      "title": "Active Days 7D"
+     },
+     "active_days_30d": {
+      "type": "integer",
+      "title": "Active Days 30D"
+     },
+     "active_minutes_30d": {
+      "type": "integer",
+      "title": "Active Minutes 30D"
+     },
+     "level": {
+      "type": "string",
+      "enum": [
+       "high",
+       "regular",
+       "light",
+       "inactive"
+      ],
+      "title": "Level"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "email",
+     "role",
+     "created_at",
+     "last_seen",
+     "projects",
+     "shared",
+     "ai_calls_7d",
+     "ai_calls_30d",
+     "active_days_7d",
+     "active_days_30d",
+     "active_minutes_30d",
+     "level"
+    ],
+    "title": "PersonUsage"
    },
    "PlacedPart": {
     "properties": {
@@ -8159,57 +8617,6 @@
     ],
     "title": "SketchPoint"
    },
-   "Stats": {
-    "properties": {
-     "users": {
-      "type": "integer",
-      "title": "Users"
-     },
-     "active_users_7d": {
-      "type": "integer",
-      "title": "Active Users 7D"
-     },
-     "projects": {
-      "type": "integer",
-      "title": "Projects"
-     },
-     "templates": {
-      "type": "integer",
-      "title": "Templates"
-     },
-     "catalog_items": {
-      "type": "integer",
-      "title": "Catalog Items"
-     },
-     "suggested_items": {
-      "type": "integer",
-      "title": "Suggested Items"
-     },
-     "ai_calls_today": {
-      "type": "integer",
-      "title": "Ai Calls Today"
-     },
-     "ai_usage": {
-      "items": {
-       "$ref": "#/components/schemas/UsageDay"
-      },
-      "type": "array",
-      "title": "Ai Usage"
-     }
-    },
-    "type": "object",
-    "required": [
-     "users",
-     "active_users_7d",
-     "projects",
-     "templates",
-     "catalog_items",
-     "suggested_items",
-     "ai_calls_today",
-     "ai_usage"
-    ],
-    "title": "Stats"
-   },
    "StockKind": {
     "type": "string",
     "enum": [
@@ -8595,34 +9002,6 @@
      "reason"
     ],
     "title": "Unplaced"
-   },
-   "UsageDay": {
-    "properties": {
-     "day": {
-      "type": "string",
-      "title": "Day"
-     },
-     "model": {
-      "type": "string",
-      "title": "Model"
-     },
-     "calls": {
-      "type": "integer",
-      "title": "Calls"
-     },
-     "ok": {
-      "type": "integer",
-      "title": "Ok"
-     }
-    },
-    "type": "object",
-    "required": [
-     "day",
-     "model",
-     "calls",
-     "ok"
-    ],
-    "title": "UsageDay"
    },
    "User": {
     "properties": {

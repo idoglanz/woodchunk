@@ -462,7 +462,7 @@ async def test_sketches_are_saved_and_checked(client):
               "shapes": [{"id": "l", "kind": "line", "a": "a", "b": "b"}],
               "constraints": [{"id": "c", "kind": "distance", "refs": ["l"], "value": 600, "driving": True}]}
     p = await new_project(client, sketches=[sketch])
-    assert p["sketches"][0]["shapes"][0] == {"id": "l", "kind": "line", "a": "a", "b": "b"}
+    assert p["sketches"][0]["shapes"][0] == {"id": "l", "kind": "line", "a": "a", "b": "b", "construction": False}
     assert p["sketches"][0]["constraints"][0]["value"] == 600
     # A shape on a point that isn't there, or a constraint on nothing, is refused.
     bad = {**sketch, "shapes": [{"id": "l", "kind": "line", "a": "a", "b": "zz"}]}
@@ -479,6 +479,17 @@ async def test_sketches_are_saved_and_checked(client):
     body["sketches"] = [attached]
     r = await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))
     assert r.status_code == 200, r.text
+    body["version"] = r.json()["version"]
+    # A line's midpoint can be referred to ("mid:<line>"); a circle has none, nor a missing line.
+    helper = {**sketch, "points": [*sketch["points"], {"id": "c", "x": 300, "y": 0}],
+              "shapes": [{"id": "l", "kind": "line", "a": "a", "b": "b", "construction": True},
+                         {"id": "o", "kind": "circle", "c": "c", "r": 50}]}
+    for refs, ok in ((["c", "mid:l"], True), (["c", "mid:o"], False), (["c", "mid:zz"], False)):
+        body["sketches"] = [{**helper, "constraints": [{"id": "h", "kind": "horizontal", "refs": refs}]}]
+        r = await client.put(f"/api/projects/{p['id']}", json=body, headers=auth(USER))
+        assert (r.status_code == 200) == ok, r.text
+        if ok:
+            body["version"] = r.json()["version"]
 
 
 async def test_plan_shares_used_offcut_waste(client):

@@ -4,7 +4,7 @@
  */
 
 import { LIMIT, measure, solve, type SolveResult, type V2 } from "./solve";
-import { AXES, DIMENSIONS, isBuiltIn, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type ConstraintKind, type Shape, type Sketch } from "./types";
+import { AXES, baseOf, DIMENSIONS, isBuiltIn, isMid, midOf, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type ConstraintKind, type Shape, type Sketch } from "./types";
 
 const newId = () => crypto.randomUUID().replace(/-/g, "");
 const id = () => newId().slice(0, 10);
@@ -31,7 +31,7 @@ export function pointsOf(s: Shape): string[] {
 export function tidy(sk: Sketch): Sketch {
   const points = new Set([ORIGIN, ...sk.points.map((p) => p.id)]);
   const shapes = sk.shapes.filter((s) => pointsOf(s).every((p) => points.has(p)));
-  const known = new Set([...points, ...AXES, ...shapes.map((s) => s.id)]);
+  const known = new Set([...points, ...AXES, ...shapes.map((s) => s.id), ...shapes.filter((s) => s.kind === "line").map((s) => midOf(s.id))]);
   const constraints = sk.constraints.filter((c) => c.refs.every((r) => known.has(r)));
   if (shapes.length === sk.shapes.length && constraints.length === sk.constraints.length) return sk;
   return { ...sk, shapes, constraints };
@@ -43,8 +43,12 @@ export function addPoint(sk: Sketch, [x, y]: V2): string {
   return p.id;
 }
 
-/** Where a point is (the origin is at 0, 0). */
+/** Where a point is (the origin is at 0, 0, a line's midpoint halfway along it). */
 export function pointAt(sk: Sketch, pid: string): V2 {
+  if (isMid(pid)) {
+    const l = lineOf(sk, baseOf(pid));
+    return l ? [(l[0][0] + l[1][0]) / 2, (l[0][1] + l[1][1]) / 2] : [0, 0];
+  }
   const p = sk.points.find((q) => q.id === pid);
   return p ? [p.x, p.y] : [0, 0];
 }
@@ -71,7 +75,7 @@ export function addConstraint(sk: Sketch, kind: ConstraintKind, refs: string[], 
 const SNAP_ANGLE = (2 * Math.PI) / 180;
 
 export function addLine(sk: Sketch, a: string, b: string, auto = true): string {
-  const line: Shape = { id: id(), kind: "line", a, b };
+  const line: Shape = { id: id(), kind: "line", a, b, construction: false };
   sk.shapes.push(line);
   if (auto) {
     const [pa, pb] = [pointAt(sk, a), pointAt(sk, b)];
@@ -98,14 +102,14 @@ export function addRectangle(sk: Sketch, from: string, to: V2): string[] {
 }
 
 export function addCircle(sk: Sketch, c: string, r: number): string {
-  const s: Shape = { id: id(), kind: "circle", c, r: Math.max(1, r) };
+  const s: Shape = { id: id(), kind: "circle", c, r: Math.max(1, r), construction: false };
   sk.shapes.push(s);
   return s.id;
 }
 
 /** An arc around `c`, counter-clockwise from `a`; `b` lands on its radius. */
 export function addArc(sk: Sketch, c: string, a: string, b: string): string {
-  const s: Shape = { id: id(), kind: "arc", c, a, b };
+  const s: Shape = { id: id(), kind: "arc", c, a, b, construction: false };
   sk.shapes.push(s);
   return s.id;
 }
@@ -115,7 +119,7 @@ export function addArc(sk: Sketch, c: string, a: string, b: string): string {
  * unless something else still uses them; whatever then refers to a deleted thing goes too.
  */
 export function deleteItems(sk: Sketch, ids: Iterable<string>) {
-  const gone = new Set([...ids].filter((x) => !isBuiltIn(x))); // the origin and axes stay
+  const gone = new Set([...ids].filter((x) => !isBuiltIn(x) && !isMid(x))); // the origin, axes and midpoints stay
   sk.constraints = sk.constraints.filter((c) => !gone.has(c.id));
   const dropped = sk.shapes.filter((s) => gone.has(s.id) || pointsOf(s).some((p) => gone.has(p)));
   sk.shapes = sk.shapes.filter((s) => !dropped.includes(s));
@@ -161,16 +165,16 @@ export function mergePoints(sk: Sketch, from: string, into: string): boolean {
   return true;
 }
 
-/** The points that move when something is dragged or nudged: a point, or all of a shape's. Not the origin. */
+/** The points that move when something is dragged or nudged: a point, or all of a shape's (a midpoint's line). Not the origin. */
 export function movable(sk: Sketch, id: string): string[] {
   if (sk.points.some((p) => p.id === id)) return [id];
-  const s = shapeById(sk, id);
+  const s = shapeById(sk, baseOf(id));
   return s ? pointsOf(s).filter((p) => p !== ORIGIN) : [];
 }
 
 /** Every shape joined to this one through shared points (a whole rectangle from one side). */
 export function connected(sk: Sketch, id: string): string[] {
-  const start = shapeById(sk, id);
+  const start = shapeById(sk, baseOf(id));
   if (!start) return [];
   const seen = new Set([start.id]);
   const points = new Set(pointsOf(start).filter((p) => p !== ORIGIN));
@@ -186,6 +190,11 @@ export function connected(sk: Sketch, id: string): string[] {
   return sk.shapes.filter((s) => seen.has(s.id)).map((s) => s.id);
 }
 
+/** Make shapes helpers (construction: a centre line, a diagonal), or drawing again. */
+export function setConstruction(sk: Sketch, ids: string[], on: boolean) {
+  for (const s of sk.shapes) if (ids.includes(s.id)) s.construction = on;
+}
+
 /** Copy solved positions and radii into the sketch. */
 export function take(sk: Sketch, solved: Sketch) {
   sk.points = solved.points;
@@ -194,12 +203,20 @@ export function take(sk: Sketch, solved: Sketch) {
 
 // --- relations and dimensions for a selection -------------------------------------------------------
 
+/**
+ * What a selection acts on: a line's midpoint picked on its own stands for its line (clicking the
+ * middle of a line is how most people pick it); with other things, it's the point.
+ */
+export function acting(ids: string[]): string[] {
+  return ids.length === 1 && isMid(ids[0]) ? [baseOf(ids[0])] : ids;
+}
+
 export type Picked = { points: string[]; lines: string[]; round: string[] };
 
 export function picked(sk: Sketch, ids: string[]): Picked {
   const out: Picked = { points: [], lines: [], round: [] };
   for (const x of ids) {
-    if (x === ORIGIN || sk.points.some((p) => p.id === x)) out.points.push(x);
+    if (x === ORIGIN || sk.points.some((p) => p.id === x) || (isMid(x) && shapeById(sk, baseOf(x))?.kind === "line")) out.points.push(x);
     else if (AXES.includes(x)) out.lines.push(x);
     else {
       const s = shapeById(sk, x);
@@ -210,7 +227,8 @@ export function picked(sk: Sketch, ids: string[]): Picked {
   return out;
 }
 
-export type RelationOption = { kind: ConstraintKind; label: string; refs: string[]; side?: number };
+/** A relation to add; `each` when it's one per pair (several lines made parallel to the first). */
+export type RelationOption = { kind: ConstraintKind; label: string; refs: string[]; side?: number; each?: string[][] };
 
 /** The relations that make sense for what's selected (each needs exactly that selection). */
 export function relationOptions(sk: Sketch, ids: string[]): RelationOption[] {
@@ -219,19 +237,40 @@ export function relationOptions(sk: Sketch, ids: string[]): RelationOption[] {
   const out: RelationOption[] = [];
   // An axis can be the other line of a relation (parallel to it, a point on it), not the one changed.
   const axis = L.some((x) => AXES.includes(x));
+  const toFirst = (xs: string[]) => xs.slice(1).map((x) => [xs[0], x]);
   if (n === L.length && L.length >= 1 && !(L.length === 1 && axis) && !L.every((x) => AXES.includes(x))) {
-    if (L.length === 1) out.push({ kind: "horizontal", label: "Horizontal", refs: L }, { kind: "vertical", label: "Vertical", refs: L });
+    // Level or plumb (not the one a selected line already is the other of).
+    const already = (kind: ConstraintKind) => L.some((l) => sk.constraints.some((c) => c.kind === kind && c.refs.length === 1 && c.refs[0] === l));
+    if (!axis && !already("vertical")) out.push({ kind: "horizontal", label: "Horizontal", refs: L, each: L.map((l) => [l]) });
+    if (!axis && !already("horizontal")) out.push({ kind: "vertical", label: "Vertical", refs: L, each: L.map((l) => [l]) });
     if (L.length === 2) {
       out.push({ kind: "parallel", label: "Parallel", refs: L }, { kind: "perpendicular", label: "Perpendicular", refs: L });
       if (!axis) out.push({ kind: "equal", label: "Equal length", refs: L });
+      out.push({ kind: "collinear", label: AXES.includes(L[1]) ? "On axis" : "Collinear", refs: AXES.includes(L[0]) ? [L[1], L[0]] : L });
+    }
+    if (L.length > 2 && !axis) {
+      out.push({ kind: "parallel", label: "Parallel", refs: L, each: toFirst(L) }, { kind: "equal", label: "Equal length", refs: L, each: toFirst(L) });
+    }
+    if (L.length === 3) {
+      const sym = mirrorLines(sk, L);
+      if (sym) out.push(sym);
     }
   }
+  if (n >= 2 && n === P.length) {
+    // Points level with (or above) the first: midpoints of two lines lined up, say.
+    out.push({ kind: "horizontal", label: "Align horizontally", refs: P, each: toFirst(P) }, { kind: "vertical", label: "Align vertically", refs: P, each: toFirst(P) });
+  }
   if (n === 2 && P.length === 2) {
-    out.push({ kind: "coincident", label: P.includes(ORIGIN) ? "Join to origin" : "Join", refs: P });
+    const [mid, other] = isMid(P[0]) ? [P[0], P[1]] : [P[1], P[0]];
+    if (!isMid(mid) || isMid(other)) out.push({ kind: "coincident", label: P.includes(ORIGIN) ? "Join to origin" : "Join", refs: P });
+    else if (baseOf(mid) !== other) out.push({ kind: "midpoint", label: "Join to midpoint", refs: [other, baseOf(mid)] });
   }
   if (n === 2 && P.length === 1 && L.length === 1 && P[0] !== ORIGIN) {
     out.push({ kind: "on_line", label: AXES.includes(L[0]) ? "On axis" : "On line", refs: [P[0], L[0]] });
-    if (!axis) out.push({ kind: "midpoint", label: "Midpoint", refs: [P[0], L[0]] });
+    if (!axis && !isMid(P[0])) out.push({ kind: "midpoint", label: "Midpoint", refs: [P[0], L[0]] });
+  }
+  if (n === 3 && P.length === 2 && L.length === 1) {
+    out.push({ kind: "symmetric", label: AXES.includes(L[0]) ? "Symmetric about axis" : "Symmetric", refs: [P[0], P[1], L[0]] });
   }
   if (n === 2 && P.length === 1 && R.length === 1 && P[0] !== ORIGIN) out.push({ kind: "on_circle", label: "On circle", refs: [P[0], R[0]] });
   if (n === 2 && L.length === 1 && R.length === 1) {
@@ -239,15 +278,50 @@ export function relationOptions(sk: Sketch, ids: string[]): RelationOption[] {
   }
   if (n === 2 && R.length === 2) {
     out.push({ kind: "equal", label: "Equal radius", refs: R }, { kind: "tangent", label: "Tangent", refs: R, side: circlesSide(sk, R[0], R[1]) });
+    const [c0, c1] = R.map((r) => (shapeById(sk, r) as { c: string }).c);
+    if (c0 !== c1) out.push({ kind: "coincident", label: "Concentric", refs: [c0, c1] });
   }
   if (n >= 1 && n === P.length) {
-    const loose = P.filter((p) => !isFixed(sk, p));
+    const loose = P.filter((p) => !isFixed(sk, p) && !isMid(p));
     if (loose.length) out.push({ kind: "fix", label: n > 1 ? "Fix in place" : "Fix", refs: loose });
   }
   // Not the ones already there (the same relation on the same things, either way round).
-  const key = (kind: string, refs: string[]) => `${kind}:${[...refs].sort().join(",")}`;
+  const key = (kind: string, refs: string[]) => `${kind}:${kind === "symmetric" ? [...refs.slice(0, 2)].sort().concat(refs[2]) : [...refs].sort()}`;
   const have = new Set(sk.constraints.map((c) => key(c.kind, c.refs)));
-  return out.filter((o) => o.kind === "fix" || !have.has(key(o.kind, o.refs)));
+  return out.flatMap((o) => {
+    if (o.kind === "fix") return [o];
+    if (!o.each) return have.has(key(o.kind, o.refs)) ? [] : [o];
+    const each = o.each.filter((r) => !have.has(key(o.kind, r)));
+    return each.length ? [{ ...o, each }] : [];
+  });
+}
+
+/**
+ * Two lines mirrored about a third: the helper (construction) line if one of them is, else the
+ * last picked. Each end is paired with the end nearest its mirror image; an end the two share
+ * just sits on the mirror line.
+ */
+function mirrorLines(sk: Sketch, L: string[]): RelationOption | null {
+  const lines = L.map((x) => shapeById(sk, x)).filter((s) => s?.kind === "line") as (Shape & { kind: "line" })[];
+  if (lines.length !== 3) return null;
+  const helpers = lines.filter((l) => l.construction);
+  const mirror = helpers.length === 1 ? helpers[0] : lines[2];
+  const [l1, l2] = lines.filter((l) => l !== mirror);
+  const [a, b] = [pointAt(sk, mirror.a), pointAt(sk, mirror.b)];
+  const d: V2 = [b[0] - a[0], b[1] - a[1]];
+  const k = d[0] ** 2 + d[1] ** 2;
+  if (k < 1e-12) return null;
+  const reflect = (p: V2): V2 => {
+    const t = ((p[0] - a[0]) * d[0] + (p[1] - a[1]) * d[1]) / k;
+    const foot: V2 = [a[0] + d[0] * t, a[1] + d[1] * t];
+    return [2 * foot[0] - p[0], 2 * foot[1] - p[1]];
+  };
+  const dist = (p: V2, q: V2) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+  const ra = reflect(pointAt(sk, l1.a));
+  const [pa, pb] = dist(ra, pointAt(sk, l2.a)) <= dist(ra, pointAt(sk, l2.b)) ? [l2.a, l2.b] : [l2.b, l2.a];
+  const each = [[l1.a, pa], [l1.b, pb]].map(([p, q]) => (p === q ? [p, mirror.id] : [p, q, mirror.id]));
+  if (each.some((r) => r[0] === ORIGIN && r.length === 2)) return null;
+  return { kind: "symmetric", label: "Symmetric", refs: [l1.id, l2.id, mirror.id], each };
 }
 
 /** Which side of the line the circle's centre is on, as drawn (+1 left of a→b, −1 right). */
@@ -329,14 +403,21 @@ export function cornerSide(sk: Sketch, refs: string[]): number {
   return (t < 0.5 ? 1 : -1) * (u < 0.5 ? 1 : -1);
 }
 
-const failed = (sk: Sketch): SolveResult => ({ sketch: sk, ok: false, dof: 0, free: new Set(), conflicts: [] });
+const failed = (sk: Sketch): SolveResult => ({ sketch: sk, ok: false, dof: 0, free: new Set(), driven: new Set(), conflicts: [] });
 
 /** Add a relation; refused (and nothing changed) if the sketch can't satisfy it with the rest. */
 export function addRelation(sk: Sketch, opt: RelationOption): SolveResult {
   const trial = structuredClone(sk);
   if (opt.kind === "fix") for (const p of opt.refs) addConstraint(trial, "fix", [p]);
-  else if (opt.kind === "coincident") { if (!mergePoints(trial, opt.refs[1], opt.refs[0])) return failed(sk); }
-  else addConstraint(trial, opt.kind, opt.refs, null, opt.side ?? null);
+  else {
+    for (const refs of opt.each ?? [opt.refs]) {
+      // Joined points become one, except midpoints (worked out, they can't be merged).
+      if (opt.kind === "coincident" && !refs.some(isMid)) { if (!mergePoints(trial, refs[1], refs[0])) return failed(sk); }
+      // A shared end of two mirrored lines: on the mirror line.
+      else if (opt.kind === "symmetric" && refs.length === 2) addConstraint(trial, "on_line", refs);
+      else addConstraint(trial, opt.kind, refs, null, opt.side ?? null);
+    }
+  }
   const r = solve(trial);
   if (r.ok) { Object.assign(sk, trial); take(sk, r.sketch); }
   return r;
@@ -378,19 +459,23 @@ export function itemNames(sk: Sketch): Map<string, string> {
   const name = (kind: string) => `${kind} ${(count[kind] = (count[kind] ?? 0) + 1)}`;
   for (const s of sk.shapes) out.set(s.id, name(s.kind === "line" ? "Line" : s.kind === "circle" ? "Circle" : "Arc"));
   for (const p of sk.points) out.set(p.id, name("Point"));
+  for (const s of sk.shapes) if (s.kind === "line") out.set(midOf(s.id), `${out.get(s.id)} midpoint`);
   out.set(ORIGIN, "Origin").set(X_AXIS, "X axis").set(Y_AXIS, "Y axis");
   return out;
 }
 
 const RELATION_NAMES: Partial<Record<ConstraintKind, string>> = {
   coincident: "joined", horizontal: "horizontal", vertical: "vertical", parallel: "parallel", perpendicular: "perpendicular",
-  equal: "equal", tangent: "tangent", on_line: "on", on_circle: "on", midpoint: "midpoint of", fix: "fixed",
+  equal: "equal", tangent: "tangent", on_line: "on", on_circle: "on", midpoint: "midpoint of", fix: "fixed", collinear: "in line with",
 };
 
 /** "Line 3 length", "Angle Line 1 → Line 2", "Line 1 ∥ Line 2"… */
 export function constraintName(c: Constraint, names: Map<string, string>): string {
-  const [a, b] = c.refs.map((r) => names.get(r) ?? "?");
+  const [a, b, m] = c.refs.map((r) => names.get(r) ?? "?");
+  if (c.kind === "horizontal" && c.refs.length === 2) return `${a} level with ${b}`;
+  if (c.kind === "vertical" && c.refs.length === 2) return `${a} plumb with ${b}`;
   switch (c.kind) {
+    case "symmetric": return `${a} and ${b} mirrored about ${m}`;
     case "distance": return c.refs.length === 1 ? `${a} length` : `${a} to ${b}`;
     case "point_line_distance": return `${a} to ${b}`;
     case "angle": return `Angle ${a} → ${b}`;

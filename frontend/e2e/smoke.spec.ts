@@ -203,6 +203,29 @@ test("sketch: draw roughly, pin sizes, read off the rest", async ({ page }, info
   await page.mouse.click(box2.x + 160, box2.y + 150);
   await page.keyboard.press("Shift+H");
   await expect(page.getByRole("region", { name: "Relations" }).getByText("Line 5 horizontal")).toBeVisible();
+
+  // Midpoints: the free line's middle lined up under the middle of the rectangle's top.
+  const corners = await page.locator('svg[aria-label="Sketch"] circle').evaluateAll((cs) =>
+    cs.map((c) => ({ x: +c.getAttribute("cx")!, y: +c.getAttribute("cy")!, r: +c.getAttribute("r")! })));
+  const origin = corners.find((c) => c.r === 5)!;
+  const topLeft = corners.find((c) => c.r !== 5 && Math.abs(c.x - origin.x) < 0.5 && c.y < origin.y - 1)!;
+  const topRight = corners.filter((c) => Math.abs(c.y - topLeft.y) < 0.5).reduce((p, c) => (c.x > p.x ? c : p));
+  const topMid = (topLeft.x + topRight.x) / 2;
+  const ends = corners.filter((c) => c.r !== 5 && c !== topLeft && c !== topRight && Math.abs(c.y - origin.y) > 0.5);
+  const lineMid = { x: (ends[0].x + ends[1].x) / 2, y: (ends[0].y + ends[1].y) / 2 };
+  await page.mouse.click(box2.x + lineMid.x, box2.y + lineMid.y); // the free line's middle: its midpoint
+  await page.keyboard.down("Shift");
+  await page.mouse.click(box2.x + topMid, box2.y + topLeft.y);
+  await page.keyboard.up("Shift");
+  await expect(page.getByRole("region", { name: "Selection" }).getByRole("heading")).toHaveText("Line 5 midpoint, Line 3 midpoint");
+  await page.keyboard.press("Shift+V");
+  await expect(page.getByRole("region", { name: "Relations" }).getByText("Line 5 midpoint plumb with Line 3 midpoint")).toBeVisible();
+  await expect(page.getByText(/more dimensions or relations to pin it down/)).toBeVisible();
+  // As helpers, the shape it's part of needs no pinning: fully defined again.
+  await page.mouse.dblclick(box2.x + topMid, box2.y + lineMid.y); // (moved under the top's middle)
+  await page.keyboard.press("x");
+  await expect(page.getByText("Fully defined: every size is pinned down.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Make drawing/ })).toBeVisible();
 });
 
 test("sketch to parts: slats repeated with even gaps, cut as parts that follow the sketch", async ({ page }, info) => {

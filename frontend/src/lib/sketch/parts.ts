@@ -24,11 +24,12 @@ export function linkedParts(content: Pick<ProjectContent, "assemblies">, sketchI
   return content.assemblies.flatMap((a) => a.parts.filter((p) => p.sketch?.sketch_id === sketchId).map((p) => ({ a, p })));
 }
 
-/** Bring the lengths of the parts cut to `sketchId` up to date (drop links to lines that are gone). */
+/** Bring the lengths of the parts cut to `sketchId` up to date (drop links to lines that are gone, or made helpers). */
 export function syncParts(content: ProjectContent, sketchId: string) {
   const sk = content.sketches.find((x) => x.id === sketchId);
   for (const { p } of linkedParts(content, sketchId)) {
-    const len = sk ? lineLength(sk, p.sketch!.shape_id) : null;
+    const helper = sk?.shapes.find((s) => s.id === p.sketch!.shape_id)?.construction;
+    const len = sk && !helper ? lineLength(sk, p.sketch!.shape_id) : null;
     if (len === null) p.sketch = null;
     else if (Math.abs(p.length_mm - Math.min(len, MAX_PART)) > 1e-9) p.length_mm = Math.min(len, MAX_PART);
   }
@@ -48,9 +49,10 @@ export function partLabels(content: Pick<ProjectContent, "assemblies">, sketchId
 /**
  * The lines to make parts of, from a selection: a whole rectangle (or any closed loop of four
  * lines, all selected) is one piece, cut to its longest side; other lines are a part each.
+ * Helper (construction) lines aren't parts.
  */
 export function partLines(sk: Sketch, ids: string[]): string[] {
-  const picked = new Set(ids.filter((id) => sk.shapes.find((s) => s.id === id)?.kind === "line"));
+  const picked = new Set(ids.filter((id) => { const s = sk.shapes.find((x) => x.id === id); return s?.kind === "line" && !s.construction; }));
   const out: string[] = [];
   const done = new Set<string>();
   for (const id of picked) {

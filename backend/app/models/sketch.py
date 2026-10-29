@@ -10,6 +10,8 @@ from app.models.common import Model, new_id
 MAX_MM = 100_000.0  # 100 m: further out is a typo
 # Every sketch has these, unstored: an origin fixed at 0, 0 and the two axes through it.
 ORIGIN, AXES = "origin", {"x_axis", "y_axis"}
+# A line's midpoint, for relations and dimensions: "mid:<line id>". Worked out, never stored.
+MID = "mid:"
 Mm = Annotated[float, Field(ge=-MAX_MM, le=MAX_MM)]
 
 
@@ -24,6 +26,7 @@ class SketchLine(Model):
     kind: Literal["line"] = "line"
     a: str
     b: str
+    construction: bool = False  # a helper: positions the rest, not a part, needs no size
 
 
 class SketchCircle(Model):
@@ -31,6 +34,7 @@ class SketchCircle(Model):
     kind: Literal["circle"] = "circle"
     c: str
     r: float = Field(gt=0, le=MAX_MM)
+    construction: bool = False  # a helper: positions the rest, not a part, needs no size
 
 
 class SketchArc(Model):
@@ -41,13 +45,14 @@ class SketchArc(Model):
     c: str
     a: str
     b: str
+    construction: bool = False  # a helper: positions the rest, not a part, needs no size
 
 
 SketchShape = Annotated[SketchLine | SketchCircle | SketchArc, Field(discriminator="kind")]
 
 ConstraintKind = Literal[
     "coincident", "horizontal", "vertical", "parallel", "perpendicular", "equal", "tangent",
-    "on_line", "on_circle", "midpoint", "fix",
+    "on_line", "on_circle", "midpoint", "fix", "collinear", "symmetric",
     "distance", "point_line_distance", "angle", "radius", "diameter",
 ]
 
@@ -72,7 +77,7 @@ class Sketch(Model):
     @model_validator(mode="after")
     def _references(self):
         """Ids are unique, shapes use existing points (or the origin), constraints existing points,
-        shapes, the origin or an axis."""
+        shapes, the origin, an axis or a line's midpoint."""
         points = {p.id for p in self.points}
         shapes = {s.id for s in self.shapes}
         if len(points) != len(self.points) or len(shapes) != len(self.shapes) or points & shapes:
@@ -84,7 +89,8 @@ class Sketch(Model):
             used = [s.a, s.b] if s.kind == "line" else [s.c] if s.kind == "circle" else [s.c, s.a, s.b]
             if any(p not in points for p in used):
                 raise ValueError(f"shape {s.id} uses a point that isn't in the sketch")
+        mids = {MID + s.id for s in self.shapes if s.kind == "line"}
         for c in self.constraints:
-            if any(r not in points and r not in shapes and r not in AXES for r in c.refs):
+            if any(r not in points and r not in shapes and r not in AXES and r not in mids for r in c.refs):
                 raise ValueError(f"constraint {c.id} refers to something that isn't in the sketch")
         return self

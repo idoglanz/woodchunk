@@ -5,9 +5,9 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { AsmChip } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { useEditor } from "@/lib/editor";
-import { addArc, addCircle, addConstraint, addLine, addPoint, addRectangle, connected, cornerSide, dimensionFor, isDimension, mergePoints, movable, pointAt, round, take } from "@/lib/sketch/model";
+import { acting, addArc, addCircle, addConstraint, addLine, addPoint, addRectangle, connected, cornerSide, dimensionFor, isDimension, mergePoints, movable, pointAt, round, take } from "@/lib/sketch/model";
 import { LIMIT, solve, type SolveResult, type V2 } from "@/lib/sketch/solve";
-import { AXES, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "@/lib/sketch/types";
+import { AXES, baseOf, isMid, midOf, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Anchor } from "@/lib/sketch/ui";
 import { arcSweep, bounds, dimensionMarks, glyphAnchor, gridOf, hitTest, measured, measurementsFor, radiusOf, type Marks, type View } from "@/lib/sketch/view";
 import { toast } from "@/lib/toast";
@@ -65,11 +65,12 @@ export function SketchCanvas(props: CanvasProps) {
   const grid = gridOf(view.scale, ui.grid);
   const onGrid = (v: number) => Math.round(v / grid.snap) * grid.snap;
   /**
-   * Where a click or drag lands: a point (or the origin) near it to attach to, else an axis (at
-   * a grid step along it), else the nearest grid point, unless snapping is off or Alt is held.
+   * Where a click or drag lands: a point (the origin, a line's midpoint) near it to attach to,
+   * else an axis (at a grid step along it), else the nearest grid point, unless snapping is off
+   * or Alt is held.
    */
   const snapAt = (at: V2, skip?: Set<string>, free = false): Anchor | null => {
-    const id = hitTest({ ...sk, shapes: [] }, at, SNAP_PX * px, skip);
+    const id = hitTest(sk, at, SNAP_PX * px, skip, true, false);
     const snapping = ui.snap && !free;
     const along = (v: number) => (snapping ? onGrid(v) : round(v));
     if (id && AXES.includes(id)) return { axis: id, at: id === X_AXIS ? [along(at[0]), 0] : [0, along(at[1])] };
@@ -136,7 +137,9 @@ export function SketchCanvas(props: CanvasProps) {
       // Empty space: a click clears the selection, a drag pans.
       if (!hit) { gesture.current = { kind: "click", start: s }; return; }
       if (!e.shiftKey && !ui.selected.includes(hit)) ui.select([hit]);
-      const points = movable(sk, hit);
+      // Dragging one of several selected moves them all.
+      const group = ui.selected.includes(hit) ? ui.selected : [hit];
+      const points = [...new Set(group.flatMap((x) => movable(sk, x)))];
       // The origin and axes don't move: dragging from them pans, clicking selects.
       gesture.current = points.length ? { kind: "drag", start: at, points: points.map((p) => ({ point: p, from: pointAt(sk, p) })), moved: false } : { kind: "click", start: s };
       return;
@@ -171,7 +174,7 @@ export function SketchCanvas(props: CanvasProps) {
       cur.moved = true;
       const single = cur.points.length === 1 ? cur.points[0] : null;
       // A single point dropped on another one joins it: snap to it while over it (or to the grid).
-      const snap = single ? snapAt([single.from[0] + d[0], single.from[1] + d[1]], new Set([single.point]), e.altKey) : null;
+      const snap = single ? snapAt([single.from[0] + d[0], single.from[1] + d[1]], ownMids(sk, single.point), e.altKey) : null;
       // A whole shape moves in grid steps.
       const step: V2 = ui.snap && !e.altKey ? [onGrid(d[0]), onGrid(d[1])] : d;
       ui.set({ drag: cur.points.map((p) => ({ point: p.point, to: snap ? snap.at : [p.from[0] + step[0], p.from[1] + step[1]] })) });
@@ -198,14 +201,16 @@ export function SketchCanvas(props: CanvasProps) {
       ui.set({ drag: null });
       if (!g.moved || !drag) { click(at, e.shiftKey, e.altKey); return; }
       const point = g.points[0].point;
-      const join = g.points.length === 1 ? snapAt(drag[0].to, new Set([point]), true) : null;
+      const join = g.points.length === 1 ? snapAt(drag[0].to, ownMids(sk, point), true) : null;
       const moved = solve(sk, { drag, quick: true }).sketch;
       // Dropped on another point (or an axis): attach to it, if the point really got there and the result solves.
       const got = moved.points.find((p) => p.id === point);
       let joined: Sketch | null = null;
       if (join && (join.point || join.axis) && got && Math.hypot(got.x - join.at[0], got.y - join.at[1]) < 1e-3) {
         const trial = structuredClone(moved);
-        const attached = join.point ? mergePoints(trial, point, join.point) : (addConstraint(trial, "on_line", [point, join.axis!]), true);
+        // (On a midpoint: held there, it's worked out from its line and can't be merged into.)
+        const attached = join.point && isMid(join.point) ? (addConstraint(trial, "midpoint", [point, baseOf(join.point)]), true)
+          : join.point ? mergePoints(trial, point, join.point) : (addConstraint(trial, "on_line", [point, join.axis!]), true);
         if (attached && solve(trial, { quick: true }).ok) joined = trial;
         else toast.error(join.point ? "Those two points can't be joined: it doesn't fit with the rest." : "That point can't go on the axis: it doesn't fit with the rest.");
       }
@@ -237,7 +242,7 @@ export function SketchCanvas(props: CanvasProps) {
     if (tool === "dimension") {
       const hit = hitTest(sk, at, HIT_PX * px);
       if (!hit) {
-        const single = dimensionFor(sk, picks);
+        const single = dimensionFor(sk, acting(picks));
         if (single && picks.length === 1) props.onDimension(single.kind, single.refs);
         ui.set({ picks: [] });
         return;
@@ -386,6 +391,31 @@ export function SketchCanvas(props: CanvasProps) {
     const marks = dimensionMarks(sk, c, px, middle);
     return marks ? { marks, value: measured(sk, c), kind: dim.kind } : null;
   })();
+  // Midpoint markers: on the line under the pointer or being drawn near, and on selected lines.
+  const midMarks = (() => {
+    const ids = new Set<string>();
+    const add = (x: string | null | undefined) => { if (x && sk.shapes.some((s) => s.id === baseOf(x) && s.kind === "line")) ids.add(baseOf(x)); };
+    if (canDraw) {
+      add(hover?.item);
+      if (hover?.snap && isMid(hover.snap)) add(hover.snap);
+      [...ui.selected, ...ui.picks].forEach((x) => { if (isMid(x) || ui.tool === "select") add(x); });
+    }
+    return [...ids];
+  })();
+  // Lengths the rest decides, on lines without a dimension: shown as worked out (unless they'd only
+  // repeat the dimension on a parallel side, like a rectangle's).
+  const drivenLabels = sk.shapes.filter((s) => {
+    if (s.kind !== "line" || s.construction || !status.driven.has(s.id) || dimensioned.has(s.id) || shownMeasures.some((m) => m.refs[0] === s.id)) return false;
+    const [a, b] = [pointAt(sk, s.a), pointAt(sk, s.b)];
+    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    return !dims.some((c) => {
+      const o = c.kind === "distance" && c.refs.length === 1 ? sk.shapes.find((x) => x.id === c.refs[0]) : undefined;
+      if (o?.kind !== "line") return false;
+      const [p, q] = [pointAt(sk, o.a), pointAt(sk, o.b)];
+      const cross = (b[0] - a[0]) * (q[1] - p[1]) - (b[1] - a[1]) * (q[0] - p[0]);
+      return Math.abs(cross) < 1e-6 * length * Math.hypot(q[0] - p[0], q[1] - p[1]) && Math.abs(Math.hypot(q[0] - p[0], q[1] - p[1]) - length) < 0.05;
+    });
+  }).map((s) => ({ kind: "distance" as const, refs: [s.id] }));
   const origin = toScreen([0, 0]);
   const marksOf = (c: Pick<Constraint, "kind" | "refs">) => dimensionMarks(sk, c, px, middle);
 
@@ -428,7 +458,9 @@ export function SketchCanvas(props: CanvasProps) {
           return (
             <g key={s.id}>
               {on ? <path d={d} fill="none" stroke="var(--accent)" strokeWidth={7} strokeLinecap="round" opacity={0.7} /> : null}
-              <path d={d} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+              {/* Helpers (construction) dashed and lighter: they position the rest, they aren't the drawing. */}
+              <path d={d} fill="none" stroke={color} strokeWidth={s.construction ? 1.2 : 1.8} strokeLinecap="round"
+                strokeDasharray={s.construction ? "7 4" : undefined} opacity={s.construction ? 0.75 : 1} />
             </g>
           );
         })}
@@ -447,6 +479,17 @@ export function SketchCanvas(props: CanvasProps) {
             <g key={p.id}>
               {on ? <circle cx={s[0]} cy={s[1]} r={8} fill="var(--accent)" opacity={0.7} /> : null}
               <circle cx={s[0]} cy={s[1]} r={3.2} fill="var(--surface)" stroke={tone(p.id)} strokeWidth={1.6} />
+            </g>
+          );
+        })}
+        {midMarks.map((l) => {
+          // A line's midpoint, when it's what you're on (or might want): a small triangle.
+          const m = toScreen(pointAt(sk, midOf(l)));
+          const on = lit.has(midOf(l)) || hover?.snap === midOf(l);
+          return (
+            <g key={`mid-${l}`} pointerEvents="none">
+              {on ? <circle cx={m[0]} cy={m[1]} r={8} fill="var(--accent)" opacity={0.7} /> : null}
+              <path d={`M${m[0]},${m[1] - 4.5}L${m[0] + 4.5},${m[1] + 3.5}H${m[0] - 4.5}Z`} fill="var(--surface)" stroke={on ? "var(--ink)" : "var(--info)"} strokeWidth={1.3} />
             </g>
           );
         })}
@@ -486,6 +529,18 @@ export function SketchCanvas(props: CanvasProps) {
           <span className="tnum absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-info px-1.5 py-0.5 text-[12px] font-semibold text-surface"
             style={{ left: toScreen(preview.marks.label)[0], top: toScreen(preview.marks.label)[1] }}>{fmt(preview.kind, preview.value, props.units)}</span>
         ) : null}
+        {drivenLabels.map((m) => {
+          const marks = marksOf(m);
+          if (!marks) return null;
+          const at = toScreen(marks.label);
+          return (
+            <span key={`d-${m.refs[0]}`} title="Worked out from the rest" data-driven={m.refs[0]}
+              className="tnum absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-surface/80 px-1.5 py-0.5 text-[12px] font-medium text-ink-3"
+              style={{ left: at[0], top: at[1] }}>
+              ({fmt(m.kind, measured(sk, m), props.units)})
+            </span>
+          );
+        })}
         {shownMeasures.map((m) => {
           const marks = marksOf(m);
           if (!marks) return null;
@@ -509,14 +564,22 @@ function place(d: Sketch, a: Anchor): string {
   if (a.point && (a.point === ORIGIN || d.points.some((p) => p.id === a.point))) return a.point;
   const p = addPoint(d, a.at);
   if (a.axis) addConstraint(d, "on_line", [p, a.axis]);
+  // On a line's midpoint: a point held there (the midpoint itself is worked out).
+  if (a.point && isMid(a.point)) addConstraint(d, "midpoint", [p, baseOf(a.point)]);
   return p;
+}
+
+/** What a point can't attach to: itself, and the midpoints of its own lines. */
+function ownMids(sk: Sketch, point: string): Set<string> {
+  return new Set([point, ...sk.shapes.filter((s) => s.kind === "line" && (s.a === point || s.b === point)).map((s) => midOf(s.id))]);
 }
 
 /** A rectangle between two corners; the second joins whatever it snapped to. */
 function rectangle(d: Sketch, from: Anchor, to: Anchor): string[] {
   const lines = addRectangle(d, place(d, from), to.at);
   const corner = (d.shapes.find((x) => x.id === lines[1]) as { b: string }).b;
-  if (to.point) mergePoints(d, corner, to.point);
+  if (to.point && isMid(to.point)) addConstraint(d, "midpoint", [corner, baseOf(to.point)]);
+  else if (to.point) mergePoints(d, corner, to.point);
   else if (to.axis) addConstraint(d, "on_line", [corner, to.axis]);
   return lines;
 }
@@ -621,7 +684,7 @@ function Preview({ hover, toScreen, scale }: {
 
 const GLYPHS: Partial<Record<Constraint["kind"], string>> = {
   horizontal: "H", vertical: "V", parallel: "∥", perpendicular: "⟂", equal: "=", tangent: "T",
-  on_line: "⊂", on_circle: "○", midpoint: "M", coincident: "●",
+  on_line: "⊂", on_circle: "○", midpoint: "M", coincident: "●", collinear: "≡", symmetric: "S",
 };
 
 /** Small badges for the relations, beside the shapes they hold; click one to select it. */
@@ -634,22 +697,23 @@ function Glyphs({ sketch: sk, toScreen, conflicts, middle }: { sketch: Sketch; t
   for (const c of sk.constraints) {
     if (isDimension(c)) continue;
     // On every shape the relation ties (a point relation sits at its point).
-    const on = c.kind === "on_line" || c.kind === "on_circle" || c.kind === "midpoint" ? [c.refs[0]] : c.refs;
+    const on = c.kind === "on_line" || c.kind === "on_circle" || c.kind === "midpoint" ? [c.refs[0]] : c.kind === "symmetric" ? c.refs.slice(0, 2) : c.refs;
     for (const ref of on) {
       // One badge per kind on a shape (copies made equal to it would stack a column of "=").
+      // (A midpoint's badges sit with its line's.)
       const kind = `${ref}:${c.kind}`;
       if (shown.has(kind)) continue;
       shown.add(kind);
-      const g = glyphAnchor(sk, ref);
+      const g = glyphAnchor(sk, baseOf(ref));
       if (!g) continue;
-      const i = stack.get(ref) ?? 0;
-      stack.set(ref, i + 1);
+      const i = stack.get(baseOf(ref)) ?? 0;
+      stack.set(baseOf(ref), i + 1);
       const s = toScreen(g.at);
       // Beside the shape on the inside (dimensions sit outside), then along it for each further badge.
       const along: V2 = [g.along[0], -g.along[1]];
       let across: V2 = [-along[1], along[0]];
       if ((middle[0] - s[0]) * across[0] + (middle[1] - s[1]) * across[1] < 0) across = [-across[0], -across[1]];
-      out.push({ key: `${c.id}-${ref}`, c, at: [s[0] + across[0] * 14 + along[0] * 20 * i, s[1] + across[1] * 14 + along[1] * 20 * i] });
+      out.push({ key: `${c.id}-${ref}`, c, at: [s[0] + across[0] * 16 + along[0] * 20 * i, s[1] + across[1] * 16 + along[1] * 20 * i] });
     }
   }
   return (

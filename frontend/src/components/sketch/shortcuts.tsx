@@ -8,7 +8,7 @@ import type { ConstraintKind } from "@/lib/sketch/types";
 /** Shift + this letter adds the relation to the selection (when it fits). */
 export const RELATION_KEYS: Partial<Record<ConstraintKind, string>> = {
   horizontal: "H", vertical: "V", parallel: "P", perpendicular: "R", equal: "E", tangent: "T",
-  coincident: "J", on_line: "O", on_circle: "O", midpoint: "M", fix: "F",
+  coincident: "J", on_line: "O", on_circle: "O", midpoint: "M", fix: "F", collinear: "L", symmetric: "S",
 };
 
 const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -29,6 +29,7 @@ const GROUPS: { title: string; rows: [string[], string][] }[] = [
       [["1200x600", "Enter"], "Rectangle size"],
       [["Esc"], "Stop drawing, clear the selection, then back to Select"],
       [["G"], "Snap to grid on or off"], [["Alt", "click"], "Place without snapping"],
+      [["X"], "Selected shapes to helpers (construction) and back"],
     ],
   },
   {
@@ -39,8 +40,9 @@ const GROUPS: { title: string; rows: [string[], string][] }[] = [
       [["Del"], "Delete"],
       [["←↑↓→"], "Nudge 1 mm (Shift: 10 mm)"],
       [["Shift H"], "Horizontal"], [["Shift V"], "Vertical"], [["Shift P"], "Parallel"], [["Shift R"], "Perpendicular (right angle)"],
-      [["Shift E"], "Equal"], [["Shift T"], "Tangent"], [["Shift J"], "Join points"], [["Shift O"], "On a line, circle or axis"],
-      [["Shift M"], "Midpoint"], [["Shift F"], "Fix in place"],
+      [["Shift E"], "Equal"], [["Shift T"], "Tangent"], [["Shift J"], "Join points (circles: concentric)"], [["Shift O"], "On a line, circle or axis"],
+      [["Shift M"], "Midpoint"], [["Shift L"], "Collinear"], [["Shift S"], "Symmetric (two points or lines, and the line between)"], [["Shift F"], "Fix in place"],
+      [["Shift H"], "Two or more points: line them up level (V: one above the other)"],
     ],
   },
   {

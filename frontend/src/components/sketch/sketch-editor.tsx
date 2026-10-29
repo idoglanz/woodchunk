@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Circle, Hammer, Maximize, Rows3, MousePointer2, PenLine, Redo2, Ruler, Spline, Square, Trash2, Undo2 } from "lucide-react";
+import { ArrowLeft, Circle, Hammer, Maximize, Rows3, MousePointer2, PenLine, Redo2, Ruler, SquareDashed, Spline, Square, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useProjectCtx } from "@/components/project/context";
@@ -16,10 +16,10 @@ import { AsmChip, EmptyState } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { useEditor } from "@/lib/editor";
 import { useMediaQuery } from "@/lib/focus";
-import { addDimension, addRelation, constraintName, deleteItems, dimensionFor, dimensionValue, isDimension, itemNames, movable, pointAt, relationOptions, setDimension, take, type RelationOption } from "@/lib/sketch/model";
+import { acting, addDimension, addRelation, constraintName, deleteItems, dimensionFor, dimensionValue, isDimension, itemNames, movable, pointAt, relationOptions, setConstruction, setDimension, take, type RelationOption } from "@/lib/sketch/model";
 import { partLabels, partLines, syncParts } from "@/lib/sketch/parts";
 import { solve } from "@/lib/sketch/solve";
-import { isBuiltIn, type Constraint, type Sketch } from "@/lib/sketch/types";
+import { isBuiltIn, isMid, type Constraint, type Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Tool } from "@/lib/sketch/ui";
 import { fit, measured, type View } from "@/lib/sketch/view";
 import { toast } from "@/lib/toast";
@@ -120,7 +120,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
   }, [sk, canType, editSketch]);
 
   const deleteSelected = useCallback(() => {
-    const ids = useSketchUI.getState().selected;
+    const ids = acting(useSketchUI.getState().selected);
     if (!ids.length) return;
     editSketch((d) => deleteItems(d, ids));
     useSketchUI.getState().select([]);
@@ -139,6 +139,14 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
     if (!points.length) return;
     const drag = points.map((p) => { const [x, y] = pointAt(sk, p); return { point: p, to: [x + d[0], y + d[1]] as [number, number] }; });
     editSketch((s) => take(s, solve(s, { drag, quick: true }).sketch), "nudge");
+  }, [sk, editSketch]);
+
+  /** Selected shapes to helpers (construction), or all back to drawing if they all are. */
+  const toggleConstruction = useCallback(() => {
+    const ids = acting(useSketchUI.getState().selected).filter((x) => sk.shapes.some((s) => s.id === x));
+    if (!ids.length) return;
+    const on = !ids.every((x) => sk.shapes.find((s) => s.id === x)?.construction);
+    editSketch((d) => setConstruction(d, ids, on));
   }, [sk, editSketch]);
 
   const [help, setHelp] = useState(false);
@@ -178,20 +186,21 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
         return;
       }
       if (e.key === "Enter" && s.tool === "dimension" && s.picks.length) {
-        const dim = dimensionFor(sk, s.picks);
+        const dim = dimensionFor(sk, acting(s.picks));
         if (dim) onDimension(dim.kind, dim.refs);
         s.set({ picks: [] });
         return;
       }
       if (e.shiftKey && s.selected.length) {
         // Shift + letter: that relation on the selection, when it fits.
-        const o = relationOptions(sk, s.selected).find((x) => RELATION_KEYS[x.kind]?.toLowerCase() === key);
+        const o = relationOptions(sk, acting(s.selected)).find((x) => RELATION_KEYS[x.kind]?.toLowerCase() === key);
         if (o) { e.preventDefault(); relate(o); }
         return;
       }
+      if (key === "x") { toggleConstruction(); return; }
       if (key === "d" && s.tool === "select" && s.selected.length) {
         // D on a selection dimensions it, if it's something that has a size.
-        const dim = dimensionFor(sk, s.selected);
+        const dim = dimensionFor(sk, acting(s.selected));
         if (dim) { onDimension(dim.kind, dim.refs); return; }
       }
       const t = TOOLS.find((x) => x.key.toLowerCase() === key);
@@ -199,7 +208,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canDraw, deleteSelected, onDimension, sk, relate, nudge, fitView, updateView]);
+  }, [canDraw, deleteSelected, onDimension, sk, relate, nudge, fitView, updateView, toggleConstruction]);
 
   return (
     <div className="flex h-[calc(100dvh-52px)] flex-col md:flex-row">
@@ -239,7 +248,8 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
       <aside aria-label="Sketch details"
         className="flex max-h-[54dvh] w-full shrink-0 flex-col overflow-y-auto border-t border-line bg-surface md:max-h-none md:w-[340px] md:border-s md:border-t-0">
         <Details sk={sk} status={status} readOnly={readOnly} canDraw={canDraw} units={units}
-          editSketch={editSketch} onSetDimension={onSetDimension} onDimension={onDimension} onRelate={relate} onDelete={deleteSelected} />
+          editSketch={editSketch} onSetDimension={onSetDimension} onDimension={onDimension} onRelate={relate} onDelete={deleteSelected}
+          onConstruction={toggleConstruction} />
       </aside>
     </div>
   );
@@ -255,14 +265,14 @@ function ToolHint({ sketch: sk, empty }: { sketch: Sketch; empty: boolean }) {
     switch (tool) {
       case "select": return empty
         ? "Start at the origin (the circle where the axes cross): pick Rectangle (R), click the origin, type 1200x600 and press Enter. Rough drawing is fine too: pin the sizes after."
-        : "Click to select (Shift for more; double-click for a whole shape), drag to move. Click a number to change it. Attach to the origin or an axis to hold the drawing in place.";
+        : "Click to select (Shift for more; double-click for a whole shape), drag to move. A line's middle (▲) is its midpoint: pick two to line them up. X makes helper lines. Click a number to change it.";
       case "line": return anchors ? "Click the next point, or type a length and press Enter. End on a point to close; Esc to stop." : "Click where the line starts: the origin, a point, an axis or anywhere.";
       case "rect": return anchors ? "Click the opposite corner, or type width x height (1200x600) and press Enter." : "Click one corner (the origin is a good start).";
       case "circle": return anchors ? "Click to set the size, or type the diameter and press Enter." : "Click the centre.";
       case "arc": return anchors === 0 ? "Click the centre." : anchors === 1 ? "Click where the arc starts." : "Click where it ends (counter-clockwise).";
       case "dimension": {
         if (!picks.length) return "Click a grey size to pin it, or pick two things (points, lines, an axis) for the distance or angle between them.";
-        const one = dimensionFor(sk, picks);
+        const one = dimensionFor(sk, acting(picks));
         return one ? "Press Enter (or click empty space) for its own size, or click a second thing." : "Click a second point or line.";
       }
     }
@@ -277,27 +287,30 @@ function ToolHint({ sketch: sk, empty }: { sketch: Sketch; empty: boolean }) {
   );
 }
 
-function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimension, onDimension, onRelate, onDelete }: {
+function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimension, onDimension, onRelate, onDelete, onConstruction }: {
   sk: Sketch; status: ReturnType<typeof solve>; readOnly: boolean; canDraw: boolean; units: Units;
   editSketch: (fn: (d: Sketch) => void, key?: string) => void;
   onSetDimension: (id: string, v: number) => void;
   onDimension: (kind: Constraint["kind"], refs: string[]) => void;
   onRelate: (o: RelationOption) => void;
   onDelete: () => void;
+  onConstruction: () => void;
 }) {
   const ui = useSketchUI();
   const names = useMemo(() => itemNames(sk), [sk]);
   const dims = sk.constraints.filter(isDimension);
   const relations = sk.constraints.filter((c) => !isDimension(c));
-  const options = canDraw ? relationOptions(sk, ui.selected) : [];
-  const dim = canDraw ? dimensionFor(sk, ui.selected) : null;
+  const sel = acting(ui.selected);
+  const options = canDraw ? relationOptions(sk, sel) : [];
+  const dim = canDraw ? dimensionFor(sk, sel) : null;
   const selectedConstraint = ui.selected.length === 1 ? sk.constraints.find((c) => c.id === ui.selected[0]) : undefined;
-  const selectedLines = ui.selected.filter((x) => sk.shapes.find((s) => s.id === x)?.kind === "line");
+  const selectedLines = sel.filter((x) => { const s = sk.shapes.find((y) => y.id === x); return s?.kind === "line" && !s.construction; });
   const content = useEditor((s) => s.content);
   const labels = useMemo(() => (content ? partLabels(content, sk.id) : new Map<string, { label: string; letter: string; name: string }>()), [content, sk.id]);
   const [making, setMaking] = useState(false);
   const [repeating, setRepeating] = useState(false);
-  const selectedShapes = ui.selected.filter((x) => sk.shapes.some((s) => s.id === x));
+  const selectedShapes = sel.filter((x) => sk.shapes.some((s) => s.id === x));
+  const allHelpers = selectedShapes.length > 0 && selectedShapes.every((x) => sk.shapes.find((s) => s.id === x)?.construction);
   const edit = useEditor((s) => s.edit);
   /** The part keeps its length, and no longer follows the line. */
   const unlink = (line: string) => edit((c) => {
@@ -325,9 +338,9 @@ function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimens
                 : ui.selected.length > 3 ? `${ui.selected.length} selected`
                 : ui.selected.map((x) => names.get(x)).filter(Boolean).join(", ")}
             </h2>
-            {ui.selected.some((x) => !isBuiltIn(x)) ? <IconButton label="Delete (Del)" size="sm" variant="destructive" className="ms-auto" onClick={onDelete}><Trash2 size={15} /></IconButton> : null}
+            {sel.some((x) => !isBuiltIn(x) && !isMid(x)) ? <IconButton label="Delete (Del)" size="sm" variant="destructive" className="ms-auto" onClick={onDelete}><Trash2 size={15} /></IconButton> : null}
           </div>
-          {!selectedConstraint && ui.selected.length === 1 ? <Measures sk={sk} id={ui.selected[0]} units={units} /> : null}
+          {!selectedConstraint && sel.length === 1 ? <Measures sk={sk} id={sel[0]} units={units} driven={status.driven.has(sel[0])} /> : null}
           {selectedLines.length === 1 && labels.get(selectedLines[0]) ? (() => {
             const part = labels.get(selectedLines[0])!;
             return (
@@ -341,12 +354,18 @@ function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimens
           {options.length || dim || selectedShapes.length ? (
             <div className="flex flex-wrap gap-1.5">
               {selectedShapes.length ? <Button size="sm" icon={<Rows3 size={14} />} onClick={() => setRepeating(true)}>Repeat</Button> : null}
+              {selectedShapes.length ? (
+                <Button size="sm" icon={<SquareDashed size={14} />} aria-pressed={allHelpers} onClick={onConstruction}
+                  title={allHelpers ? "Back to drawing (X)" : "A helper: positions the rest, isn't a part, needs no size (X)"}>
+                  {allHelpers ? "Make drawing" : "Helper line"}<span className="hidden text-[11px] font-medium text-ink-3 lg:inline">X</span>
+                </Button>
+              ) : null}
               {selectedLines.length && selectedLines.some((l) => !labels.has(l)) ? (
                 <Button size="sm" icon={<Hammer size={14} />} onClick={() => setMaking(true)}>Make {partLines(sk, selectedLines).length > 1 ? "parts" : "a part"}</Button>
               ) : null}
               {dim ? <Button size="sm" variant="primary" icon={<Ruler size={14} />} title="D" onClick={() => onDimension(dim.kind, dim.refs)}>{dim.kind === "angle" ? "Angle" : "Dimension"}<span className="hidden text-[11px] font-medium opacity-60 lg:inline">D</span></Button> : null}
               {options.map((o) => (
-                <Button key={o.kind} size="sm" onClick={() => onRelate(o)} title={RELATION_KEYS[o.kind] ? `Shift ${RELATION_KEYS[o.kind]}` : undefined}>
+                <Button key={o.kind + o.label} size="sm" onClick={() => onRelate(o)} title={RELATION_KEYS[o.kind] ? `Shift ${RELATION_KEYS[o.kind]}` : undefined}>
                   {o.label}{RELATION_KEYS[o.kind] ? <span className="hidden text-[11px] font-medium text-ink-3 lg:inline">⇧{RELATION_KEYS[o.kind]}</span> : null}
                 </Button>
               ))}
@@ -407,15 +426,22 @@ function StatusLine({ sk, status, names }: { sk: Sketch; status: ReturnType<type
   );
 }
 
-/** A selected shape's sizes as worked out: length and angle of a line, size of a circle. */
-function Measures({ sk, id, units }: { sk: Sketch; id: string; units: Units }) {
+/** A selected shape's sizes as worked out: length and angle of a line (and whether the rest decides it), size of a circle. */
+function Measures({ sk, id, units, driven }: { sk: Sketch; id: string; units: Units; driven: boolean }) {
   const s = sk.shapes.find((x) => x.id === id);
   if (!s) return null;
   if (s.kind === "line") {
     const length = measured(sk, { kind: "distance", refs: [id] });
-    const a = sk.points.find((p) => p.id === s.a)!, b = sk.points.find((p) => p.id === s.b)!;
-    const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
-    return <p className="tnum text-[14px]">{fmt("distance", length, units)} {units} · {fmt("angle", ((angle % 180) + 180) % 180, units)} from level</p>;
+    const [a, b] = [pointAt(sk, s.a), pointAt(sk, s.b)];
+    const angle = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
+    const pinned = sk.constraints.some((c) => c.kind === "distance" && c.refs.length === 1 && c.refs[0] === id && c.driving);
+    return (
+      <p className="tnum text-[14px]">
+        {fmt("distance", length, units)} {units} · {fmt("angle", ((angle % 180) + 180) % 180, units)} from level
+        {s.construction ? <span className="text-ink-3"> · helper</span>
+          : !pinned ? <span className={driven ? "text-ink-3" : "text-info"}> · {driven ? "length worked out from the rest" : "length still free"}</span> : null}
+      </p>
+    );
   }
   const r = measured(sk, { kind: "radius", refs: [id] });
   return <p className="tnum text-[14px]">⌀{fmt("distance", 2 * r, units)} {units} · R{fmt("distance", r, units)}</p>;

@@ -391,7 +391,9 @@ export function SketchCanvas(props: CanvasProps) {
   // Angles where lines meet (all of them), or between the two lines selected.
   const twoLines = ui.selected.length === 2 && ui.selected.every((x) => sk.shapes.find((s) => s.id === x)?.kind === "line");
   const between = twoLines ? readings(sk, ui.selected)?.mark : null;
-  const angles = [...(measureAll ? jointAngles(sk) : []), ...(between?.kind === "angle" && !measureAll ? [between] : [])];
+  // (Worked out once per sketch, not on every pointer move.)
+  const joints = useMemo(() => (measureAll ? jointAngles(sk) : []), [sk, measureAll]);
+  const angles = [...joints, ...(between?.kind === "angle" && !measureAll ? [between] : [])];
   // The Measure tool: what's picked (and, with one picked, between it and what's under the pointer).
   const reading = (() => {
     if (ui.tool !== "measure") return null;

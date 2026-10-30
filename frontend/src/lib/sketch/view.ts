@@ -5,7 +5,7 @@
  */
 
 import { measure, type V2 } from "./solve";
-import { lineOf, pointAt, shapeById } from "./model";
+import { cornerSide, lineOf, picked, pointAt, shapeById } from "./model";
 import { isMid, midOf, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Shape, type Sketch } from "./types";
 
 const sub = (a: V2, b: V2): V2 => [a[0] - b[0], a[1] - b[1]];
@@ -137,7 +137,7 @@ export type Marks = { lines: [V2, V2][]; arc?: { c: V2; r: number; start: number
  * A dimension's marks. Lengths sit beside the line, on the side away from the sketch's middle;
  * angles as an arc where the two lines meet (or would); radii as a leader from the centre.
  */
-export function dimensionMarks(sk: Sketch, c: Pick<Constraint, "kind" | "refs"> & { side?: number | null }, px: number, middle: V2): Marks | null {
+export function dimensionMarks(sk: Sketch, c: Measure, px: number, middle: V2): Marks | null {
   const gap = 22 * px;
   try {
     switch (c.kind) {
@@ -220,9 +220,12 @@ function offsetMarks(a: V2, b: V2, gap: number, middle: V2): Marks {
   return { lines: [[a, add(a, mul(n, gap * 1.25))], [b, add(b, mul(n, gap * 1.25))], [oa, ob]], label: mul(add(oa, ob), 0.5) };
 }
 
+/** Something measured, like a dimension that isn't there: what, between which, and (angles) which corner. */
+export type Measure = Pick<Constraint, "kind" | "refs"> & { side?: number | null };
+
 /** A measurement of something not dimensioned (shown on selection, or for every shape). */
-export function measurementsFor(sk: Sketch, ids: string[]): Pick<Constraint, "kind" | "refs">[] {
-  const out: Pick<Constraint, "kind" | "refs">[] = [];
+export function measurementsFor(sk: Sketch, ids: string[]): Measure[] {
+  const out: Measure[] = [];
   for (const x of ids) {
     const s = shapeById(sk, x);
     if (s?.kind === "line") out.push({ kind: "distance", refs: [x] });
@@ -232,9 +235,104 @@ export function measurementsFor(sk: Sketch, ids: string[]): Pick<Constraint, "ki
   return out;
 }
 
-export function measured(sk: Sketch, m: Pick<Constraint, "kind" | "refs">): number {
-  return measure(sk, { id: "", kind: m.kind, refs: m.refs, value: null, driving: false, side: null });
+export function measured(sk: Sketch, m: Measure): number {
+  return measure(sk, { id: "", kind: m.kind, refs: m.refs, value: null, driving: false, side: m.side ?? null });
 }
+
+/**
+ * The angles where lines meet (at a shared end), as drawn: the corner between them. Right angles
+ * and straight joins are left out (their relations say so), and ones already dimensioned.
+ */
+export function jointAngles(sk: Sketch): Measure[] {
+  const ends = new Map<string, { line: string; out: 1 | -1 }[]>();
+  for (const s of sk.shapes) {
+    if (s.kind !== "line") continue;
+    for (const [p, out] of [[s.a, 1], [s.b, -1]] as const) ends.set(p, [...(ends.get(p) ?? []), { line: s.id, out }]);
+  }
+  const pinned = new Set(sk.constraints.filter((c) => c.kind === "angle").map((c) => [...c.refs].sort().join()));
+  const out: Measure[] = [];
+  for (const at of ends.values()) {
+    for (let i = 0; i < at.length; i++) {
+      for (let j = i + 1; j < at.length; j++) {
+        const m: Measure = { kind: "angle", refs: [at[i].line, at[j].line], side: at[i].out * at[j].out };
+        const a = Math.abs(measured(sk, m));
+        if (a < 0.05 || Math.abs(a - 90) < 0.05 || Math.abs(a - 180) < 0.05 || pinned.has([...m.refs].sort().join())) continue;
+        out.push(m);
+      }
+    }
+  }
+  return out;
+}
+
+/** One reading of the Measure tool: a length (mm) or an angle (degrees). */
+export type Reading = { label: string; kind: "distance" | "angle"; value: number };
+
+/**
+ * What the Measure tool reads off one or two things: the main measurement (drawn on the sketch,
+ * `mark`) and the values to show. A line: its length and slope; a circle: its size; a point: where
+ * it is; two things: the distance (or angle) between them. Null when there's nothing to read.
+ */
+export function readings(sk: Sketch, ids: string[]): { mark: Measure | null; values: Reading[] } | null {
+  const { points: P, lines: L, round: R } = picked(sk, ids);
+  const n = P.length + L.length + R.length;
+  const dist = (refs: string[]) => measured(sk, { kind: "distance", refs });
+  const centre = (r: string) => (shapeById(sk, r) as { c: string }).c;
+  const radius = (r: string) => radiusOf(sk, shapeById(sk, r)!);
+  if (n === 1 && L.length === 1) {
+    if (AXES_IDS.has(L[0])) return null;
+    const [a, b] = lineOf(sk, L[0])!;
+    const slope = ((Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI + 180) % 180;
+    return { mark: { kind: "distance", refs: L }, values: [{ label: "Length", kind: "distance", value: dist(L) }, { label: "From level", kind: "angle", value: slope }] };
+  }
+  if (n === 1 && R.length === 1) {
+    const s = shapeById(sk, R[0])!;
+    if (s.kind === "circle") return { mark: { kind: "diameter", refs: R }, values: [{ label: "Diameter", kind: "distance", value: 2 * s.r }, { label: "Radius", kind: "distance", value: s.r }] };
+    const sweep = s.kind === "arc" ? (arcSweep(sk, s).sweep * 180) / Math.PI : 0;
+    return { mark: { kind: "radius", refs: R }, values: [{ label: "Radius", kind: "distance", value: radius(R[0]) }, { label: "Sweep", kind: "angle", value: sweep }] };
+  }
+  if (n === 1 && P.length === 1) {
+    const [x, y] = pointAt(sk, P[0]);
+    return { mark: null, values: [{ label: "X", kind: "distance", value: x }, { label: "Y", kind: "distance", value: y }] };
+  }
+  if (n !== 2) return null;
+  if (P.length === 2) {
+    const [p, q] = P.map((x) => pointAt(sk, x));
+    return { mark: { kind: "distance", refs: P }, values: [{ label: "Distance", kind: "distance", value: dist(P) }, { label: "Across (X)", kind: "distance", value: Math.abs(q[0] - p[0]) }, { label: "Up (Y)", kind: "distance", value: Math.abs(q[1] - p[1]) }] };
+  }
+  if (P.length === 1 && L.length === 1) {
+    const m: Measure = { kind: "point_line_distance", refs: [P[0], L[0]] };
+    return { mark: m, values: [{ label: "Distance (square to the line)", kind: "distance", value: measured(sk, m) }] };
+  }
+  if (L.length === 2) {
+    const side = cornerSide(sk, L);
+    const angle = Math.abs(measured(sk, { kind: "angle", refs: L, side }));
+    if (angle < 1e-3 || Math.abs(angle - 180) < 1e-3) {
+      // Parallel: the gap between them.
+      const [line, other] = AXES_IDS.has(L[0]) ? [L[1], L[0]] : [L[0], L[1]];
+      const m: Measure = { kind: "point_line_distance", refs: [(shapeById(sk, line) as { a: string }).a, other] };
+      return { mark: m, values: [{ label: "Gap (parallel)", kind: "distance", value: measured(sk, m) }] };
+    }
+    return { mark: { kind: "angle", refs: L, side }, values: [{ label: "Angle", kind: "angle", value: angle }, { label: "The other way", kind: "angle", value: 180 - angle }] };
+  }
+  if (P.length === 1 && R.length === 1) {
+    const m: Measure = { kind: "distance", refs: [P[0], centre(R[0])] };
+    const d = measured(sk, m);
+    return { mark: m, values: [{ label: "To the centre", kind: "distance", value: d }, { label: "To the edge", kind: "distance", value: Math.abs(d - radius(R[0])) }] };
+  }
+  if (L.length === 1 && R.length === 1) {
+    const m: Measure = { kind: "point_line_distance", refs: [centre(R[0]), L[0]] };
+    const d = measured(sk, m);
+    return { mark: m, values: [{ label: "Centre to line", kind: "distance", value: d }, { label: "Edge to line", kind: "distance", value: d - radius(R[0]) }] };
+  }
+  if (R.length === 2) {
+    const m: Measure = { kind: "distance", refs: [centre(R[0]), centre(R[1])] };
+    const d = measured(sk, m);
+    return { mark: m, values: [{ label: "Centre to centre", kind: "distance", value: d }, { label: "Edge to edge", kind: "distance", value: d - radius(R[0]) - radius(R[1]) }] };
+  }
+  return null;
+}
+
+const AXES_IDS = new Set([X_AXIS, Y_AXIS]);
 
 /** Grid spacing (mm) at least `minPx` apart on screen, in 1-2-5 steps. */
 export function gridStep(scale: number, minPx = 18): number {

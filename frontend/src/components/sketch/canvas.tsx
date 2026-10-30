@@ -9,7 +9,7 @@ import { acting, addArc, addCircle, addConstraint, addLine, addPoint, addRectang
 import { LIMIT, solve, type SolveResult, type V2 } from "@/lib/sketch/solve";
 import { AXES, baseOf, isMid, midOf, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Anchor } from "@/lib/sketch/ui";
-import { arcSweep, bounds, dimensionMarks, glyphAnchor, gridOf, hitTest, measured, measurementsFor, radiusOf, type Marks, type View } from "@/lib/sketch/view";
+import { arcSweep, bounds, dimensionMarks, glyphAnchor, gridOf, hitTest, jointAngles, measured, measurementsFor, radiusOf, readings, type Marks, type Measure, type View } from "@/lib/sketch/view";
 import { toast } from "@/lib/toast";
 import { isTyping } from "@/lib/typing";
 import { lengthInput, parseLength, type Units } from "@/lib/units";
@@ -239,6 +239,12 @@ export function SketchCanvas(props: CanvasProps) {
       else ui.select(shift ? (selected.includes(hit) ? selected.filter((x) => x !== hit) : [...selected, hit]) : [hit]);
       return;
     }
+    if (tool === "measure") {
+      // One thing, then a second (the distance or angle between); a third starts over.
+      const hit = hitTest(sk, at, HIT_PX * px);
+      ui.set({ picks: !hit ? [] : picks.includes(hit) ? picks : picks.length >= 2 ? [hit] : [...picks, hit] });
+      return;
+    }
     if (tool === "dimension") {
       const hit = hitTest(sk, at, HIT_PX * px);
       if (!hit) {
@@ -381,7 +387,21 @@ export function SketchCanvas(props: CanvasProps) {
   const dimensioned = new Set(dims.filter((c) => c.refs.length === 1).map((c) => c.refs[0]));
   // The Dimension tool shows every size there is to pin (click one to pin it).
   const measureAll = ui.showAll || ui.tool === "dimension";
-  const shownMeasures = measurementsFor(sk, measureAll ? sk.shapes.map((s) => s.id) : ui.selected).filter((m) => !dimensioned.has(m.refs[0]));
+  const shownMeasures: Measure[] = measurementsFor(sk, measureAll ? sk.shapes.map((s) => s.id) : ui.selected).filter((m) => !dimensioned.has(m.refs[0]));
+  // Angles where lines meet (all of them), or between the two lines selected.
+  const twoLines = ui.selected.length === 2 && ui.selected.every((x) => sk.shapes.find((s) => s.id === x)?.kind === "line");
+  const between = twoLines ? readings(sk, ui.selected)?.mark : null;
+  // (Worked out once per sketch, not on every pointer move.)
+  const joints = useMemo(() => (measureAll ? jointAngles(sk) : []), [sk, measureAll]);
+  const angles = [...joints, ...(between?.kind === "angle" && !measureAll ? [between] : [])];
+  // The Measure tool: what's picked (and, with one picked, between it and what's under the pointer).
+  const reading = (() => {
+    if (ui.tool !== "measure") return null;
+    const ids = ui.picks.length === 1 && hover?.item && !ui.picks.includes(hover.item) ? [...ui.picks, hover.item] : ui.picks;
+    const r = ids.length ? readings(sk, acting(ids)) : null;
+    const marks = r?.mark ? dimensionMarks(sk, r.mark, px, middle) : null;
+    return r && marks ? { marks, value: r.values[0] } : null;
+  })();
   // What the Dimension tool would add with the next click: between the picks and what's under the pointer.
   const preview = (() => {
     if (ui.tool !== "dimension" || !hover?.item || !ui.picks.length || ui.picks.includes(hover.item)) return null;
@@ -417,7 +437,7 @@ export function SketchCanvas(props: CanvasProps) {
     });
   }).map((s) => ({ kind: "distance" as const, refs: [s.id] }));
   const origin = toScreen([0, 0]);
-  const marksOf = (c: Pick<Constraint, "kind" | "refs">) => dimensionMarks(sk, c, px, middle);
+  const marksOf = (c: Measure) => dimensionMarks(sk, c, px, middle);
 
   return (
     <div className="absolute inset-0">
@@ -499,6 +519,8 @@ export function SketchCanvas(props: CanvasProps) {
           <circle cx={origin[0]} cy={origin[1]} r={1.6} fill="var(--ink)" />
         </g>
         {preview ? <DimensionLines marks={preview.marks} toScreen={toScreen} scale={view.scale} color="var(--info)" dashed /> : null}
+        {reading ? <DimensionLines marks={reading.marks} toScreen={toScreen} scale={view.scale} color="var(--info)" /> : null}
+        {angles.map((m) => <DimensionLines key={`a-${m.refs.join()}`} marks={marksOf(m)} toScreen={toScreen} scale={view.scale} color="var(--ink-3)" dashed />)}
         <Preview hover={hover} toScreen={toScreen} scale={view.scale} />
         {hover && !hover.snap && canDraw && ["line", "rect", "circle", "arc"].includes(ui.tool) ? (() => {
           // Where the next click lands (on the grid when snapping).
@@ -542,12 +564,16 @@ export function SketchCanvas(props: CanvasProps) {
             </span>
           );
         })}
-        {shownMeasures.map((m) => {
+        {reading ? (
+          <span className="tnum absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-info px-1.5 py-0.5 text-[12px] font-semibold text-surface"
+            style={{ left: toScreen(reading.marks.label)[0], top: toScreen(reading.marks.label)[1] }}>{fmt(reading.value.kind, reading.value.value, props.units)}</span>
+        ) : null}
+        {[...angles, ...shownMeasures].map((m) => {
           const marks = marksOf(m);
           if (!marks) return null;
           const at = toScreen(marks.label);
           return (
-            <button key={`m-${m.refs[0]}`} type="button" disabled={!props.canType}
+            <button key={`m-${m.refs.join()}`} type="button" disabled={!props.canType}
               onClick={() => props.onDimension(m.kind, m.refs)} title={props.canType ? "Pin this value" : undefined}
               className="tnum pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-surface/85 px-1.5 py-0.5 text-[12px] italic text-ink-3 backdrop-blur hover:text-ink disabled:pointer-events-none"
               style={{ left: at[0], top: at[1] }}>

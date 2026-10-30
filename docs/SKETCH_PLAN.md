@@ -122,4 +122,9 @@ length while drawing, label positions you can drag, and linking sketch lengths t
   starts there and is pulled back only as far as it must (dragged points weigh 20× the rest), so
   a line attached at one end swings round it instead of not moving. Dragging one of several
   selected moves them all.
+- **Measure** (Q): pick one thing (a line's length and slope, a circle's size, a point's X and
+  Y) or two (distance, square distance to a line, angle and its other side, parallel gap, centre
+  and edge distances) and read it off; nothing is added. "Add as dimension" keeps it. "Show all
+  measurements" (M) also shows the angles where lines meet, leaving out right angles, straight
+  joins and ones already dimensioned (`view.ts`: `readings`, `jointAngles`).
 

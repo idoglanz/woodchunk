@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { V2 } from "./solve";
 
-export type Tool = "select" | "line" | "rect" | "circle" | "arc" | "dimension";
+export type Tool = "select" | "line" | "rect" | "circle" | "arc" | "dimension" | "measure";
 
 /** The first clicks of a shape being drawn: an existing point (the origin too), or a spot, maybe on an axis. */
 export type Anchor = { point?: string; axis?: string; at: V2 };
@@ -10,7 +10,7 @@ export type Anchor = { point?: string; axis?: string; at: V2 };
 type SketchUI = {
   tool: Tool;
   selected: string[];
-  /** Clicks so far for the shape being drawn, or the items picked for a dimension. */
+  /** Clicks so far for the shape being drawn, or the items picked for a dimension (or to measure). */
   anchors: Anchor[];
   picks: string[];
   /** Points being dragged, previewed until release. */

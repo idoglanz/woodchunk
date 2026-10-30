@@ -19,7 +19,7 @@ const GROUPS: { title: string; rows: [string[], string][] }[] = [
     title: "Tools",
     rows: [
       [["V"], "Select"], [["L"], "Line"], [["R"], "Rectangle"], [["C"], "Circle"], [["A"], "Arc"],
-      [["D"], "Dimension (with something selected: dimension it)"],
+      [["D"], "Dimension (with something selected: dimension it)"], [["Q"], "Measure (adds nothing)"],
     ],
   },
   {
@@ -48,7 +48,7 @@ const GROUPS: { title: string; rows: [string[], string][] }[] = [
   {
     title: "View",
     rows: [
-      [["F"], "Fit the sketch"], [["+", "−"], "Zoom in, out"], [["Space", "drag"], "Pan"], [["M"], "Show all measurements"],
+      [["F"], "Fit the sketch"], [["+", "−"], "Zoom in, out"], [["Space", "drag"], "Pan"], [["M"], "Show all measurements (and the angles where lines meet)"],
       [[`${MOD} Z`], "Undo"], [[`${MOD} Shift Z`], "Redo"], [["?"], "This list"],
     ],
   },

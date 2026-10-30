@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { addCircle, addConstraint, addDimension, addLine, addPoint, addRectangle, addRelation, deleteItems, dimensionFor, mergePoints, newSketch, pointAt, relationOptions, setConstruction, setDimension, tidy } from "./model";
 import { LIMIT, measure, solve } from "./solve";
 import { midOf, ORIGIN, X_AXIS, Y_AXIS, type Sketch } from "./types";
-import { hitTest } from "./view";
+import { hitTest, jointAngles, measured, readings } from "./view";
 
 function rectangle() {
   const sk = newSketch([]);
@@ -348,6 +348,37 @@ describe("helpers and driven lengths", () => {
     const p = pointAt(r.sketch, end);
     expect(p[0]).toBeCloseTo(0, 3);
     expect(p[1]).toBeCloseTo(100, 3);
+  });
+});
+
+describe("measuring", () => {
+  it("reads off lengths, distances, angles and sizes without adding anything", () => {
+    const sk = newSketch([]);
+    const lines = addRectangle(sk, ORIGIN, [1200, 600]);
+    const corner = (sk.shapes.find((s) => s.id === lines[1]) as { b: string }).b;
+    const brace = addLine(sk, ORIGIN, corner, false);
+    const before = structuredClone(sk);
+    const values = (ids: string[]) => readings(sk, ids)!.values.map((v) => [v.label, Math.round(v.value * 10) / 10]);
+    expect(values([brace])).toEqual([["Length", 1341.6], ["From level", 26.6]]);
+    expect(values([lines[0], brace])).toEqual([["Angle", 26.6], ["The other way", 153.4]]);
+    expect(values([lines[0], lines[2]])).toEqual([["Gap (parallel)", 600]]);
+    expect(values([ORIGIN, corner])).toEqual([["Distance", 1341.6], ["Across (X)", 1200], ["Up (Y)", 600]]);
+    expect(values([corner, X_AXIS])).toEqual([["Distance (square to the line)", 600]]);
+    const c = addCircle(sk, addPoint(sk, [300, 300]), 50);
+    expect(values([c, lines[0]])).toEqual([["Centre to line", 300], ["Edge to line", 250]]);
+    expect(sk.constraints).toEqual(before.constraints);
+  });
+
+  it("finds the angles where lines meet, not the square or dimensioned ones", () => {
+    const sk = newSketch([]);
+    const lines = addRectangle(sk, ORIGIN, [1200, 600]);
+    const corner = (sk.shapes.find((s) => s.id === lines[1]) as { b: string }).b;
+    const brace = addLine(sk, ORIGIN, corner, false);
+    // At the origin (with the bottom and the left side) and at the far corner (with the top and right side).
+    const found = jointAngles(sk).map((m) => Math.round(Math.abs(measured(sk, m)) * 10) / 10).sort((a, b) => a - b);
+    expect(found).toEqual([26.6, 26.6, 63.4, 63.4]);
+    addDimension(sk, "angle", [lines[0], brace]);
+    expect(jointAngles(sk)).toHaveLength(3);
   });
 });
 

@@ -173,6 +173,25 @@ test("sketch: draw roughly, pin sizes, read off the rest", async ({ page }, info
   const diagonal = dims.getByRole("button", { name: "Line 5 length: 1341.6 mm, worked out" });
   await expect(diagonal).toBeVisible();
 
+  // Measure: the angle between the bottom and the diagonal, and nothing added to the sketch.
+  // (Pinning the sizes moved the corners: read where they are now.)
+  const cs = await page.locator('svg[aria-label="Sketch"] circle[r="3.2"]').evaluateAll((els) => els.map((c) => [+c.getAttribute("cx")!, +c.getAttribute("cy")!]));
+  const [x0, x1] = [Math.min(...cs.map((c) => c[0])), Math.max(...cs.map((c) => c[0]))];
+  const [y0, y1] = [Math.min(...cs.map((c) => c[1])), Math.max(...cs.map((c) => c[1]))];
+  await page.keyboard.press("q");
+  await at(x0 + (x1 - x0) * 0.75, y1);
+  await expect(page.getByRole("status")).toContainText("Length 1200 mm");
+  await at(x0 + (x1 - x0) * 0.3, y1 - (y1 - y0) * 0.3);
+  const read = page.getByRole("status").filter({ hasText: "The other way" });
+  await expect(read).toContainText("Angle 26.6°");
+  await expect(read).toContainText("The other way 153.4°");
+  await expect(dims.getByRole("listitem")).toHaveCount(3);
+  // Shown all, the angles where lines meet are there too.
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("m");
+  await expect(page.getByRole("button", { name: "26.6°", exact: true }).first()).toBeVisible();
+  await page.keyboard.press("m");
+
   // Saved with the project.
   await saved;
   await page.reload();

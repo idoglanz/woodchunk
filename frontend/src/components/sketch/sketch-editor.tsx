@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Circle, Hammer, Maximize, Rows3, MousePointer2, PenLine, Redo2, Ruler, SquareDashed, Spline, Square, Trash2, Undo2 } from "lucide-react";
+import { ArrowLeft, Circle, Hammer, Maximize, Rows3, MousePointer2, PenLine, Redo2, Ruler, RulerDimensionLine, SquareDashed, Spline, Square, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useProjectCtx } from "@/components/project/context";
@@ -21,7 +21,7 @@ import { partLabels, partLines, syncParts } from "@/lib/sketch/parts";
 import { solve } from "@/lib/sketch/solve";
 import { isBuiltIn, isMid, type Constraint, type Sketch } from "@/lib/sketch/types";
 import { useSketchUI, type Tool } from "@/lib/sketch/ui";
-import { fit, measured, type View } from "@/lib/sketch/view";
+import { fit, measured, readings, type View } from "@/lib/sketch/view";
 import { toast } from "@/lib/toast";
 import { isTyping } from "@/lib/typing";
 import type { Units } from "@/lib/units";
@@ -33,6 +33,7 @@ const TOOLS: { value: Tool; label: string; key: string; icon: typeof PenLine }[]
   { value: "circle", label: "Circle", key: "C", icon: Circle },
   { value: "arc", label: "Arc", key: "A", icon: Spline },
   { value: "dimension", label: "Dimension", key: "D", icon: Ruler },
+  { value: "measure", label: "Measure", key: "Q", icon: RulerDimensionLine },
 ];
 
 export function SketchEditor({ sketchId }: { sketchId: string }) {
@@ -116,7 +117,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
     const a = added as { constraint: Constraint; driving: boolean } | null;
     if (!a) return;
     if (a.driving) useSketchUI.getState().set({ editing: a.constraint.id });
-    else toast.info("Already decided by the rest: shown as a worked-out value.");
+    else toast.info("Added as a worked-out value (in brackets): the rest already decides it, so it follows them.");
   }, [sk, canType, editSketch]);
 
   const deleteSelected = useCallback(() => {
@@ -243,7 +244,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
             </> : null}
           </div>
         </div>
-        {canDraw ? <ToolHint sketch={sk} empty={!sk.shapes.length} /> : null}
+        {canDraw ? <ToolHint sketch={sk} empty={!sk.shapes.length} units={units} onDimension={onDimension} /> : null}
       </div>
       <aside aria-label="Sketch details"
         className="flex max-h-[54dvh] w-full shrink-0 flex-col overflow-y-auto border-t border-line bg-surface md:max-h-none md:w-[340px] md:border-s md:border-t-0">
@@ -256,7 +257,9 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
 }
 
 /** What the current tool does next, at the bottom of the canvas. */
-function ToolHint({ sketch: sk, empty }: { sketch: Sketch; empty: boolean }) {
+function ToolHint({ sketch: sk, empty, units, onDimension }: {
+  sketch: Sketch; empty: boolean; units: Units; onDimension: (kind: Constraint["kind"], refs: string[]) => void;
+}) {
   const tool = useSketchUI((s) => s.tool);
   const anchors = useSketchUI((s) => s.anchors.length);
   const picks = useSketchUI((s) => s.picks);
@@ -275,11 +278,28 @@ function ToolHint({ sketch: sk, empty }: { sketch: Sketch; empty: boolean }) {
         const one = dimensionFor(sk, acting(picks));
         return one ? "Press Enter (or click empty space) for its own size, or click a second thing." : "Click a second point or line.";
       }
+      case "measure": return picks.length
+        ? (picks.length === 1 ? "Click a second thing for the distance or angle between." : "Click something else to measure again.")
+        : "Click a line, circle or point to measure it, or two for the distance or angle between them. Nothing is added to the sketch.";
     }
   })();
+  // The Measure tool's values, and a way to keep one as a dimension.
+  const read = tool === "measure" && picks.length ? readings(sk, acting(picks)) : null;
+  const keep = read ? dimensionFor(sk, acting(picks)) : null;
   return (
     <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex justify-start">
       <div role="status" className="flex max-w-[min(620px,100%)] flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl bg-surface/95 px-4 py-2 text-[13px] text-ink-2 shadow-[var(--shadow-pop)] backdrop-blur">
+        {read ? (
+          <span className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 text-ink">
+            {read.values.map((v) => (
+              <span key={v.label} className="tnum"><span className="text-ink-3">{v.label}</span> <b>{fmt(v.kind, v.value, units)}</b>{v.kind === "angle" ? "" : <span className="text-[12px] text-ink-3"> {units}</span>}</span>
+            ))}
+            {keep ? (
+              <Button size="sm" variant="ghost" className="pointer-events-auto -my-1 ms-auto" icon={<Ruler size={14} />}
+                onClick={() => onDimension(keep.kind, keep.refs)}>Add as dimension</Button>
+            ) : null}
+          </span>
+        ) : null}
         <span>{text}</span>
         {typed ? <span className="tnum rounded-md bg-accent px-2 py-0.5 font-semibold text-accent-ink">{typed}</span> : null}
       </div>
@@ -405,7 +425,7 @@ function Details({ sk, status, readOnly, canDraw, units, editSketch, onSetDimens
       {making ? <MakeParts sk={sk} lines={partLines(sk, selectedLines)} open={making} onOpenChange={setMaking} /> : null}
       {repeating ? <RepeatDialog sk={sk} ids={selectedShapes} open={repeating} onOpenChange={setRepeating} onApply={(fn) => editSketch(fn)} /> : null}
       <div className="mt-auto border-t border-line px-4 py-3">
-        <Switch checked={ui.showAll} onChange={(v) => ui.set({ showAll: v })} label="Show all measurements" description="Every line's length and every circle's size, worked out." />
+        <Switch checked={ui.showAll} onChange={(v) => ui.set({ showAll: v })} label="Show all measurements" description="Every line's length, every circle's size and the angles where lines meet, worked out." />
         {!canDraw && !readOnly ? <p className="mt-3 text-[13px] text-ink-2">Change any number here or on the drawing. To draw, open the sketch on a larger screen.</p> : null}
       </div>
     </div>

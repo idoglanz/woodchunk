@@ -24,7 +24,7 @@ import { hasUnsaved, setEditorTranslator, setOnSaved, useEditor } from "@/lib/ed
 import { useMediaQuery } from "@/lib/focus";
 import { useRelativeTime } from "@/lib/format";
 import { dateLocale } from "@/lib/lang";
-import type { Conflict } from "@/lib/merge";
+import { UNNAMED, type Conflict } from "@/lib/merge";
 import { qk, useMe, usePlan, useProject } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 import { useTypingOnPhone } from "@/lib/typing";
@@ -312,7 +312,7 @@ const CONTAINERS = new Set(["assemblies", "parts", "hardware", "extras", "frame"
 /** "Frame › Leg › quantity" from a merge path. */
 function conflictLabel(c: Conflict, t: ReturnType<typeof useTranslations<"project.conflict">>): string {
   const field = (p: string) => (FIELD_NAMES as readonly string[]).includes(p) ? t(`field.${p as (typeof FIELD_NAMES)[number]}`) : null;
-  const parts = c.path.filter((p) => !CONTAINERS.has(p)).map((p) => field(p) ?? p.replace(/_mm$/, "").replace(/_/g, " "));
+  const parts = c.path.filter((p) => !CONTAINERS.has(p)).map((p) => (p === UNNAMED ? t("anItem") : field(p) ?? p.replace(/_mm$/, "").replace(/_/g, " ")));
   return parts.join(" › ") || t("theProject");
 }
 

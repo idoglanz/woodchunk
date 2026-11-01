@@ -53,7 +53,8 @@
       "grain_locked": "כיוון סיבים",
       "settings": "הגדרות חיתוך",
       "description": "תיאור"
-    }
+    },
+    "anItem": "פריט"
   },
   "status": {
     "label": "סטטוס הפרויקט",

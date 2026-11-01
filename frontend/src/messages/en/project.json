@@ -53,7 +53,8 @@
       "grain_locked": "grain",
       "settings": "cutting settings",
       "description": "description"
-    }
+    },
+    "anItem": "an item"
   },
   "status": {
     "label": "Project status",

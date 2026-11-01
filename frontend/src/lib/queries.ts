@@ -86,7 +86,7 @@ export function useCreateProject() {
   const t = useTranslations("common");
   return useMutation({
     mutationFn: (body: { name?: string; description?: string; template_id?: string | null }) =>
-      unwrap<Project>(api.POST("/api/projects", { body: { name: body.name ?? t("untitledProject"), description: body.description ?? "", template_id: body.template_id ?? null } })),
+      unwrap<Project>(api.POST("/api/projects", { body: { name: body.name ?? (body.template_id ? "" : t("untitledProject")), description: body.description ?? "", template_id: body.template_id ?? null } })),
     onSuccess: (p) => { qc.setQueryData(qk.project(p.id), p); void qc.invalidateQueries({ queryKey: ["projects"] }); },
     onError,
   });

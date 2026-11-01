@@ -7,7 +7,7 @@ import { Field, NumberInput, Select, Switch, TextInput } from "@/components/ui/f
 import { Sheet } from "@/components/ui/overlay";
 import { Segmented } from "@/components/ui/segmented";
 import type { CatalogItem, CatalogItemIn } from "@/lib/api/client";
-import { money, relativeTime } from "@/lib/format";
+import { money, useRelativeTime } from "@/lib/format";
 import { useItemStatus, useSaveItem, useSuppliers } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 
@@ -20,6 +20,7 @@ function blank(): CatalogItemIn {
 }
 
 export function ItemEditor({ item, admin, onClose }: { item: CatalogItem | null; admin: boolean; onClose: () => void }) {
+  const ago = useRelativeTime();
   const [v, setV] = useState<CatalogItemIn>(() => (item ? { ...blank(), ...item } : blank()));
   const suppliers = useSuppliers();
   const save = useSaveItem();
@@ -37,7 +38,7 @@ export function ItemEditor({ item, admin, onClose }: { item: CatalogItem | null;
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()} title={item ? (readOnly ? item.name.en : "Edit item") : admin ? "Add item" : "Suggest an item"} wide
-      description={item?.price_updated_at ? `Price updated ${relativeTime(item.price_updated_at)}` : undefined}
+      description={item?.price_updated_at ? `Price updated ${ago(item.price_updated_at)}` : undefined}
       footer={readOnly ? <Button onClick={onClose}>Close</Button> : <>
         {item && admin ? <Button variant="destructive" className="me-auto" onClick={() => status.mutate({ id: item.id, status: "retired" }, { onSuccess: () => { toast.info("Removed from the catalog"); onClose(); } })}>Remove</Button> : null}
         <Button variant="plain" onClick={onClose}>Cancel</Button>

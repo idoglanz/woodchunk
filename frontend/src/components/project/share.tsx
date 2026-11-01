@@ -10,7 +10,7 @@ import { Sheet } from "@/components/ui/overlay";
 import { Segmented } from "@/components/ui/segmented";
 import { api, unwrap, type Project, type Schemas } from "@/lib/api/client";
 import { useEditor } from "@/lib/editor";
-import { relativeTime } from "@/lib/format";
+import { useRelativeTime } from "@/lib/format";
 import { qk, useMe } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 
@@ -23,6 +23,7 @@ const linkUrl = (token: string) => `${window.location.origin}/join/${token}`;
  * links still out there, and changes or removes someone's access; everyone else can leave.
  */
 export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onOpenChange: (o: boolean) => void; project: Project }) {
+  const ago = useRelativeTime();
   const me = useMe();
   const owner = project.members.find((m) => m.role === "owner");
   const isOwner = !!me.data && (owner?.user_id === me.data.id || me.data.role === "admin");
@@ -118,7 +119,7 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="text-[14px] font-medium">{ROLE_LABEL[l.role as Role] ?? l.role} link</span>
                       <span className="text-[12px] text-ink-2">
-                        Made {relativeTime(l.created_at)} · {l.joined ? `${l.joined} joined` : "nobody joined yet"} · ends {new Date(l.expires_at).toLocaleDateString()}
+                        Made {ago(l.created_at)} · {l.joined ? `${l.joined} joined` : "nobody joined yet"} · ends {new Date(l.expires_at).toLocaleDateString()}
                       </span>
                     </div>
                     <IconButton label="Copy link" size="sm" onClick={() => copy(l.token)}><Copy size={15} /></IconButton>

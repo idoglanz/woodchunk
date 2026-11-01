@@ -6,7 +6,7 @@ import { Select, TextInput } from "@/components/ui/field";
 import { Badge, Card, EmptyState } from "@/components/ui/misc";
 import { filterPeople, LEVELS, sortPeople, type Person, type SortDir, type SortKey } from "@/lib/admin";
 import { cn } from "@/lib/cn";
-import { plural, relativeTime } from "@/lib/format";
+import { plural, useRelativeTime } from "@/lib/format";
 
 const COLUMNS: { key: SortKey; label: string; end?: boolean }[] = [
   { key: "name", label: "Person" },
@@ -54,6 +54,7 @@ function Name({ p }: { p: Person }) {
 }
 
 export function PeopleView({ people, onOpen }: { people: Person[]; onOpen: (id: string) => void }) {
+  const ago = useRelativeTime();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "last_seen", dir: "desc" });
   const shown = useMemo(() => sortPeople(filterPeople(people, query), sort.key, sort.dir), [people, query, sort]);
@@ -84,7 +85,7 @@ export function PeopleView({ people, onOpen }: { people: Person[]; onOpen: (id: 
                 <Name p={p} />
                 <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ink-2">
                   <LevelBadge p={p} />
-                  <span>seen {relativeTime(p.last_seen)}</span>
+                  <span>seen {ago(p.last_seen)}</span>
                   <span className="tnum">{plural(p.projects, "project")} · {plural(p.ai_calls_30d, "AI call")}</span>
                 </span>
               </button>
@@ -122,7 +123,7 @@ export function PeopleView({ people, onOpen }: { people: Person[]; onOpen: (id: 
                       </button>
                     </td>
                     <td className="tnum whitespace-nowrap px-4 text-ink-2">{new Date(p.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</td>
-                    <td className="whitespace-nowrap px-4 text-ink-2">{relativeTime(p.last_seen)}</td>
+                    <td className="whitespace-nowrap px-4 text-ink-2">{ago(p.last_seen)}</td>
                     <td className="tnum px-4 text-end">{p.projects}{p.shared ? <span className="text-ink-3"> +{p.shared}</span> : null}</td>
                     <td className="tnum whitespace-nowrap px-4 text-end">{p.ai_calls_7d} <span className="text-ink-3">/</span> {p.ai_calls_30d}</td>
                     <td className="whitespace-nowrap px-4"><LevelBadge p={p} /></td>

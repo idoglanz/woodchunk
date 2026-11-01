@@ -12,7 +12,7 @@ import { Card, EmptyState, PageTitle, Skeleton, StatusPill } from "@/components/
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/overlay";
 import { Segmented } from "@/components/ui/segmented";
 import type { ProjectSummary } from "@/lib/api/client";
-import { moneyShort, plural, relativeTime } from "@/lib/format";
+import { moneyShort, plural, useRelativeTime } from "@/lib/format";
 import { useMe, useProjectAction, useProjects } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 
@@ -58,6 +58,7 @@ export function ProjectsHome() {
 }
 
 function ProjectCard({ p }: { p: ProjectSummary }) {
+  const ago = useRelativeTime();
   const router = useRouter();
   const act = useProjectAction();
   const owner = p.role === "owner";
@@ -91,7 +92,7 @@ function ProjectCard({ p }: { p: ProjectSummary }) {
             <StatusPill status={p.status} />
             <Avatars people={others} size={22} ring="var(--surface)" />
           </div>
-          <span className="text-[12px] text-ink-3">{plural(p.parts, "part")} · {relativeTime(p.updated_at)}{p.role !== "owner" ? ` · shared by ${p.owner_name}` : ""}</span>
+          <span className="text-[12px] text-ink-3">{plural(p.parts, "part")} · {ago(p.updated_at)}{p.role !== "owner" ? ` · shared by ${p.owner_name}` : ""}</span>
         </div>
         <span className="tnum text-[22px] font-semibold tracking-[-0.01em]">{p.total_cost ? moneyShort(p.total_cost) : ""}</span>
       </div>

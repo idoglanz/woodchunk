@@ -1,3 +1,6 @@
+import { useLocale, useTranslations } from "use-intl";
+import { dateLocale } from "@/lib/lang";
+
 const SYMBOL: Record<string, string> = { ILS: "₪", USD: "$", EUR: "€", GBP: "£" };
 
 export function money(value: number | null | undefined, currency = "ILS"): string {
@@ -6,9 +9,9 @@ export function money(value: number | null | undefined, currency = "ILS"): strin
   return `${sym}${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-/** A total that may be missing prices: "No prices yet" rather than a misleading ₪0.00. */
-export function costText(value: number, currency: string, unpriced: boolean): string {
-  return unpriced && !value ? "No prices yet" : money(value, currency);
+/** A total that may be missing prices: "No prices yet" (`none`, in the page's language) rather than a misleading ₪0.00. */
+export function costText(value: number, currency: string, unpriced: boolean, none = "No prices yet"): string {
+  return unpriced && !value ? none : money(value, currency);
 }
 
 export function moneyShort(value: number | null | undefined, currency = "ILS"): string {
@@ -21,14 +24,19 @@ export function pct(value: number): string {
   return `${value.toFixed(1)}%`;
 }
 
-export function relativeTime(iso: string): string {
-  const d = new Date(iso);
-  const s = (Date.now() - d.getTime()) / 1000;
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
-  if (s < 86400 * 7) return `${Math.floor(s / 86400)} d ago`;
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+/** "5 min ago", "3 d ago", then the date: in the app's language. */
+export function useRelativeTime(): (iso: string) => string {
+  const t = useTranslations("common.time");
+  const lang = useLocale();
+  return (iso) => {
+    const d = new Date(iso);
+    const s = (Date.now() - d.getTime()) / 1000;
+    if (s < 60) return t("justNow");
+    if (s < 3600) return t("minutesAgo", { n: Math.floor(s / 60) });
+    if (s < 86400) return t("hoursAgo", { n: Math.floor(s / 3600) });
+    if (s < 86400 * 7) return t("daysAgo", { n: Math.floor(s / 86400) });
+    return d.toLocaleDateString(dateLocale(lang), { day: "numeric", month: "short", year: "numeric" });
+  };
 }
 
 export function plural(n: number, one: string, many = `${one}s`): string {

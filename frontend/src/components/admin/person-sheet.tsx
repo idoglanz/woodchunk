@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { Sheet } from "@/components/ui/overlay";
 import { AI_FEATURES, bucket, minutes } from "@/lib/admin";
 import { api, unwrap, type Schemas } from "@/lib/api/client";
-import { plural, relativeTime } from "@/lib/format";
+import { plural, useRelativeTime } from "@/lib/format";
 import { toast } from "@/lib/toast";
 
 type Detail = Schemas["PersonDetail"];
@@ -20,6 +20,7 @@ function date(iso: string): string {
 
 /** One person's usage over time. Counts only: nothing here says what they're building. */
 export function PersonSheet({ userId, days, meId, onClose }: { userId: string | null; days: number; meId?: string; onClose: () => void }) {
+  const ago = useRelativeTime();
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["admin", "user", userId, days], enabled: !!userId,
@@ -58,7 +59,7 @@ export function PersonSheet({ userId, days, meId, onClose }: { userId: string | 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ink-2">
             <LevelBadge p={p} />
             <span>Signed up {date(p.created_at)}</span>
-            <span>Last seen {relativeTime(p.last_seen)}</span>
+            <span>Last seen {ago(p.last_seen)}</span>
             <span className="capitalize">{p.role}</span>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -97,7 +98,7 @@ export function PersonSheet({ userId, days, meId, onClose }: { userId: string | 
                   <li key={a.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                     <span className="flex min-w-0 flex-col text-[14px]">
                       <span className="tnum">{plural(a.assemblies, "assembly", "assemblies")} · {plural(a.parts, "part")}</span>
-                      <span className="text-[12px] text-ink-2">Created {date(a.created_at)} · last changed {relativeTime(a.updated_at)}</span>
+                      <span className="text-[12px] text-ink-2">Created {date(a.created_at)} · last changed {ago(a.updated_at)}</span>
                     </span>
                     <Button size="sm" variant="ghost" onClick={() => restore(a.id)}>Restore</Button>
                   </li>

@@ -1,0 +1,11 @@
+{
+  "main": "ראשי",
+  "projects": "פרויקטים",
+  "catalog": "קטלוג",
+  "templates": "תבניות",
+  "inventory": "מלאי",
+  "account": "חשבון",
+  "settings": "הגדרות",
+  "admin": "ניהול",
+  "signOut": "התנתקות"
+}

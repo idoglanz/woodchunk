@@ -21,7 +21,7 @@ import { api, ApiError, unwrap, type Project, type Schemas } from "@/lib/api/cli
 import { cn } from "@/lib/cn";
 import { hasUnsaved, setOnSaved, useEditor } from "@/lib/editor";
 import { useMediaQuery } from "@/lib/focus";
-import { relativeTime } from "@/lib/format";
+import { useRelativeTime } from "@/lib/format";
 import type { Conflict } from "@/lib/merge";
 import { qk, useMe, usePlan, useProject } from "@/lib/queries";
 import { toast } from "@/lib/toast";
@@ -323,6 +323,7 @@ function TitleInput() {
 }
 
 export function SaveIndicator() {
+  const ago = useRelativeTime();
   const save = useEditor((s) => s.save);
   const readOnly = useEditor((s) => s.readOnly);
   const project = useEditor((s) => s.project);
@@ -330,7 +331,7 @@ export function SaveIndicator() {
   // Someone else made the latest change: say who, so a shared project's changes aren't a mystery.
   const byOther = project?.updated_by && project.updated_by !== me?.id && (save === "saved" || save === "idle");
   if (readOnly) return <span className="me-2 text-[13px] text-ink-3">View only</span>;
-  if (byOther) return <span className="me-2 text-[13px] text-ink-3 max-sm:hidden" title={new Date(project.updated_at).toLocaleString()}>{project.updated_by_name} edited · {relativeTime(project.updated_at)}</span>;
+  if (byOther) return <span className="me-2 text-[13px] text-ink-3 max-sm:hidden" title={new Date(project.updated_at).toLocaleString()}>{project.updated_by_name} edited · {ago(project.updated_at)}</span>;
   // Phones: icons only, so the header's actions fit beside the back arrow.
   if (save === "saving" || save === "pending") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-ink-3"><Spinner className="h-3.5 w-3.5" /><span className="max-sm:sr-only">Saving</span></span>;
   if (save === "error" || save === "conflict") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-kerf"><CloudOff size={14} />{save === "conflict" ? "Out of date" : "Not saved, retrying"}</span>;

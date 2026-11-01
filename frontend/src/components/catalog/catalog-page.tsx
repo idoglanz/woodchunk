@@ -14,7 +14,7 @@ import { Badge, Card, EmptyState, PageTitle, Skeleton } from "@/components/ui/mi
 import { Segmented } from "@/components/ui/segmented";
 import { api, unwrap, type CatalogImport, type CatalogItem } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
-import { relativeTime } from "@/lib/format";
+import { useRelativeTime } from "@/lib/format";
 import { useCatalog, useItemStatus, useMe, useSuppliers } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 
@@ -33,6 +33,7 @@ function group(it: CatalogItem): number[] {
 }
 
 export function CatalogPage() {
+  const ago = useRelativeTime();
   const me = useMe();
   const admin = me.data?.role === "admin";
   const [kind, setKind] = useState<Kind>("all");
@@ -134,7 +135,7 @@ export function CatalogPage() {
                     </span>
                     <span className="tnum truncate text-[14px] text-ink-2">{itemDetail(it)}</span>
                     <span className="truncate text-[14px] text-ink-2">{it.supplier_name || "—"}</span>
-                    <span className="text-[13px] text-ink-3 md:text-end">{it.price_updated_at ? relativeTime(it.price_updated_at) : "no price"}</span>
+                    <span className="text-[13px] text-ink-3 md:text-end">{it.price_updated_at ? ago(it.price_updated_at) : "no price"}</span>
                   </button>
                 </li>
               ))}

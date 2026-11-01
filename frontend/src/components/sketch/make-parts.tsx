@@ -6,6 +6,7 @@ import { useProjectCtx } from "@/components/project/context";
 import { ItemPicker, rememberMaterial } from "@/components/project/material-picker";
 import { Button } from "@/components/ui/button";
 import { Field, QtyInput, Select } from "@/components/ui/field";
+import { Ltr } from "@/components/ui/misc";
 import { Sheet } from "@/components/ui/overlay";
 import { newAssembly, newPart, nextLetter, useEditor } from "@/lib/editor";
 import { plural } from "@/lib/format";
@@ -73,7 +74,7 @@ export function MakeParts({ sk, lines, open, onOpenChange }: { sk: Sketch; lines
         <ul className="flex flex-wrap gap-1.5">
           {lines.map((l) => (
             <li key={l} className="tnum rounded-lg bg-surface-2 px-2 py-1 text-[13px]">
-              {names.get(l)} · {fmtLength(lineLength(sk, l) ?? 0, units)}
+              {names.get(l)} · <Ltr>{fmtLength(lineLength(sk, l) ?? 0, units)}</Ltr>
               {linked.has(l) ? <span className="text-ink-3"> · already {linked.get(l)!.label}</span> : null}
             </li>
           ))}

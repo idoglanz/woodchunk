@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "main": "ראשי",
+    "projects": "פרויקטים",
+    "catalog": "קטלוג",
+    "templates": "תבניות",
+    "inventory": "מלאי",
+    "account": "חשבון",
+    "settings": "הגדרות",
+    "admin": "ניהול",
+    "signOut": "התנתקות"
+  },
+  "settings": {
+    "title": "הגדרות",
+    "subtitle": "השינויים נשמרים תוך כדי.",
+    "name": "השם שלך",
+    "language": "שפה",
+    "languagePreview": "רק מנהלים רואים את זה בזמן שהאפליקציה מתורגמת.",
+    "appearance": "מראה",
+    "automatic": "אוטומטי",
+    "light": "בהיר",
+    "dark": "כהה",
+    "lengthsIn": "אורכים ב־",
+    "units": "יחידות",
+    "millimetres": "מילימטרים",
+    "centimetres": "סנטימטרים",
+    "exports": "רשימת קניות ודף עבודה",
+    "exportLanguage": "שפת הייצוא",
+    "cuttingTitle": "ברירות מחדל לחיתוך בפרויקטים חדשים",
+    "cuttingHint": "כל פרויקט יכול לשנות אותן בלשונית הבנייה."
+  }
+}

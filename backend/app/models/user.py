@@ -15,6 +15,8 @@ class UserRole(StrEnum):
 
 class Prefs(Model):
     units: Literal["mm", "cm"] = "mm"
+    # The app's own language. Exports keep their own choice (export_lang).
+    lang: Literal["en", "he"] = "en"
     export_lang: Literal["en", "he"] = "en"
     theme: Literal["system", "light", "dark"] = "system"
     cutting: CuttingSettings = CuttingSettings()

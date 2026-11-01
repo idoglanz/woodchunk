@@ -31,7 +31,7 @@ function PanelHeader({ title, sub, chip, frame }: { title: string; sub?: string;
     <div className="-mx-1 -mt-1 flex flex-col gap-1">
       <button type="button" onClick={() => (back ? goBack() : select(null))}
         className="inline-flex items-center gap-1 self-start rounded-md px-1 text-[13px] font-medium text-info hover:underline">
-        <ChevronLeft size={15} />{backLabel}
+        <ChevronLeft size={15} className="rtl:-scale-x-100" />{backLabel}
       </button>
       <div className="flex items-center gap-2 px-1">
         {chip ? <AsmChip letter={chip.letter}>{chip.text}</AsmChip> : null}

@@ -60,7 +60,7 @@ export function NewProjectSheet({ open, onOpenChange }: { open: boolean; onOpenC
           <Link href="/templates" onClick={() => onOpenChange(false)}
             className="flex flex-col items-start gap-2 rounded-[14px] bg-surface-2 p-3.5 text-start transition-colors hover:bg-surface-3">
             <LayoutTemplate size={18} className="text-ink-2" />
-            <span className="flex items-center gap-1 text-[14px] font-semibold">Template <ArrowRight size={13} /></span>
+            <span className="flex items-center gap-1 text-[14px] font-semibold">Template <ArrowRight size={13} className="rtl:-scale-x-100" /></span>
           </Link>
           <Choice active={mode === "blank"} onClick={() => setMode("blank")} icon={<FilePlus2 size={18} />} title="Blank" />
         </div>

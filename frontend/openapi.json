@@ -6673,6 +6673,15 @@
       "title": "Units",
       "default": "mm"
      },
+     "lang": {
+      "type": "string",
+      "enum": [
+       "en",
+       "he"
+      ],
+      "title": "Lang",
+      "default": "en"
+     },
      "export_lang": {
       "type": "string",
       "enum": [
@@ -6722,6 +6731,15 @@
       "title": "Units",
       "default": "mm"
      },
+     "lang": {
+      "type": "string",
+      "enum": [
+       "en",
+       "he"
+      ],
+      "title": "Lang",
+      "default": "en"
+     },
      "export_lang": {
       "type": "string",
       "enum": [
@@ -6760,6 +6778,7 @@
     "type": "object",
     "required": [
      "units",
+     "lang",
      "export_lang",
      "theme",
      "cutting"
@@ -9026,6 +9045,7 @@
       "$ref": "#/components/schemas/Prefs-Output",
       "default": {
        "units": "mm",
+       "lang": "en",
        "export_lang": "en",
        "theme": "system",
        "cutting": {

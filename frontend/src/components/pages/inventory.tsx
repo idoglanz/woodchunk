@@ -7,7 +7,7 @@ import { ItemPicker } from "@/components/project/material-picker";
 import { Page } from "@/components/shell/app-shell";
 import { Button, IconButton } from "@/components/ui/button";
 import { Field, LengthInput, NumberInput } from "@/components/ui/field";
-import { Badge, Card, EmptyState, PageTitle, Skeleton } from "@/components/ui/misc";
+import { Badge, Card, EmptyState, Ltr, PageTitle, Skeleton } from "@/components/ui/misc";
 import { Sheet } from "@/components/ui/overlay";
 import { Segmented } from "@/components/ui/segmented";
 import { api, unwrap, type InventoryEntry } from "@/lib/api/client";
@@ -47,7 +47,7 @@ export function InventoryPage() {
             <Card className="divide-y divide-line">
               {list.map((e) => (
                 <div key={e.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
-                  <span className="tnum w-40 text-[15px] font-semibold">{fmtDims(e.length_mm, e.width_mm)} mm</span>
+                  <span className="tnum w-40 text-[15px] font-semibold"><Ltr>{fmtDims(e.length_mm, e.width_mm)} mm</Ltr></span>
                   <Badge tone={e.kind === "offcut" ? "accent" : "neutral"}>{e.kind === "offcut" ? "Offcut" : "Full"}</Badge>
                   <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2">{e.source_project_name ? `From ${e.source_project_name}` : e.note}</span>
                   <NumberInput ariaLabel="Quantity" className="w-20" value={e.qty} min={1} onChange={(n) => n && patch(e, { qty: Math.round(n) })} />

@@ -1,7 +1,7 @@
 "use client";
 
 import type { LumberPlan } from "@/lib/api/client";
-import { asmColors } from "@/components/ui/misc";
+import { asmColors, Ltr } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { fmtMeters } from "@/lib/units";
 import type { CSSProperties } from "react";
@@ -53,7 +53,7 @@ export function LumberBars({ plan, labels = true, print = false, active, onPick 
       {plan.patterns.map((pat, i) => (
         <div key={i} className="avoid-break flex flex-col gap-1 @[480px]:flex-row @[480px]:items-center @[480px]:gap-3">
           <span className="tnum flex shrink-0 gap-1.5 text-[13px] leading-tight @[480px]:w-[68px] @[480px]:flex-col @[480px]:gap-0">
-            <span className="font-semibold">{fmtMeters(pat.stock_length)}</span>
+            <span className="font-semibold"><Ltr>{fmtMeters(pat.stock_length)}</Ltr></span>
             <span className="text-ink-3">×{pat.count}{pat.source !== "buy" ? (pat.source === "inventory" ? " · yours" : " · bought") : ""}</span>
           </span>
           <div className="min-w-0 flex-1" style={{ minWidth: minBars }}>

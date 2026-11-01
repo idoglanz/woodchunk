@@ -9,6 +9,18 @@ export function isTyping(target: EventTarget | null): boolean {
   return !!target.closest('[role="menu"], [role="listbox"], [role="dialog"], [role="combobox"]');
 }
 
+/**
+ * The key a single-letter shortcut means, lower-cased. A Latin letter is taken as typed (so
+ * AZERTY and Dvorak keep their letters). Anything else on a letter key is that key's Latin
+ * letter: on a Hebrew layout L types ך, and Q and W type / and '.
+ */
+export function shortcutKey(e: Pick<KeyboardEvent, "key" | "code">): string {
+  if (e.key.length !== 1) return e.key;
+  if (/^[a-z]$/i.test(e.key)) return e.key.toLowerCase();
+  const m = /^Key([A-Z])$/.exec(e.code);
+  return m ? m[1].toLowerCase() : e.key.toLowerCase();
+}
+
 /** A field that brings up the on-screen keyboard. */
 function isTextEntry(el: Element | null): boolean {
   if (!(el instanceof HTMLElement)) return false;

@@ -2518,6 +2518,12 @@ export interface components {
              */
             units: "mm" | "cm";
             /**
+             * Lang
+             * @default en
+             * @enum {string}
+             */
+            lang: "en" | "he";
+            /**
              * Export Lang
              * @default en
              * @enum {string}
@@ -2553,6 +2559,12 @@ export interface components {
              * @enum {string}
              */
             units: "mm" | "cm";
+            /**
+             * Lang
+             * @default en
+             * @enum {string}
+             */
+            lang: "en" | "he";
             /**
              * Export Lang
              * @default en
@@ -3579,6 +3591,7 @@ export interface components {
             /**
              * @default {
              *       "units": "mm",
+             *       "lang": "en",
              *       "export_lang": "en",
              *       "theme": "system",
              *       "cutting": {

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useProjectCtx } from "@/components/project/context";
 import { Button } from "@/components/ui/button";
 import { Field, LengthInput, QtyInput, Select } from "@/components/ui/field";
+import { Ltr } from "@/components/ui/misc";
 import { Sheet } from "@/components/ui/overlay";
 import { Segmented } from "@/components/ui/segmented";
 import { newId } from "@/lib/editor";
@@ -120,7 +121,7 @@ export function RepeatDialog({ sk, ids, open, onOpenChange, onApply }: {
         ) : null}
         <p role="status" className={result.ok ? "tnum rounded-xl bg-surface-2 px-3 py-2 text-[15px]" : "rounded-xl bg-kerf-soft px-3 py-2 text-[14px] text-kerf"}>
           {result.ok
-            ? <>Gap between: <b>{fmtLength(Math.round(result.gap * 10) / 10, units)}</b>{mode !== "gap" ? <> · at each end: <b>{fmtLength(Math.round(result.end * 10) / 10, units)}</b></> : null}</>
+            ? <>Gap between: <b><Ltr>{fmtLength(Math.round(result.gap * 10) / 10, units)}</Ltr></b>{mode !== "gap" ? <> · at each end: <b><Ltr>{fmtLength(Math.round(result.end * 10) / 10, units)}</Ltr></b></> : null}</>
             : result.reason}
         </p>
       </div>

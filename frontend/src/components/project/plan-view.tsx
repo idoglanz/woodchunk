@@ -6,7 +6,7 @@ import { useProjectCtx } from "@/components/project/context";
 import { LumberBars } from "@/components/diagrams/lumber";
 import { SheetDiagram, cutText } from "@/components/diagrams/sheet";
 import { Spinner } from "@/components/ui/button";
-import { Badge, Callout, Skeleton } from "@/components/ui/misc";
+import { Badge, Callout, Ltr, Skeleton } from "@/components/ui/misc";
 import { Tip } from "@/components/ui/overlay";
 import type { LumberPlan, SheetPlan } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
@@ -128,7 +128,7 @@ function BuyLine({ lines, sheet }: { lines: LumberPlan["buy"]; sheet?: boolean }
         <span key={g.src}>
           {gi ? "  ·  " : ""}{verb[g.src]}{" "}
           {g.items.map((b, i) => (
-            <span key={i} className="font-semibold text-ink">{i ? <span className="font-normal text-ink-3"> · </span> : null}{b.qty} × {sheet ? `${b.width_mm} × ${b.length_mm}` : fmtMeters(b.length_mm)}</span>
+            <span key={i} className="font-semibold text-ink">{i ? <span className="font-normal text-ink-3"> · </span> : null}<Ltr>{b.qty} × {sheet ? `${b.width_mm} × ${b.length_mm}` : fmtMeters(b.length_mm)}</Ltr></span>
           ))}
         </span>
       ))}

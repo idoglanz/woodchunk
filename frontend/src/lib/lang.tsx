@@ -2,13 +2,12 @@
 
 import { DirectionProvider } from "@radix-ui/react-direction";
 import { useLayoutEffect, useSyncExternalStore, type ReactNode } from "react";
-import { IntlProvider } from "use-intl";
+import { IntlProvider, type useTranslations } from "use-intl";
 import { dirOf, type Lang } from "@/lib/i18n";
-import en from "@/messages/en.json";
-import heJson from "@/messages/he.json";
+import { en, he as heFiles } from "@/messages";
 
 // Every English message needs its Hebrew: a missing key fails the type check here.
-const he: typeof en = heJson;
+const he: typeof en = heFiles;
 const MESSAGES = { en, he };
 
 declare module "use-intl" {
@@ -16,6 +15,18 @@ declare module "use-intl" {
     Locale: Lang;
     Messages: typeof en;
   }
+}
+
+/** A translator for one area, for code outside components (tests make one with createTranslator). */
+export type Translator<NS extends keyof typeof en> = ReturnType<typeof useTranslations<NS>>;
+
+/** Dates and numbers in each language. English keeps its "1 Nov 2026" dates and 1,234.5 numbers. */
+export function dateLocale(lang: Lang): string {
+  return lang === "he" ? "he-IL" : "en-GB";
+}
+
+export function numberLocale(lang: Lang): string {
+  return lang === "he" ? "he-IL" : "en-US";
 }
 
 export const LANG_KEY = "wc.lang";

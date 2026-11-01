@@ -1,7 +1,11 @@
+import { createTranslator } from "use-intl";
 import { describe, expect, it } from "vitest";
+import { en } from "@/messages";
 import { Profile, solve } from "./kernel";
-import { TEMPLATES } from "./templates";
+import { frameTemplates } from "./templates";
 import type { ProfileSpec } from "./types";
+
+const TEMPLATES = frameTemplates(createTranslator({ locale: "en", messages: en, namespace: "frame" }));
 
 const tube: ProfileSpec = { shape: "rect_tube", w: 40, h: 40, t: 2 };
 const board: ProfileSpec = { shape: "rect", w: 95, h: 22 };

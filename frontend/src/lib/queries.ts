@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "use-intl";
 import {
   api, postForm, unwrap,
   type CatalogImport, type CatalogItem, type CatalogItemIn, type Conversation, type InventoryEntry, type Plan, type Prefs,
@@ -25,7 +26,11 @@ export const qk = {
   aiStatus: ["ai-status"] as const,
 };
 
-const onError = (e: unknown) => toast.error(e instanceof Error ? e.message : "Something went wrong.");
+/** Shows a failed change as a toast: the server's message, or a general one in the page's language. */
+function useOnError() {
+  const t = useTranslations("common.errors");
+  return (e: unknown) => toast.error(e instanceof Error ? e.message : t("generic"));
+}
 
 export function useMe(enabled = true) {
   return useQuery({ queryKey: qk.me, enabled, staleTime: 60_000, queryFn: () => unwrap<User>(api.GET("/api/me")) });
@@ -33,6 +38,7 @@ export function useMe(enabled = true) {
 
 export function useUpdateMe() {
   const qc = useQueryClient();
+  const onError = useOnError();
   return useMutation({
     mutationFn: (body: { name?: string | null; prefs: Prefs }) => unwrap<User>(api.PUT("/api/me", { body })),
     onSuccess: (u) => qc.setQueryData(qk.me, u),
@@ -76,9 +82,11 @@ export function useShopping(id: string, version: number, lang: "en" | "he", enab
 
 export function useCreateProject() {
   const qc = useQueryClient();
+  const onError = useOnError();
+  const t = useTranslations("common");
   return useMutation({
     mutationFn: (body: { name?: string; description?: string; template_id?: string | null }) =>
-      unwrap<Project>(api.POST("/api/projects", { body: { name: body.name ?? "Untitled project", description: body.description ?? "", template_id: body.template_id ?? null } })),
+      unwrap<Project>(api.POST("/api/projects", { body: { name: body.name ?? (body.template_id ? "" : t("untitledProject")), description: body.description ?? "", template_id: body.template_id ?? null } })),
     onSuccess: (p) => { qc.setQueryData(qk.project(p.id), p); void qc.invalidateQueries({ queryKey: ["projects"] }); },
     onError,
   });
@@ -86,6 +94,7 @@ export function useCreateProject() {
 
 export function useProjectAction() {
   const qc = useQueryClient();
+  const onError = useOnError();
   const done = (p?: Project) => {
     if (p) qc.setQueryData(qk.project(p.id), p);
     void qc.invalidateQueries({ queryKey: ["projects"] });
@@ -143,6 +152,7 @@ export function useCatalog(params: { q?: string; kind?: "lumber" | "sheet" | "ha
 
 export function useSaveItem() {
   const qc = useQueryClient();
+  const onError = useOnError();
   return useMutation({
     mutationFn: ({ id, body }: { id?: string; body: CatalogItemIn }) =>
       id ? unwrap<CatalogItem>(api.PUT("/api/catalog/{item_id}", { params: { path: { item_id: id } }, body }))
@@ -154,6 +164,7 @@ export function useSaveItem() {
 
 export function useItemStatus() {
   const qc = useQueryClient();
+  const onError = useOnError();
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: "active" | "suggested" | "retired" }) =>
       unwrap<CatalogItem>(api.POST("/api/catalog/{item_id}/status", { params: { path: { item_id: id } }, body: { status } })),

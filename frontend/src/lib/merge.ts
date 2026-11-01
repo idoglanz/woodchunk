@@ -67,11 +67,14 @@ function mergeAt(base: Json, mine: Json, theirs: Json, path: string[], out: Conf
   return theirs;
 }
 
+/** Stands in for an item without a name in a conflict's path (the page shows it in its language). */
+export const UNNAMED = "an item";
+
 function mergeList(base: Item[], mine: Item[], theirs: Item[], key: Key, path: string[], out: Conflict[]): Item[] {
   const idOf = (x: Item) => x[key] as string;
   const byId = (xs: Item[]) => new Map(xs.map((x) => [idOf(x), x]));
   const b = byId(base), m = byId(mine), t = byId(theirs);
-  const label = (x: Item) => (typeof x.name === "string" && x.name) || (typeof x.label === "string" && x.label) || "an item";
+  const label = (x: Item) => (typeof x.name === "string" && x.name) || (typeof x.label === "string" && x.label) || UNNAMED;
   const result = new Map<string, Item>();
   const keep = (id: string, x: Item | undefined) => { if (x) result.set(id, x); };
 

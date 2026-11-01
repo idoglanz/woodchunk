@@ -1,9 +1,13 @@
+import { createTranslator } from "use-intl";
 import { describe, expect, it } from "vitest";
+import { en } from "@/messages";
 import { addMember, commonItem, deleteMembers, mergeNode, moveNode, neighbours, nodePositions, setMemberLength } from "./edit";
 import { Profile, solve, type Vec } from "./kernel";
 import { snapDrag, snapPoint, typedEnd, type Projector } from "./snap";
-import { TEMPLATES } from "./templates";
+import { frameTemplates } from "./templates";
 import type { Frame } from "./types";
+
+const TEMPLATES = frameTemplates(createTranslator({ locale: "en", messages: en, namespace: "frame" }));
 
 const tube = { shape: "rect_tube" as const, w: 40, h: 40, t: 2 };
 const profiles = { tube: Profile.from(tube) };

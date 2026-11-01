@@ -6,6 +6,7 @@ import * as Popover from "@radix-ui/react-popover";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
+import { useTranslations } from "use-intl";
 import { cn } from "@/lib/cn";
 
 /**
@@ -15,6 +16,7 @@ import { cn } from "@/lib/cn";
 export function FullScreen({ open, onOpenChange, title, children }: {
   open: boolean; onOpenChange: (o: boolean) => void; title: string; children: ReactNode;
 }) {
+  const tc = useTranslations("common");
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -23,7 +25,7 @@ export function FullScreen({ open, onOpenChange, title, children }: {
           style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
           <div className="flex shrink-0 items-center justify-between gap-3 px-4 pb-1 pt-3">
             <Dialog.Title className="text-[18px] font-semibold tracking-[-0.01em]">{title}</Dialog.Title>
-            <Dialog.Close aria-label="Close" className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-ink-2">
+            <Dialog.Close aria-label={tc("close")} className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-ink-2">
               <X size={16} strokeWidth={2.2} />
             </Dialog.Close>
           </div>
@@ -39,6 +41,7 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
   open: boolean; onOpenChange: (o: boolean) => void; title: string; description?: string; children: ReactNode;
   footer?: ReactNode; wide?: boolean;
 }) {
+  const tc = useTranslations("common");
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -56,7 +59,7 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
               <Dialog.Title className="text-[20px] font-semibold tracking-[-0.01em]">{title}</Dialog.Title>
               {description ? <Dialog.Description className="text-[14px] text-ink-2">{description}</Dialog.Description> : <Dialog.Description className="sr-only">{title}</Dialog.Description>}
             </div>
-            <Dialog.Close aria-label="Close" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2 text-ink-2 hover:text-ink sm:-me-2 sm:h-8 sm:w-8">
+            <Dialog.Close aria-label={tc("close")} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2 text-ink-2 hover:text-ink sm:-me-2 sm:h-8 sm:w-8">
               <X size={16} strokeWidth={2.2} />
             </Dialog.Close>
           </div>

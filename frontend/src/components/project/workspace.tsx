@@ -5,6 +5,7 @@ import { ArrowLeft, Check, ClipboardList, CloudOff, Hammer, Redo2, Share, Shoppi
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useLocale, useTranslations } from "use-intl";
 import { AIPanel } from "@/components/project/ai-panel";
 import { ProjectContext, useProjectCtx } from "@/components/project/context";
 import { MoreMenu, TemplateSheet } from "@/components/project/more-menu";
@@ -19,10 +20,11 @@ import { EmptyState, Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { api, ApiError, unwrap, type Project, type Schemas } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
-import { hasUnsaved, setOnSaved, useEditor } from "@/lib/editor";
+import { hasUnsaved, setEditorTranslator, setOnSaved, useEditor } from "@/lib/editor";
 import { useMediaQuery } from "@/lib/focus";
-import { relativeTime } from "@/lib/format";
-import type { Conflict } from "@/lib/merge";
+import { useRelativeTime } from "@/lib/format";
+import { dateLocale } from "@/lib/lang";
+import { UNNAMED, type Conflict } from "@/lib/merge";
 import { qk, useMe, usePlan, useProject } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 import { useTypingOnPhone } from "@/lib/typing";
@@ -35,7 +37,7 @@ const SYNC_EVERY_MS = 8000;
  * when the tab comes back into view) loads their saves when nothing here is unsaved (unsaved edits
  * are merged when they're saved), and refreshes the shopping list when someone ticks an item.
  */
-function useLiveSync(id: string, enabled: boolean) {
+function useLiveSync(id: string, enabled: boolean, noAccess: string) {
   const qc = useQueryClient();
   const router = useRouter();
   const seen = useRef<{ checks: number; members: number } | null>(null);
@@ -68,7 +70,7 @@ function useLiveSync(id: string, enabled: boolean) {
         if (e instanceof ApiError && e.status === 404) {
           // Removed from the project (or it was deleted): nothing more to sync.
           gone = true;
-          toast.info("You no longer have access to this project.");
+          toast.info(noAccess);
           router.replace("/");
         }
         // Otherwise offline or signed out: the next check tries again.
@@ -85,13 +87,13 @@ function useLiveSync(id: string, enabled: boolean) {
       document.removeEventListener("visibilitychange", onShow);
       window.removeEventListener("focus", onShow);
     };
-  }, [id, enabled, qc, router]);
+  }, [id, enabled, qc, router, noAccess]);
 }
 
 const TABS = [
-  { value: "build", label: "Build", icon: Hammer },
-  { value: "buy", label: "Buy", icon: ShoppingCart },
-  { value: "sheet", label: "Shop sheet", icon: ClipboardList },
+  { value: "build", label: "tabBuild", icon: Hammer },
+  { value: "buy", label: "tabBuy", icon: ShoppingCart },
+  { value: "sheet", label: "tabSheet", icon: ClipboardList },
 ] as const;
 
 /**
@@ -99,19 +101,20 @@ const TABS = [
  * bottom (the cutting plan, the shopping total) sit on top of it via --bottom-nav.
  */
 function BottomNav({ id, tab }: { id: string; tab: string }) {
+  const t = useTranslations("project.workspace");
   if (useTypingOnPhone()) return null; // the keyboard is up: out of its way
   return (
-    <nav aria-label="Project view" className="no-print fixed inset-x-0 bottom-0 z-[35] flex border-t border-line backdrop-blur-xl sm:hidden"
+    <nav aria-label={t("projectView")} className="no-print fixed inset-x-0 bottom-0 z-[35] flex border-t border-line backdrop-blur-xl sm:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)", background: "color-mix(in srgb, var(--surface) 96%, transparent)" }}>
-      {TABS.map((t) => {
-        const active = t.value === tab;
+      {TABS.map((tb) => {
+        const active = tb.value === tab;
         return (
-          <Link key={t.value} href={`/projects/${id}/${t.value}`} scroll={false} aria-current={active ? "page" : undefined}
+          <Link key={tb.value} href={`/projects/${id}/${tb.value}`} scroll={false} aria-current={active ? "page" : undefined}
             className={cn("flex h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px]", active ? "font-semibold text-ink" : "font-medium text-ink-3")}>
             <span className={cn("flex h-7 w-14 items-center justify-center rounded-full transition-colors", active && "bg-accent-soft")}>
-              <t.icon size={19} strokeWidth={active ? 2.2 : 1.8} />
+              <tb.icon size={19} strokeWidth={active ? 2.2 : 1.8} />
             </span>
-            {t.label}
+            {t(tb.label)}
           </Link>
         );
       })}
@@ -124,8 +127,10 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
   const me = useMe();
   const qc = useQueryClient();
   const pathname = usePathname();
-  const tab = (TABS.find((t) => pathname.endsWith(`/${t.value}`))?.value ?? "build") as (typeof TABS)[number]["value"];
+  const tab = (TABS.find((tb) => pathname.endsWith(`/${tb.value}`))?.value ?? "build") as (typeof TABS)[number]["value"];
   const ed = useEditor();
+  const t = useTranslations("project.workspace");
+  const tp = useTranslations("project");
   const search = useSearchParams();
   const [aiOpen, setAIOpen] = useState(() => search.has("ask"));
   const [sharing, setSharing] = useState(false);
@@ -153,6 +158,9 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
   useEffect(() => {
     useEditor.setState({ readOnly });
   }, [readOnly]);
+
+  // The editor's own messages (save errors) follow the app's language.
+  useEffect(() => { setEditorTranslator(tp); }, [tp]);
 
   useEffect(() => {
     setOnSaved((p) => qc.setQueryData(qk.project(p.id), p));
@@ -183,7 +191,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
   }, []);
 
   const ready = ed.project?.id === id && !!ed.content;
-  useLiveSync(id, ready);
+  useLiveSync(id, ready, t("noAccess"));
   const title = ed.content?.name;
   useEffect(() => {
     if (title) document.title = `${title} · Woodchunk`;
@@ -198,7 +206,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
   const fullBleed = pathname.includes("/frame/") || pathname.includes("/sketch/");
 
   if (project.isError) {
-    return <EmptyState title="Project not found" text="It may have been deleted, or you don't have access to it." action={<Link href="/" className="font-semibold text-info">Back to projects</Link>} />;
+    return <EmptyState title={t("notFound")} text={t("notFoundText")} action={<Link href="/" className="font-semibold text-info">{t("backToProjects")}</Link>} />;
   }
 
   if (fullBleed) {
@@ -224,7 +232,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
                 <ConflictBanner />
                 <div className="no-print flex flex-col gap-4">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                    <Link href="/" aria-label="Back to projects" title="Projects"
+                    <Link href="/" aria-label={t("backToProjects")} title={t("projects")}
                       className="-ms-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 hover:bg-surface-2 hover:text-ink"><ArrowLeft size={19} className="rtl:-scale-x-100" /></Link>
                     <div className="order-last flex min-w-0 basis-full items-center gap-3 sm:order-none sm:basis-auto">
                       <TitleInput />
@@ -235,26 +243,26 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
                       <span className="me-1.5 hidden sm:inline-flex"><StatusMenu /></span>
                       <SaveIndicator />
                       {!readOnly ? <>
-                        <IconButton label="Undo (⌘Z)" size="sm" disabled={!ed.past.length} onClick={ed.undo}><Undo2 size={17} className="rtl:-scale-x-100" /></IconButton>
-                        <IconButton label="Redo (⇧⌘Z)" size="sm" disabled={!ed.future.length} onClick={ed.redo}><Redo2 size={17} className="rtl:-scale-x-100" /></IconButton>
+                        <IconButton label={t("undo")} size="sm" disabled={!ed.past.length} onClick={ed.undo}><Undo2 size={17} className="rtl:-scale-x-100" /></IconButton>
+                        <IconButton label={t("redo")} size="sm" disabled={!ed.future.length} onClick={ed.redo}><Redo2 size={17} className="rtl:-scale-x-100" /></IconButton>
                       </> : null}
                       {others.length ? (
                         <button type="button" onClick={() => setSharing(true)} className="me-1 rounded-full"
-                          aria-label={`Shared with ${others.map((m) => m.name || m.email).join(", ")}`}>
+                          aria-label={t("sharedWith", { names: others.map((m) => m.name || m.email).join(", ") })}>
                           <Avatars people={others.map((m) => ({ user_id: m.user_id, name: m.name || m.email }))} size={26} />
                         </button>
                       ) : null}
                       <SketchesMenu />
                       <NewMenu />
-                      {role ? <Button size="sm" variant="ghost" icon={<Share size={15} />} onClick={() => setSharing(true)}>{role === "owner" ? "Share" : "People"}</Button> : null}
-                      <Button size="sm" variant={aiOpen ? "secondary" : "ghost"} icon={<Sparkles size={15} />} onClick={() => setAIOpen((o) => !o)} aria-pressed={aiOpen}>Ask</Button>
+                      {role ? <Button size="sm" variant="ghost" icon={<Share size={15} />} onClick={() => setSharing(true)}>{role === "owner" ? t("share") : t("people")}</Button> : null}
+                      <Button size="sm" variant={aiOpen ? "secondary" : "ghost"} icon={<Sparkles size={15} />} onClick={() => setAIOpen((o) => !o)} aria-pressed={aiOpen}>{t("ask")}</Button>
                       <MoreMenu owner={role === "owner"} onTemplate={() => setTemplating(true)} />
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     {/* Phones switch views from the bottom tab bar instead. */}
                     <div className="hidden sm:block">
-                      <Segmented label="Project view" value={tab} options={TABS.map((t) => ({ value: t.value, label: t.label, href: `/projects/${id}/${t.value}` }))} />
+                      <Segmented label={t("projectView")} value={tab} options={TABS.map((tb) => ({ value: tb.value, label: t(tb.label), href: `/projects/${id}/${tb.value}` }))} />
                     </div>
                     {tab !== "build" ? <SummaryBar /> : null}
                   </div>
@@ -278,43 +286,44 @@ function ConflictBanner() {
   const save = useEditor((s) => s.save);
   const latest = useEditor((s) => s.latest);
   const conflicts = useEditor((s) => s.conflicts);
+  const t = useTranslations("project.conflict");
   if (save !== "conflict") return null;
-  const who = latest?.updated_by_name || "Someone else";
-  const what = conflicts.slice(0, 3).map(conflictLabel).join("; ");
+  const who = latest?.updated_by_name || t("someoneElse");
+  const listed = conflicts.slice(0, 3).map((c) => conflictLabel(c, t)).join("; ");
+  const what = conflicts.length > 3 ? t("andMore", { what: listed, n: String(conflicts.length - 3) }) : listed;
   return (
     <div role="alert" className="no-print flex flex-wrap items-center justify-between gap-3 rounded-[14px] bg-kerf-soft px-4 py-3 text-[14px]">
       <span className="font-medium text-ink">
         {conflicts.length
-          ? <>You and {who} both changed {what}{conflicts.length > 3 ? ` and ${conflicts.length - 3} more` : ""}. Everything else is combined. Which value should win?</>
-          : <>{who} changed this project while you were editing, so your last changes aren&apos;t saved.</>}
+          ? t("both", { who, what })
+          : t("theyChanged", { who })}
       </span>
       <span className="flex gap-2">
-        <Button size="sm" onClick={() => useEditor.getState().takeTheirs()} disabled={!latest}>{conflicts.length ? "Theirs" : "Load their version"}</Button>
-        <Button size="sm" variant="primary" onClick={() => useEditor.getState().keepMine()} disabled={!latest}>{conflicts.length ? "Mine" : "Keep mine"}</Button>
+        <Button size="sm" onClick={() => useEditor.getState().takeTheirs()} disabled={!latest}>{conflicts.length ? t("theirs") : t("loadTheirs")}</Button>
+        <Button size="sm" variant="primary" onClick={() => useEditor.getState().keepMine()} disabled={!latest}>{conflicts.length ? t("mine") : t("keepMine")}</Button>
       </span>
     </div>
   );
 }
 
-const FIELD_NAMES: Record<string, string> = {
-  qty: "quantity", length_mm: "length", width_mm: "width", item_id: "material", name: "name", notes: "notes",
-  grain_locked: "grain", settings: "cutting settings", description: "description",
-};
+const FIELD_NAMES = ["qty", "length_mm", "width_mm", "item_id", "name", "notes", "grain_locked", "settings", "description"] as const;
 const CONTAINERS = new Set(["assemblies", "parts", "hardware", "extras", "frame", "nodes", "members", "joints", "sketches", "points", "shapes", "constraints"]);
 
 /** "Frame › Leg › quantity" from a merge path. */
-function conflictLabel(c: Conflict): string {
-  const parts = c.path.filter((p) => !CONTAINERS.has(p)).map((p) => FIELD_NAMES[p] ?? p.replace(/_mm$/, "").replace(/_/g, " "));
-  return parts.join(" › ") || "the project";
+function conflictLabel(c: Conflict, t: ReturnType<typeof useTranslations<"project.conflict">>): string {
+  const field = (p: string) => (FIELD_NAMES as readonly string[]).includes(p) ? t(`field.${p as (typeof FIELD_NAMES)[number]}`) : null;
+  const parts = c.path.filter((p) => !CONTAINERS.has(p)).map((p) => (p === UNNAMED ? t("anItem") : field(p) ?? p.replace(/_mm$/, "").replace(/_/g, " ")));
+  return parts.join(" › ") || t("theProject");
 }
 
 function TitleInput() {
   const name = useEditor((s) => s.content?.name ?? "");
   const readOnly = useEditor((s) => s.readOnly);
   const edit = useEditor((s) => s.edit);
+  const t = useTranslations("project");
   return (
-    <input key={name} aria-label="Project name" defaultValue={name} readOnly={readOnly} dir="auto" maxLength={120}
-      onBlur={(e) => { const v = e.target.value.trim() || "Untitled project"; if (v !== name) edit((d) => { d.name = v; }); else e.target.value = name; }}
+    <input key={name} aria-label={t("workspace.projectName")} defaultValue={name} readOnly={readOnly} dir="auto" maxLength={120}
+      onBlur={(e) => { const v = e.target.value.trim() || t("defaults.untitled"); if (v !== name) edit((d) => { d.name = v; }); else e.target.value = name; }}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
       onInput={(e) => { (e.target as HTMLInputElement).size = Math.max(8, (e.target as HTMLInputElement).value.length + 1); }}
       size={Math.max(8, name.length + 1)}
@@ -323,17 +332,20 @@ function TitleInput() {
 }
 
 export function SaveIndicator() {
+  const ago = useRelativeTime();
+  const t = useTranslations("project.workspace");
+  const lang = useLocale();
   const save = useEditor((s) => s.save);
   const readOnly = useEditor((s) => s.readOnly);
   const project = useEditor((s) => s.project);
   const { me } = useProjectCtx();
   // Someone else made the latest change: say who, so a shared project's changes aren't a mystery.
   const byOther = project?.updated_by && project.updated_by !== me?.id && (save === "saved" || save === "idle");
-  if (readOnly) return <span className="me-2 text-[13px] text-ink-3">View only</span>;
-  if (byOther) return <span className="me-2 text-[13px] text-ink-3 max-sm:hidden" title={new Date(project.updated_at).toLocaleString()}>{project.updated_by_name} edited · {relativeTime(project.updated_at)}</span>;
+  if (readOnly) return <span className="me-2 text-[13px] text-ink-3">{t("viewOnly")}</span>;
+  if (byOther) return <span className="me-2 text-[13px] text-ink-3 max-sm:hidden" title={new Date(project.updated_at).toLocaleString(lang === "en" ? undefined : dateLocale(lang))}>{t("editedBy", { name: project.updated_by_name ?? "", ago: ago(project.updated_at) })}</span>;
   // Phones: icons only, so the header's actions fit beside the back arrow.
-  if (save === "saving" || save === "pending") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-ink-3"><Spinner className="h-3.5 w-3.5" /><span className="max-sm:sr-only">Saving</span></span>;
-  if (save === "error" || save === "conflict") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-kerf"><CloudOff size={14} />{save === "conflict" ? "Out of date" : "Not saved, retrying"}</span>;
-  if (save === "saved") return <span className="me-2 inline-flex items-center gap-1 text-[13px] text-ink-3"><Check size={14} /><span className="max-sm:sr-only">Saved</span></span>;
+  if (save === "saving" || save === "pending") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-ink-3"><Spinner className="h-3.5 w-3.5" /><span className="max-sm:sr-only">{t("saving")}</span></span>;
+  if (save === "error" || save === "conflict") return <span className="me-2 inline-flex items-center gap-1.5 text-[13px] text-kerf"><CloudOff size={14} />{save === "conflict" ? t("outOfDate") : t("retrying")}</span>;
+  if (save === "saved") return <span className="me-2 inline-flex items-center gap-1 text-[13px] text-ink-3"><Check size={14} /><span className="max-sm:sr-only">{t("saved")}</span></span>;
   return null;
 }

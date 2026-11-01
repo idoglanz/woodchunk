@@ -2,6 +2,7 @@
 
 import { ChevronUp, Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useTranslations } from "use-intl";
 import { AIPanel } from "@/components/project/ai-panel";
 import { useProjectCtx } from "@/components/project/context";
 import { CuttingSettingsButton } from "@/components/project/cutting-settings";
@@ -21,6 +22,7 @@ export function BuildView() {
   const desktop = useMediaQuery("(min-width: 1024px)");
   const { aiOpen, closeAI, units, plan } = useProjectCtx();
   const [wide, setWide] = useState(false);
+  const t = useTranslations("plan.build");
 
   const pick = (partId: string) => {
     setWide(false);
@@ -45,7 +47,7 @@ export function BuildView() {
           <PlanSummary onIssues={firstIssue} />
           <div className="flex items-center gap-2">
             <CuttingSettingsButton units={units} />
-            <Button size="sm" icon={<Minimize2 size={15} />} onClick={() => setWide(false)}>Show parts</Button>
+            <Button size="sm" icon={<Minimize2 size={15} />} onClick={() => setWide(false)}>{t("showParts")}</Button>
           </div>
         </div>
         <PlanContent wide onPick={pick} />
@@ -56,7 +58,7 @@ export function BuildView() {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_minmax(360px,38%)] items-start gap-6">
       <DesignView />
-      <div role={aiOpen ? undefined : "complementary"} aria-label={aiOpen ? undefined : "Cutting plan"}
+      <div role={aiOpen ? undefined : "complementary"} aria-label={aiOpen ? undefined : t("cuttingPlan")}
         className={cn("sticky top-[68px] flex flex-col overflow-hidden rounded-[20px] bg-surface shadow-[var(--shadow-card)] dark:border dark:border-line",
           aiOpen ? "h-[calc(100dvh-84px)]" : "max-h-[calc(100dvh-84px)]")}>
         {aiOpen ? <AIPanel embedded onClose={closeAI} /> : (
@@ -65,7 +67,7 @@ export function BuildView() {
               <PlanSummary onIssues={firstIssue} />
               <div className="ms-auto flex items-center gap-1">
                 <CuttingSettingsButton units={units} />
-                <IconButton label="Full width" size="sm" onClick={() => setWide(true)}><Maximize2 size={16} /></IconButton>
+                <IconButton label={t("fullWidth")} size="sm" onClick={() => setWide(true)}><Maximize2 size={16} /></IconButton>
               </div>
             </div>
             <PanelScroller onPick={pick} />
@@ -104,6 +106,7 @@ function PlanDrawer({ onPick, onIssues }: { onPick: (partId: string) => void; on
   const [height, setHeight] = useState(PEEK);
   const drag = useRef<{ y: number; h: number; moved: boolean } | null>(null);
   const [dragging, setDragging] = useState(false);
+  const t = useTranslations("plan.build");
   const open = height > PEEK + 8;
 
   // Room above the phone tab bar (see BottomNav).
@@ -142,7 +145,7 @@ function PlanDrawer({ onPick, onIssues }: { onPick: (partId: string) => void; on
   if (typing) return null;
 
   return (
-    <div role="region" aria-label="Cutting plan"
+    <div role="region" aria-label={t("cuttingPlan")}
       className={cn("no-print fixed inset-x-0 z-30 flex flex-col rounded-t-[20px] border-t border-line bg-surface shadow-[var(--shadow-pop)]",
         !dragging && "transition-[height] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]")}
       style={{ bottom: "var(--bottom-nav, 0px)", height: `calc(${height}px + var(--bottom-safe, env(safe-area-inset-bottom)))` }}>
@@ -151,7 +154,7 @@ function PlanDrawer({ onPick, onIssues }: { onPick: (partId: string) => void; on
         <span aria-hidden="true" className="mx-auto mb-1.5 h-1 w-9 rounded-full bg-line-strong" />
         <div className="flex min-w-0 items-center justify-between gap-3">
           <PlanSummary compact onIssues={() => { setHeight(PEEK); onIssues(); }} />
-          <button type="button" onClick={() => setHeight(open ? PEEK : snaps()[1])} aria-expanded={open} aria-label={open ? "Hide cutting plan" : "Show cutting plan"}
+          <button type="button" onClick={() => setHeight(open ? PEEK : snaps()[1])} aria-expanded={open} aria-label={open ? t("hidePlan") : t("showPlan")}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-2 text-ink-2">
             <ChevronUp size={18} className={cn("transition-transform", open && "rotate-180")} />
           </button>

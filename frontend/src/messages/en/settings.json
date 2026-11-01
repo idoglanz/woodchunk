@@ -1,0 +1,19 @@
+{
+  "title": "Settings",
+  "subtitle": "Changes save as you go.",
+  "name": "Your name",
+  "language": "Language",
+  "languagePreview": "Only admins see this while the app is being translated.",
+  "appearance": "Appearance",
+  "automatic": "Automatic",
+  "light": "Light",
+  "dark": "Dark",
+  "lengthsIn": "Lengths in",
+  "units": "Units",
+  "millimetres": "Millimetres",
+  "centimetres": "Centimetres",
+  "exports": "Shopping list and shop sheet",
+  "exportLanguage": "Export language",
+  "cuttingTitle": "Cutting defaults for new projects",
+  "cuttingHint": "Each project can override these from its Build tab."
+}

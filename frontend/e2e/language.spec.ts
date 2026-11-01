@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { he } from "../src/messages";
 
 // The switch shows for admins only while the interface is being translated (see admin.spec.ts).
 // The admin test only looks: the admin account is shared, so its language is never changed here.
@@ -20,6 +21,7 @@ test("the language switch is for admins only, for now", async ({ page }, info) =
   await expect(page.locator("html")).not.toHaveAttribute("dir", "rtl");
 
   if (!ADMIN) return;
+  await page.evaluate(() => localStorage.clear()); // signed out, or the sign-in page moves on by itself
   await signIn(page, ADMIN);
   await page.goto("/settings");
   await expect(page.getByRole("tablist", { name: "Language", exact: true }).getByRole("tab", { name: "עברית" })).toBeVisible();
@@ -40,15 +42,17 @@ test("Hebrew: right to left from the first paint, drawings left to right", async
   expect(await page.evaluate(() => document.documentElement.dir)).toBe("rtl");
 
   if (info.project.name !== "desktop") return;
+  // In Hebrew from here on: the names come from the Hebrew messages.
   await page.goto("/");
-  await page.getByRole("button", { name: "New project" }).first().click();
-  await page.getByRole("button", { name: "Blank" }).click();
-  await page.getByLabel("Name").fill("E2E Hebrew");
-  await page.getByRole("button", { name: "Create" }).click();
-  await page.getByRole("button", { name: "New sketch" }).click();
-  await expect(page.getByRole("img", { name: "Sketch" }).locator("..")).toHaveAttribute("dir", "ltr");
+  await expect(page.getByRole("heading", { name: he.home.title })).toBeVisible();
+  await page.getByRole("button", { name: he.home.newProject }).first().click();
+  await page.getByRole("button", { name: he.home.blank }).click();
+  await page.getByLabel(he.home.name).fill("E2E Hebrew");
+  await page.getByRole("button", { name: he.common.create }).click();
+  await page.getByRole("button", { name: he.sketch.card.newSketch }).click();
+  await expect(page.getByRole("img", { name: he.sketch.canvas.aria }).locator("..")).toHaveAttribute("dir", "ltr");
   // A Hebrew keyboard: R types ר, and still picks the rectangle.
   await page.keyboard.press("Escape");
   await page.evaluate(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ר", code: "KeyR" })));
-  await expect(page.getByRole("radio", { name: "Rectangle" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("radio", { name: he.sketch.tools.rect })).toHaveAttribute("aria-checked", "true");
 });

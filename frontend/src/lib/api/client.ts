@@ -1,4 +1,6 @@
 import createClient, { type Middleware } from "openapi-fetch";
+import { createTranslator } from "use-intl";
+import { en, he } from "@/messages";
 import type { components, paths } from "./schema";
 
 export type Schemas = components["schemas"];
@@ -70,14 +72,21 @@ export async function unwrap<T>(p: Promise<{ data?: T; error?: unknown; response
 }
 
 export function errorMessage(error: unknown, status?: number): string {
+  const t = errorsTranslator();
   if (error && typeof error === "object" && "detail" in error) {
     const d = (error as { detail: unknown }).detail;
     if (typeof d === "string") return d;
-    if (Array.isArray(d) && d[0]?.msg) return `Check the values you entered: ${d[0].msg}`;
+    if (Array.isArray(d) && d[0]?.msg) return t("badInput", { msg: d[0].msg });
   }
-  if (status === 503) return "The AI assistant is busy right now. Try again in a minute.";
-  if (status && status >= 500) return "Something went wrong on the server. Try again.";
-  return "Couldn't reach Woodchunk. Check your connection.";
+  if (status === 503) return t("aiBusy");
+  if (status && status >= 500) return t("server");
+  return t("offline");
+}
+
+/** Errors are made outside React: they follow the page's language, which <html lang> carries. */
+function errorsTranslator() {
+  const lang = typeof document !== "undefined" && document.documentElement.lang === "he" ? "he" : "en";
+  return createTranslator({ locale: lang, messages: (lang === "he" ? he : en) as typeof en, namespace: "common.errors" });
 }
 
 /** Multipart / raw requests that openapi-fetch doesn't type well. */

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useTranslations } from "use-intl";
 import { cn } from "@/lib/cn";
 
 export const ASM = ["a", "b", "c", "d", "e", "f"] as const;
@@ -38,19 +39,15 @@ export function Card({ className, children, as: As = "section" }: { className?: 
   );
 }
 
-const STATUS: Record<string, { label: string; dot: string }> = {
-  planning: { label: "Planning", dot: "bg-accent" },
-  bought: { label: "Bought", dot: "bg-info" },
-  cut: { label: "Cut", dot: "bg-kerf" },
-  done: { label: "Done", dot: "bg-ok" },
-};
+const STATUS = { planning: "bg-accent", bought: "bg-info", cut: "bg-kerf", done: "bg-ok" } as const;
 
 export function StatusPill({ status, className, children }: { status: string; className?: string; children?: ReactNode }) {
-  const s = STATUS[status] ?? STATUS.planning;
+  const t = useTranslations("ui.status");
+  const s = Object.hasOwn(STATUS, status) ? (status as keyof typeof STATUS) : "planning";
   return (
     <span className={cn("inline-flex h-6 items-center gap-1.5 rounded-full bg-surface-2 px-2.5 text-[12px] font-semibold text-ink-2", className)}>
-      <span className={cn("h-[7px] w-[7px] rounded-full", s.dot)} />
-      {s.label}
+      <span className={cn("h-[7px] w-[7px] rounded-full", STATUS[s])} />
+      {t(s)}
       {children}
     </span>
   );

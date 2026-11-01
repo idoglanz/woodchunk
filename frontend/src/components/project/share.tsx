@@ -4,18 +4,20 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLocale, useTranslations } from "use-intl";
 import { Button, IconButton } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { Sheet } from "@/components/ui/overlay";
 import { Segmented } from "@/components/ui/segmented";
 import { api, unwrap, type Project, type Schemas } from "@/lib/api/client";
 import { useEditor } from "@/lib/editor";
-import { relativeTime } from "@/lib/format";
+import { useRelativeTime } from "@/lib/format";
+import { dateLocale } from "@/lib/lang";
 import { qk, useMe } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 
 type Role = "editor" | "viewer";
-const ROLE_LABEL = { owner: "Owner", editor: "Can edit", viewer: "Can view" } as const;
+const ROLE_LABEL = { owner: "owner", editor: "canEdit", viewer: "canView" } as const;
 const linkUrl = (token: string) => `${window.location.origin}/join/${token}`;
 
 /**
@@ -23,6 +25,9 @@ const linkUrl = (token: string) => `${window.location.origin}/join/${token}`;
  * links still out there, and changes or removes someone's access; everyone else can leave.
  */
 export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onOpenChange: (o: boolean) => void; project: Project }) {
+  const ago = useRelativeTime();
+  const t = useTranslations("project.share");
+  const lang = useLocale();
   const me = useMe();
   const owner = project.members.find((m) => m.role === "owner");
   const isOwner = !!me.data && (owner?.user_id === me.data.id || me.data.role === "admin");
@@ -44,8 +49,8 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
   };
   // Some browsers refuse the clipboard after a network wait: then the link is on screen to copy.
   const copy = (token: string) => navigator.clipboard.writeText(linkUrl(token))
-    .then(() => toast.info("Invite link copied"))
-    .catch(() => toast.info("Copy the link below to share it"));
+    .then(() => toast.info(t("linkCopied")))
+    .catch(() => toast.info(t("copyBelow")));
 
   const makeLink = async () => {
     setBusy(true);
@@ -55,7 +60,7 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
       await qc.invalidateQueries({ queryKey: invitesKey });
       await copy(inv.token);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't create a link.");
+      toast.error(e instanceof Error ? e.message : t("createFailed"));
     } finally {
       setBusy(false);
     }
@@ -63,7 +68,7 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
 
   const revoke = async (inviteId: string) => {
     const r = await api.DELETE("/api/projects/{project_id}/invites/{invite_id}", { params: { path: { project_id: project.id, invite_id: inviteId } } });
-    if (!r.response.ok) toast.error("Couldn't revoke that link.");
+    if (!r.response.ok) toast.error(t("revokeFailed"));
     void qc.invalidateQueries({ queryKey: invitesKey });
   };
 
@@ -72,7 +77,7 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
       updated(await unwrap<Project>(api.PUT("/api/projects/{project_id}/members/{member_id}", {
         params: { path: { project_id: project.id, member_id: userId } }, body: { role: next } })));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't change their access.");
+      toast.error(e instanceof Error ? e.message : t("accessFailed"));
     }
   };
 
@@ -82,33 +87,33 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
       const p = await unwrap<Project>(api.DELETE("/api/projects/{project_id}/members/{member_id}", { params: { path: { project_id: project.id, member_id: userId } } }));
       if (leaving) {
         void qc.invalidateQueries({ queryKey: ["projects"] });
-        toast.info(`You left ${project.name}`);
+        toast.info(t("left", { name: project.name }));
         router.push("/");
         return;
       }
       updated(p);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : leaving ? "Couldn't leave the project." : "Couldn't remove them.");
+      toast.error(e instanceof Error ? e.message : leaving ? t("leaveFailed") : t("removeFailed"));
     }
   };
 
   const links = invites.data ?? [];
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} title={isOwner ? "Share project" : "People"}
-      description={isOwner ? "People with a link join after signing in. Links work for 14 days, until you revoke them." : `${owner?.name || owner?.email || "The owner"} shares this project.`}>
+    <Sheet open={open} onOpenChange={onOpenChange} title={isOwner ? t("titleOwner") : t("people")}
+      description={isOwner ? t("ownerText") : t("sharedBy", { name: owner?.name || owner?.email || t("theOwner") })}>
       <div className="flex flex-col gap-7">
         {isOwner ? (
           <section className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <Segmented label="Access for a new link" value={role} onChange={(v) => { setRole(v); setFresh(null); }}
-                options={[{ value: "editor", label: "Can edit" }, { value: "viewer", label: "Can view" }]} />
-              <Button variant="primary" icon={<Link2 size={16} />} loading={busy} onClick={makeLink}>Create invite link</Button>
+              <Segmented label={t("newLinkAccess")} value={role} onChange={(v) => { setRole(v); setFresh(null); }}
+                options={[{ value: "editor", label: t("canEdit") }, { value: "viewer", label: t("canView") }]} />
+              <Button variant="primary" icon={<Link2 size={16} />} loading={busy} onClick={makeLink}>{t("createLink")}</Button>
             </div>
             {fresh ? (
               <div className="flex items-center gap-1 rounded-xl bg-surface-2 p-1 ps-3">
-                <input readOnly value={fresh} aria-label="New invite link" onFocus={(e) => e.target.select()}
+                <input readOnly value={fresh} aria-label={t("newLink")} onFocus={(e) => e.target.select()}
                   className="h-8 min-w-0 flex-1 bg-transparent font-mono text-[13px] text-ink outline-none" />
-                <Button size="sm" icon={<Copy size={14} />} onClick={() => copy(fresh.slice(fresh.lastIndexOf("/") + 1))}>Copy</Button>
+                <Button size="sm" icon={<Copy size={14} />} onClick={() => copy(fresh.slice(fresh.lastIndexOf("/") + 1))}>{t("copy")}</Button>
               </div>
             ) : null}
             {links.length ? (
@@ -116,13 +121,14 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
                 {links.map((l) => (
                   <li key={l.id} className="flex items-center gap-3 border-t border-line py-2.5 first:border-t-0">
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-[14px] font-medium">{ROLE_LABEL[l.role as Role] ?? l.role} link</span>
+                      <span className="text-[14px] font-medium">{t("roleLink", { role: l.role })}</span>
                       <span className="text-[12px] text-ink-2">
-                        Made {relativeTime(l.created_at)} · {l.joined ? `${l.joined} joined` : "nobody joined yet"} · ends {new Date(l.expires_at).toLocaleDateString()}
+                        {t("linkMeta", { ago: ago(l.created_at), joined: l.joined ? t("joined", { n: l.joined }) : t("nobodyJoined"),
+                          date: new Date(l.expires_at).toLocaleDateString(lang === "en" ? undefined : dateLocale(lang)) })}
                       </span>
                     </div>
-                    <IconButton label="Copy link" size="sm" onClick={() => copy(l.token)}><Copy size={15} /></IconButton>
-                    <Button size="sm" variant="plain" onClick={() => revoke(l.id)}>Revoke</Button>
+                    <IconButton label={t("copyLink")} size="sm" onClick={() => copy(l.token)}><Copy size={15} /></IconButton>
+                    <Button size="sm" variant="plain" onClick={() => revoke(l.id)}>{t("revoke")}</Button>
                   </li>
                 ))}
               </ul>
@@ -131,24 +137,24 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
         ) : null}
 
         <section className="flex flex-col">
-          <h3 className="mb-1 text-[13px] font-semibold text-ink-2">People</h3>
+          <h3 className="mb-1 text-[13px] font-semibold text-ink-2">{t("people")}</h3>
           {project.members.map((m) => {
             const self = m.user_id === me.data?.id;
             return (
               <div key={m.user_id} className="flex items-center justify-between gap-3 border-t border-line py-2.5 first:border-t-0">
                 <div className="flex min-w-0 flex-col">
-                  <span className="truncate text-[15px]">{m.name || m.email}{self ? <span className="text-ink-3"> (you)</span> : null}</span>
-                  {m.name && m.email ? <span className="truncate text-[12px] text-ink-3">{m.email}</span> : null}
+                  <span className="truncate text-[15px]">{m.name || m.email}{self ? <span className="text-ink-3"> {t("you")}</span> : null}</span>
+                  {m.name && m.email ? <span className="truncate text-[12px] text-ink-3"><bdi>{m.email}</bdi></span> : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {isOwner && m.role !== "owner" ? <>
-                    <Select aria-label={`Access for ${m.name || m.email}`} value={m.role} onChange={(e) => setAccess(m.user_id, e.target.value as Role)}
+                    <Select aria-label={t("accessFor", { name: m.name || m.email })} value={m.role} onChange={(e) => setAccess(m.user_id, e.target.value as Role)}
                       className="h-8 w-auto text-[13px]">
-                      <option value="editor">Can edit</option>
-                      <option value="viewer">Can view</option>
+                      <option value="editor">{t("canEdit")}</option>
+                      <option value="viewer">{t("canView")}</option>
                     </Select>
-                    <Button size="sm" variant="plain" onClick={() => remove(m.user_id)}>Remove</Button>
-                  </> : <span className="text-[13px] text-ink-2">{ROLE_LABEL[m.role]}</span>}
+                    <Button size="sm" variant="plain" onClick={() => remove(m.user_id)}>{t("remove")}</Button>
+                  </> : <span className="text-[13px] text-ink-2">{t(ROLE_LABEL[m.role])}</span>}
                 </div>
               </div>
             );
@@ -156,11 +162,11 @@ export function ShareSheet({ open, onOpenChange, project }: { open: boolean; onO
         </section>
 
         <p className="text-[12px] leading-relaxed text-ink-3">
-          Plans use {isOwner ? "your" : `${owner?.name || "the owner"}'s`} inventory first, and marking the project as cut updates it.
+          {isOwner ? t("inventoryOwner") : t("inventoryOther", { name: owner?.name || t("theOwnerLower") })}
         </p>
 
         {!isOwner && project.members.some((m) => m.user_id === me.data?.id) ? (
-          <Button variant="destructive" className="self-start" onClick={() => remove(me.data!.id)}>Leave project</Button>
+          <Button variant="destructive" className="self-start" onClick={() => remove(me.data!.id)}>{t("leave")}</Button>
         ) : null}
       </div>
     </Sheet>

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useTranslations } from "use-intl";
 import { ItemPicker, rememberMaterial } from "@/components/project/material-picker";
 import { useProjectCtx } from "@/components/project/context";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { cn } from "@/lib/cn";
 import { newAssembly, nextLetter, useEditor } from "@/lib/editor";
 import { nodePositions } from "@/lib/frame/edit";
 import { deriveParts, sectionOf } from "@/lib/frame/parts";
-import { TEMPLATES, type TemplateRole } from "@/lib/frame/templates";
+import { frameTemplates, type FrameTemplate, type TemplateRole } from "@/lib/frame/templates";
 import type { Frame } from "@/lib/frame/types";
 import { useFrameUI } from "@/lib/frame/ui";
 import { useMediaQuery } from "@/lib/focus";
@@ -23,16 +24,15 @@ import { useCatalog } from "@/lib/queries";
  * typed parts (`assemblyId`).
  */
 /** A small isometric line drawing of a template, built from the template itself. */
-function TemplateIcon({ id }: { id: string }) {
+function TemplateIcon({ tpl }: { tpl: FrameTemplate }) {
   const lines = useMemo(() => {
-    const t = TEMPLATES.find((x) => x.id === id)!;
-    const params = Object.fromEntries(t.params.map((p) => [p.name, p.mm]));
-    const options = Object.fromEntries(t.options.map((o) => [o.key, o.value]));
-    const frame = t.build({ params, options, items: {}, sections: {} });
+    const params = Object.fromEntries(tpl.params.map((p) => [p.name, p.mm]));
+    const options = Object.fromEntries(tpl.options.map((o) => [o.key, o.value]));
+    const frame = tpl.build({ params, options, items: {}, sections: {} });
     const pos = nodePositions(frame as Frame);
     const iso = ([x, y, z]: [number, number, number]) => [(x - y) * 0.866, (x + y) * 0.5 - z * 1.0] as const;
     return frame.members.flatMap((m) => { const a = pos.get(m.a), b = pos.get(m.b); return a && b ? [[iso(a), iso(b)]] : []; });
-  }, [id]);
+  }, [tpl]);
   const W = 72, H = 52, pad = 6;
   if (!lines.length) {
     return (
@@ -55,6 +55,8 @@ function TemplateIcon({ id }: { id: string }) {
 
 export function TemplateDialog({ open, onOpenChange, assemblyId }: { open: boolean; onOpenChange: (o: boolean) => void; assemblyId?: string }) {
   const router = useRouter();
+  const t = useTranslations("frame");
+  const TEMPLATES = useMemo(() => frameTemplates(t), [t]);
   const { id: projectId, units } = useProjectCtx();
   const edit = useEditor((s) => s.edit);
   const catalog = useCatalog({ kind: "lumber" });
@@ -65,9 +67,9 @@ export function TemplateDialog({ open, onOpenChange, assemblyId }: { open: boole
   const [tplId, setTplId] = useState(TEMPLATES[0].id);
   // Drawing needs a pointer and room: on small screens offer only the ready-made shapes.
   const roomy = useMediaQuery("(min-width: 900px)");
-  const templates = TEMPLATES.filter((t) => roomy || t.id !== "empty");
+  const templates = TEMPLATES.filter((x) => roomy || x.id !== "empty");
   const replacing = useEditor((s) => (assemblyId ? s.content?.assemblies.find((a) => a.id === assemblyId)?.parts.length ?? 0 : 0));
-  const tpl = TEMPLATES.find((t) => t.id === tplId)!;
+  const tpl = TEMPLATES.find((x) => x.id === tplId)!;
   const [params, setParams] = useState<Record<string, Record<string, number>>>({});
   const [options, setOptions] = useState<Record<string, Record<string, number>>>({});
   const [items, setItems] = useState<Partial<Record<TemplateRole, string>>>({});
@@ -103,23 +105,21 @@ export function TemplateDialog({ open, onOpenChange, assemblyId }: { open: boole
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} wide title="Design a frame in 3D"
-      description={replacing
-        ? `Pick a starting shape and sizes. Its bars replace this assembly's ${replacing} typed part${replacing === 1 ? "" : "s"} (undo brings them back).`
-        : "Pick a starting shape and sizes. You can change everything later in the 3D view."}
+    <Sheet open={open} onOpenChange={onOpenChange} wide title={t("dialog.title")}
+      description={replacing ? t("dialog.replacing", { n: replacing }) : t("dialog.fresh")}
       footer={<div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-        <Button variant="primary" onClick={create} disabled={!bars.length}>Create frame</Button>
+        <Button variant="ghost" onClick={() => onOpenChange(false)}>{t("dialog.cancel")}</Button>
+        <Button variant="primary" onClick={create} disabled={!bars.length}>{t("dialog.create")}</Button>
       </div>}>
       <div className="flex flex-col gap-5">
-        <div role="radiogroup" aria-label="Starting shape" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {templates.map((t) => (
-            <button key={t.id} type="button" role="radio" aria-checked={t.id === tplId} onClick={() => setTplId(t.id)}
+        <div role="radiogroup" aria-label={t("dialog.startingShape")} className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {templates.map((x) => (
+            <button key={x.id} type="button" role="radio" aria-checked={x.id === tplId} onClick={() => setTplId(x.id)}
               className={cn("flex flex-col gap-0.5 rounded-[14px] border px-3 py-2.5 text-start transition-colors",
-                t.id === tplId ? "border-ink bg-surface-2" : "border-line hover:bg-surface-2")}>
-              <TemplateIcon id={t.id} />
-              <span className="text-[15px] font-semibold">{t.name}</span>
-              <span className="text-[13px] leading-snug text-ink-2">{t.summary}</span>
+                x.id === tplId ? "border-ink bg-surface-2" : "border-line hover:bg-surface-2")}>
+              <TemplateIcon tpl={x} />
+              <span className="text-[15px] font-semibold"><bdi>{x.name}</bdi></span>
+              <span className="text-[13px] leading-snug text-ink-2"><bdi>{x.summary}</bdi></span>
             </button>
           ))}
         </div>
@@ -148,7 +148,7 @@ export function TemplateDialog({ open, onOpenChange, assemblyId }: { open: boole
         <div className="grid gap-3 sm:grid-cols-2">
           {tpl.roles.map((r) => (
             <Field key={r.key} label={r.label}>
-              <ItemPicker items={bars as CatalogItem[]} value={roleItem(r.key)} kinds={["lumber"]} ariaLabel={`${r.label} material`}
+              <ItemPicker items={bars as CatalogItem[]} value={roleItem(r.key)} kinds={["lumber"]} ariaLabel={t("dialog.roleMaterial", { role: r.label })}
                 onChange={(id) => { if (!id) return; rememberMaterial(id); setItems((s) => ({ ...s, [r.key]: id })); }} />
             </Field>
           ))}

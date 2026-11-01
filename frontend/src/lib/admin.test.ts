@@ -1,5 +1,9 @@
+import { createTranslator } from "use-intl";
 import { describe, expect, it } from "vitest";
-import { bucket, filterPeople, minutes, niceMax, sortPeople, type Person } from "./admin";
+import { en } from "@/messages";
+import { aiFeature, bucket, filterPeople, levelText, minutes, niceMax, shortDay, sortPeople, type Person } from "./admin";
+
+const t = createTranslator({ locale: "en", messages: en, namespace: "admin" });
 
 function person(over: Partial<Person>): Person {
   return {
@@ -52,6 +56,13 @@ describe("bucketing days", () => {
 describe("formatting", () => {
   it("rounds axis maxima and minutes", () => {
     expect([0, 1, 3, 7, 12, 480].map(niceMax)).toEqual([1, 1, 5, 10, 20, 500]);
-    expect([5, 60, 200].map(minutes)).toEqual(["5 min", "1 h", "3 h 20 min"]);
+    expect([5, 60, 200].map((n) => minutes(n, t))).toEqual(["5 min", "1 h", "3 h 20 min"]);
+    expect(shortDay("2026-11-01", "en-GB")).toBe("1 Nov");
+  });
+
+  it("names levels and AI features, unknown features by their id", () => {
+    expect(levelText(t, "high")).toEqual({ label: "Very active", hint: "8 or more days in the last 30" });
+    expect(aiFeature(t, "project.chat")).toBe("Project assistant");
+    expect(aiFeature(t, "something.new")).toBe("something.new");
   });
 });

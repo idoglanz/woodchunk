@@ -2,11 +2,11 @@
 
 import { Copy, Trash2, X } from "lucide-react";
 import { useEffect } from "react";
+import { useTranslations } from "use-intl";
 import { ItemPicker, rememberMaterial } from "@/components/project/material-picker";
 import { Button, IconButton } from "@/components/ui/button";
 import type { CatalogItem, ProjectContent } from "@/lib/api/client";
 import { newId, useEditor } from "@/lib/editor";
-import { plural } from "@/lib/format";
 import { usePartSelection } from "@/lib/selection";
 import { toast } from "@/lib/toast";
 import { isTyping } from "@/lib/typing";
@@ -26,6 +26,7 @@ export function SelectionBar({ items, byId }: { items: CatalogItem[]; byId: Map<
   const content = useEditor((s) => s.content);
   const edit = useEditor((s) => s.edit);
   const readOnly = useEditor((s) => s.readOnly);
+  const t = useTranslations("project.selection");
 
   // Parts that went away (undo, someone else's edit) leave the selection; read-only clears it.
   useEffect(() => {
@@ -50,7 +51,7 @@ export function SelectionBar({ items, byId }: { items: CatalogItem[]; byId: Map<
         if (!sheet) { p.width_mm = null; p.grain_locked = false; }
       }
     });
-    toast.info(`Changed the material of ${plural(parts.length, "part")}`, { label: "Undo", run: () => useEditor.getState().undo() });
+    toast.info(t("changed", { n: parts.length }), { label: t("undo"), run: () => useEditor.getState().undo() });
   };
 
   const duplicate = () => {
@@ -66,14 +67,14 @@ export function SelectionBar({ items, byId }: { items: CatalogItem[]; byId: Map<
       }
     });
     usePartSelection.getState().set(copies);
-    toast.info(`Duplicated ${plural(copies.length, "part")}: the copies are selected`, { label: "Undo", run: () => useEditor.getState().undo() });
+    toast.info(t("duplicated", { n: copies.length }), { label: t("undo"), run: () => useEditor.getState().undo() });
   };
 
   const remove = () => {
     const n = parts.length;
     edit((d) => { for (const a of d.assemblies) a.parts = a.parts.filter((p) => !selected.has(p.id)); });
     usePartSelection.getState().clear();
-    toast.info(`Deleted ${plural(n, "part")}`, { label: "Undo", run: () => useEditor.getState().undo() });
+    toast.info(t("deleted", { n }), { label: t("undo"), run: () => useEditor.getState().undo() });
   };
 
   useEffect(() => {
@@ -93,20 +94,20 @@ export function SelectionBar({ items, byId }: { items: CatalogItem[]; byId: Map<
     <>
       {/* Room at the end of the page, so the bar doesn't cover the last row. */}
       <div aria-hidden="true" className="h-16 lg:hidden" />
-      <div role="toolbar" aria-label="Selected parts"
+      <div role="toolbar" aria-label={t("toolbar")}
         className="no-print animate-sheet fixed inset-x-3 z-[29] mx-auto flex max-w-[560px] items-center gap-1.5 rounded-2xl bg-surface p-1.5 ps-3 shadow-[var(--shadow-pop)] dark:border dark:border-line bottom-[calc(var(--bottom-nav,0px)_+_76px)] lg:bottom-6">
-        <span className="tnum shrink-0 text-[14px] font-semibold">{parts.length} <span className="hidden font-normal text-ink-2 sm:inline">selected</span></span>
+        <span className="tnum shrink-0 text-[14px] font-semibold">{parts.length} <span className="hidden font-normal text-ink-2 sm:inline">{t("selected")}</span></span>
         <div className="min-w-0 flex-1">
-          <ItemPicker items={items} value={common} kinds={["lumber", "sheet"]} ariaLabel="Material for the selected parts" placeholder="Change material"
+          <ItemPicker items={items} value={common} kinds={["lumber", "sheet"]} ariaLabel={t("material")} placeholder={t("changeMaterial")}
             className="h-9 bg-surface-2" onChange={(id) => { if (id) setMaterial(id); }} />
         </div>
-        <Button size="sm" variant="ghost" icon={<Copy size={15} />} onClick={duplicate} aria-label="Duplicate the selected parts">
-          <span className="hidden sm:inline">Duplicate</span>
+        <Button size="sm" variant="ghost" icon={<Copy size={15} />} onClick={duplicate} aria-label={t("duplicateAria")}>
+          <span className="hidden sm:inline">{t("duplicate")}</span>
         </Button>
-        <Button size="sm" variant="destructive" icon={<Trash2 size={15} />} onClick={remove} aria-label="Delete the selected parts">
-          <span className="hidden sm:inline">Delete</span>
+        <Button size="sm" variant="destructive" icon={<Trash2 size={15} />} onClick={remove} aria-label={t("deleteAria")}>
+          <span className="hidden sm:inline">{t("delete")}</span>
         </Button>
-        <IconButton label="Clear the selection (Esc)" size="sm" onClick={() => usePartSelection.getState().clear()}><X size={16} /></IconButton>
+        <IconButton label={t("clear")} size="sm" onClick={() => usePartSelection.getState().clear()}><X size={16} /></IconButton>
       </div>
     </>
   );

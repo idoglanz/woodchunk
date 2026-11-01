@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "use-intl";
 import { useProjectCtx } from "@/components/project/context";
 import { Button } from "@/components/ui/button";
 import { Field, LengthInput, QtyInput, Select } from "@/components/ui/field";
@@ -25,7 +26,8 @@ export function RepeatDialog({ sk, ids, open, onOpenChange, onApply }: {
   onApply: (fn: (d: Sketch) => void) => void;
 }) {
   const { units } = useProjectCtx();
-  const names = useMemo(() => itemNames(sk), [sk]);
+  const t = useTranslations("sketch");
+  const names = useMemo(() => itemNames(sk, t), [sk, t]);
   const [axis, setAxis] = useState<Axis>("x");
   const [count, setCount] = useState(5);
   // Lines square to the repeat that could bound it (the item's own lines aren't), nearest first.
@@ -53,75 +55,75 @@ export function RepeatDialog({ sk, ids, open, onOpenChange, onApply }: {
   const plan: RepeatPlan | null = mode === "between" ? (a && b ? { axis, count, span: { between: [a, b] }, ends } : null)
     : mode === "length" ? (length ? { axis, count, span: { length }, ends } : null)
     : gap !== null ? { axis, count, span: { gap }, ends: "flush" } : null;
-  const result = plan ? planSpacing(sk, ids, plan) : { ok: false as const, reason: "Choose what to fill." };
+  const result = plan ? planSpacing(sk, ids, plan, t) : { ok: false as const, reason: t("repeat.chooseFill") };
   const name = (id: string) => (AXES.includes(id) ? names.get(id) : `${names.get(id)} (${fmtLength(Math.round(bounds.list.find((x) => x.id === id)!.at), units)})`);
 
   const apply = () => {
     if (!plan || !result.ok) return;
     // Try it first: placed, it has to solve with the rest of the sketch.
-    const tried = repeat(structuredClone(sk), ids, plan, () => newId().slice(0, 10));
+    const tried = repeat(structuredClone(sk), ids, plan, () => newId().slice(0, 10), t);
     if (!tried.ok) { toast.error(tried.reason); return; }
-    onApply((d) => { repeat(d, ids, plan, () => newId().slice(0, 10)); });
+    onApply((d) => { repeat(d, ids, plan, () => newId().slice(0, 10), t); });
     onOpenChange(false);
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} title="Repeat with even gaps"
-      description="Copies of the selection, spaced evenly: slats, shelves, pickets."
+    <Sheet open={open} onOpenChange={onOpenChange} title={t("repeat.title")}
+      description={t("repeat.description")}
       footer={<>
-        <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-        <Button variant="primary" disabled={!result.ok} onClick={apply}>Repeat ×{count}</Button>
+        <Button variant="ghost" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
+        <Button variant="primary" disabled={!result.ok} onClick={apply}>{t("repeat.apply", { count })}</Button>
       </>}>
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-[1fr_120px] items-end gap-3">
-          <Field label="Direction">
-            <Segmented label="Direction" value={axis} onChange={(v) => { setAxis(v); setFrom(null); setTo(null); }}
-              options={[{ value: "x", label: "Across (X)" }, { value: "y", label: "Up (Y)" }]} />
+          <Field label={t("repeat.direction")}>
+            <Segmented label={t("repeat.direction")} value={axis} onChange={(v) => { setAxis(v); setFrom(null); setTo(null); }}
+              options={[{ value: "x", label: t("repeat.across") }, { value: "y", label: t("repeat.up") }]} />
           </Field>
-          <Field label="How many">
-            <QtyInput ariaLabel="How many in all" min={2} max={100} value={count} onChange={setCount} />
+          <Field label={t("repeat.howMany")}>
+            <QtyInput ariaLabel={t("repeat.howManyAll")} min={2} max={100} value={count} onChange={setCount} />
           </Field>
         </div>
-        <Field label="Spacing">
-          <Segmented label="Spacing" value={mode} onChange={setMode}
-            options={[{ value: "between", label: "Between lines" }, { value: "length", label: "In a length" }, { value: "gap", label: "Set gap" }]} />
+        <Field label={t("repeat.spacing")}>
+          <Segmented label={t("repeat.spacing")} value={mode} onChange={setMode}
+            options={[{ value: "between", label: t("repeat.betweenLines") }, { value: "length", label: t("repeat.inLength") }, { value: "gap", label: t("repeat.setGap") }]} />
         </Field>
         {mode === "between" ? (
           bounds.before.length && bounds.after.length ? (
             <div className="grid grid-cols-2 gap-3">
-              <Field label="From" htmlFor="rp-from">
+              <Field label={t("repeat.from")} htmlFor="rp-from">
                 <Select id="rp-from" value={a} onChange={(e) => setFrom(e.target.value)} className="w-full">
                   {bounds.before.map((x) => <option key={x.id} value={x.id}>{name(x.id)}</option>)}
                 </Select>
               </Field>
-              <Field label="To" htmlFor="rp-to">
+              <Field label={t("repeat.to")} htmlFor="rp-to">
                 <Select id="rp-to" value={b} onChange={(e) => setTo(e.target.value)} className="w-full">
                   {bounds.after.map((x) => <option key={x.id} value={x.id}>{name(x.id)}</option>)}
                 </Select>
               </Field>
             </div>
-          ) : <p className="text-[14px] text-ink-2">Draw {axis === "x" ? "upright" : "level"} lines on both sides of the selection to fill between, or pick another way.</p>
+          ) : <p className="text-[14px] text-ink-2">{t("repeat.drawLines", { axis })}</p>
         ) : mode === "length" ? (
-          <Field label="Length to fill, from where the selection starts">
-            <LengthInput ariaLabel="Length to fill" units={units} value={length} onChange={setLength} />
+          <Field label={t("repeat.lengthToFill")}>
+            <LengthInput ariaLabel={t("repeat.lengthToFillAria")} units={units} value={length} onChange={setLength} />
           </Field>
         ) : (
-          <Field label="Gap between">
-            <LengthInput ariaLabel="Gap between" units={units} value={gap} onChange={setGap} allowEmpty />
+          <Field label={t("repeat.gapBetween")}>
+            <LengthInput ariaLabel={t("repeat.gapBetween")} units={units} value={gap} onChange={setGap} allowEmpty />
           </Field>
         )}
         {mode !== "gap" ? (
-          <Field label="At the ends">
+          <Field label={t("repeat.atTheEnds")}>
             <div className="flex flex-wrap items-center gap-2">
-              <Segmented label="At the ends" value={endsKind} onChange={setEndsKind}
-                options={[{ value: "equal", label: "Same gap" }, { value: "flush", label: "Flush" }, { value: "set", label: "Set" }]} />
-              {endsKind === "set" ? <LengthInput ariaLabel="Gap at each end" units={units} value={endMm} onChange={setEndMm} className="w-28" /> : null}
+              <Segmented label={t("repeat.atTheEnds")} value={endsKind} onChange={setEndsKind}
+                options={[{ value: "equal", label: t("repeat.sameGap") }, { value: "flush", label: t("repeat.flush") }, { value: "set", label: t("repeat.set") }]} />
+              {endsKind === "set" ? <LengthInput ariaLabel={t("repeat.gapAtEachEnd")} units={units} value={endMm} onChange={setEndMm} className="w-28" /> : null}
             </div>
           </Field>
         ) : null}
         <p role="status" className={result.ok ? "tnum rounded-xl bg-surface-2 px-3 py-2 text-[15px]" : "rounded-xl bg-kerf-soft px-3 py-2 text-[14px] text-kerf"}>
           {result.ok
-            ? <>Gap between: <b><Ltr>{fmtLength(Math.round(result.gap * 10) / 10, units)}</Ltr></b>{mode !== "gap" ? <> · at each end: <b><Ltr>{fmtLength(Math.round(result.end * 10) / 10, units)}</Ltr></b></> : null}</>
+            ? <>{t("repeat.resultGap")} <b><Ltr>{fmtLength(Math.round(result.gap * 10) / 10, units)}</Ltr></b>{mode !== "gap" ? <> · {t("repeat.resultEnds")} <b><Ltr>{fmtLength(Math.round(result.end * 10) / 10, units)}</Ltr></b></> : null}</>
             : result.reason}
         </p>
       </div>

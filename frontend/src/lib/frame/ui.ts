@@ -10,8 +10,10 @@ export type Tool = "select" | "draw";
 export type Mode = "3d" | "front" | "side" | "top";
 export type FlatMode = Exclude<Mode, "3d">;
 
+export type Face = "front" | "back" | "left" | "right" | "bottom" | "top";
+
 /** Each flat view looks along one axis (its normal) and draws in the other two. */
-export const FLAT: Record<FlatMode, { normal: Axis; inPlane: [Axis, Axis]; label: string; face: (min: number, max: number) => number; faceName: [string, string] }> = {
+export const FLAT: Record<FlatMode, { normal: Axis; inPlane: [Axis, Axis]; label: string; face: (min: number, max: number) => number; faceName: [Face, Face] }> = {
   front: { normal: 1, inPlane: [0, 2], label: "y", face: (min) => min, faceName: ["front", "back"] },
   side: { normal: 0, inPlane: [1, 2], label: "x", face: (_, max) => max, faceName: ["left", "right"] },
   top: { normal: 2, inPlane: [0, 1], label: "z", face: (_, max) => max, faceName: ["bottom", "top"] },

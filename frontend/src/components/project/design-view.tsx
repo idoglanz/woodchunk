@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp, Box, CheckSquare, Copy, LayoutTemplate, MoreHorizontal, Paperclip, PencilRuler, Plus, Sparkles, Trash2, Unlink, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useTranslations } from "use-intl";
 import { cutSummary } from "@/components/frame/cut-list";
 import { TemplateDialog } from "@/components/frame/template-dialog";
 import { AssemblySketches, AttachSketches } from "@/components/sketch/assembly-sketches";
@@ -12,7 +13,7 @@ import { ItemPicker, rememberMaterial } from "@/components/project/material-pick
 import { SelectionBar, selectableParts } from "@/components/project/selection-bar";
 import { Button, IconButton } from "@/components/ui/button";
 import { LengthInput, NumberInput, QtyInput } from "@/components/ui/field";
-import { AsmChip, Card, EmptyState } from "@/components/ui/misc";
+import { AsmChip, Card, EmptyState, Ltr } from "@/components/ui/misc";
 import { Menu, MenuItem, MenuSeparator, Tip } from "@/components/ui/overlay";
 import { Stepper } from "@/components/ui/stepper";
 import type { Assembly, CatalogItem, HardwareLine, Part } from "@/lib/api/client";
@@ -47,24 +48,25 @@ export function DesignView() {
   const { openAI } = useProjectCtx();
   const { items, byId } = useItems();
   const [drawing, setDrawing] = useState(false);
+  const t = useTranslations("project");
   if (!content) return null;
   const frameDialog = drawing ? <TemplateDialog open={drawing} onOpenChange={setDrawing} /> : null;
 
   const addAssembly = () =>
     edit((d) => {
-      d.assemblies.push(newAssembly({ letter: nextLetter(d.assemblies.map((a) => a.letter)), name: `Assembly ${d.assemblies.length + 1}` }));
+      d.assemblies.push(newAssembly({ letter: nextLetter(d.assemblies.map((a) => a.letter)), name: t("defaults.assemblyN", { n: String(d.assemblies.length + 1) }) }));
     });
 
   if (!content.assemblies.length) {
     const empty = (
       <Card>
-        <EmptyState title="What are you building?"
-          text="Add an assembly for each thing you're making (a table, two sawhorses…), then list the parts it's cut from."
+        <EmptyState title={t("design.emptyTitle")}
+          text={t("design.emptyText")}
           action={<div className="flex flex-wrap justify-center gap-2">
-            {!readOnly ? <Button variant="primary" icon={<Sparkles size={16} />} onClick={openAI}>Describe it</Button> : null}
-            {!readOnly ? <Button icon={<Plus size={16} />} onClick={addAssembly}>Add assembly</Button> : null}
-            {!readOnly ? <Button icon={<Box size={16} />} onClick={() => setDrawing(true)}>Draw a frame</Button> : null}
-            <Link href="/templates" className="inline-flex h-11 items-center gap-2 rounded-xl px-4 text-[15px] font-medium text-ink-2 hover:text-ink"><LayoutTemplate size={16} />Templates</Link>
+            {!readOnly ? <Button variant="primary" icon={<Sparkles size={16} />} onClick={openAI}>{t("design.describe")}</Button> : null}
+            {!readOnly ? <Button icon={<Plus size={16} />} onClick={addAssembly}>{t("design.addAssembly")}</Button> : null}
+            {!readOnly ? <Button icon={<Box size={16} />} onClick={() => setDrawing(true)}>{t("design.drawFrame")}</Button> : null}
+            <Link href="/templates" className="inline-flex h-11 items-center gap-2 rounded-xl px-4 text-[15px] font-medium text-ink-2 hover:text-ink"><LayoutTemplate size={16} />{t("design.templates")}</Link>
           </div>} />
         {frameDialog}
       </Card>
@@ -81,8 +83,8 @@ export function DesignView() {
       <SketchesCard />
       {!readOnly ? (
         <div className="flex flex-wrap gap-2">
-          <Button icon={<Plus size={16} strokeWidth={2.4} />} onClick={addAssembly}>Add assembly</Button>
-          <Button variant="ghost" icon={<Box size={16} />} onClick={() => setDrawing(true)}>Draw a frame in 3D</Button>
+          <Button icon={<Plus size={16} strokeWidth={2.4} />} onClick={addAssembly}>{t("design.addAssembly")}</Button>
+          <Button variant="ghost" icon={<Box size={16} />} onClick={() => setDrawing(true)}>{t("design.drawFrame3d")}</Button>
         </div>
       ) : null}
       {frameDialog}
@@ -101,6 +103,7 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
   const [drawing, setDrawing] = useState(false);
   const [attaching, setAttaching] = useState(false);
   const newSketch = useNewSketch();
+  const t = useTranslations("project");
   const drawn = !!a.frame;
 
   const addPart = () => upd((x) => {
@@ -119,45 +122,45 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
     <Card className="@container flex flex-col">
       <div className="flex flex-wrap items-center gap-3 px-4 pb-2 pt-4 sm:px-5">
         <AsmChip letter={a.letter} className="h-7 min-w-7 text-[13px]" />
-        <InlineText value={a.name} placeholder="Assembly name" ariaLabel="Assembly name" readOnly={readOnly}
-          onCommit={(v) => upd((x) => { x.name = v || "Assembly"; })} className="text-[17px] font-semibold" />
+        <InlineText value={a.name} placeholder={t("design.assemblyName")} ariaLabel={t("design.assemblyName")} readOnly={readOnly}
+          onCommit={(v) => upd((x) => { x.name = v || t("defaults.assembly"); })} className="text-[17px] font-semibold" />
         <div className="ms-auto flex items-center gap-1">
           {readOnly ? <span className="tnum text-[15px] font-semibold text-ink-2">×{a.qty}</span> : (
-            <Tip content="How many of this you're building. Multiplies its parts and hardware.">
-              <span><Stepper label="assemblies" value={a.qty} onChange={(n) => upd((x) => { x.qty = n; }, `qty-${a.id}`)} /></span>
+            <Tip content={t("design.qtyTip")}>
+              <span><Stepper label={t("design.assemblies")} value={a.qty} onChange={(n) => upd((x) => { x.qty = n; }, `qty-${a.id}`)} /></span>
             </Tip>
           )}
           {!readOnly ? (
-            <Menu trigger={<IconButton label="Assembly options" size="sm"><MoreHorizontal size={18} /></IconButton>}>
+            <Menu trigger={<IconButton label={t("design.options")} size="sm"><MoreHorizontal size={18} /></IconButton>}>
               {!drawn && a.parts.length ? (
                 <MenuItem icon={<CheckSquare size={15} />} onSelect={() => usePartSelection.getState().set([...new Set([...usePartSelection.getState().ids, ...a.parts.map((p) => p.id)])])}>
-                  Select all parts
+                  {t("design.selectAll")}
                 </MenuItem>
               ) : null}
               <MenuItem icon={<Copy size={15} />} onSelect={() => edit((d) => {
                 const src = d.assemblies.find((y) => y.id === a.id)!;
-                const copy: Assembly = { ...structuredClone(src), id: newId(), letter: nextLetter(d.assemblies.map((y) => y.letter)), name: `${src.name} copy` };
+                const copy: Assembly = { ...structuredClone(src), id: newId(), letter: nextLetter(d.assemblies.map((y) => y.letter)), name: t("defaults.copyOf", { name: src.name }) };
                 copy.parts = copy.parts.map((p) => ({ ...p, id: newId(), sketch: null })); // copies don't follow the sketch
                 copy.hardware = copy.hardware.map((h) => ({ ...h, id: newId() }));
                 deriveParts(copy, byId);
                 d.assemblies.splice(index + 1, 0, copy);
-              })}>Duplicate</MenuItem>
+              })}>{t("design.duplicate")}</MenuItem>
               {drawn ? (
                 <MenuItem icon={<Unlink size={15} />} onSelect={() => upd((x) => { x.frame = null; x.frame_warnings = []; x.parts = x.parts.map((pt) => ({ ...pt, id: newId(), members: [] })); })}>
-                  Keep parts, remove 3D frame
+                  {t("design.removeFrame")}
                 </MenuItem>
               ) : (
-                <MenuItem icon={<Box size={15} />} onSelect={() => setDrawing(true)}>Design in 3D…</MenuItem>
+                <MenuItem icon={<Box size={15} />} onSelect={() => setDrawing(true)}>{t("design.design3d")}</MenuItem>
               )}
-              <MenuItem icon={<PencilRuler size={15} />} onSelect={() => newSketch(a)}>New sketch for this</MenuItem>
-              <MenuItem icon={<Paperclip size={15} />} onSelect={() => setAttaching(true)}>Attach sketches…</MenuItem>
-              <MenuItem icon={<ArrowUp size={15} />} disabled={index === 0} onSelect={() => move(-1)}>Move up</MenuItem>
-              <MenuItem icon={<ArrowDown size={15} />} disabled={index === count - 1} onSelect={() => move(1)}>Move down</MenuItem>
+              <MenuItem icon={<PencilRuler size={15} />} onSelect={() => newSketch(a)}>{t("design.newSketch")}</MenuItem>
+              <MenuItem icon={<Paperclip size={15} />} onSelect={() => setAttaching(true)}>{t("design.attach")}</MenuItem>
+              <MenuItem icon={<ArrowUp size={15} />} disabled={index === 0} onSelect={() => move(-1)}>{t("design.moveUp")}</MenuItem>
+              <MenuItem icon={<ArrowDown size={15} />} disabled={index === count - 1} onSelect={() => move(1)}>{t("design.moveDown")}</MenuItem>
               <MenuSeparator />
               <MenuItem danger icon={<Trash2 size={15} />} onSelect={() => edit((d) => {
                 d.assemblies = d.assemblies.filter((y) => y.id !== a.id);
                 for (const sk of d.sketches) if (sk.assembly_id === a.id) sk.assembly_id = null; // its sketches stay, unattached
-              })}>Delete assembly</MenuItem>
+              })}>{t("design.deleteAssembly")}</MenuItem>
             </Menu>
           ) : null}
         </div>
@@ -170,8 +173,8 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
       <div className="px-2 sm:px-3">
         {a.parts.length ? (
           <div className={cn(ROW, "hidden px-2 pb-1 pt-1 text-[12px] font-medium text-ink-3 @2xl:grid")}>
-            <span className="[grid-area:chip]">Label</span><span className="[grid-area:name] px-2">Part</span><span className="[grid-area:mat]">Material</span>
-            <span className={cn(NUMS, "[grid-area:nums]")}><span className="text-end">Qty</span><span className="text-end">Length</span><span className="text-end">Width</span></span>
+            <span className="[grid-area:chip]">{t("design.colLabel")}</span><span className="[grid-area:name] px-2">{t("design.colPart")}</span><span className="[grid-area:mat]">{t("design.colMaterial")}</span>
+            <span className={cn(NUMS, "[grid-area:nums]")}><span className="text-end">{t("design.colQty")}</span><span className="text-end">{t("design.colLength")}</span><span className="text-end">{t("design.colWidth")}</span></span>
           </div>
         ) : null}
         <div className="flex flex-col">
@@ -179,17 +182,17 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
             <PartRow key={p.id} a={a} p={p} label={`${a.letter}${i + 1}`} items={items} byId={byId} problem={unplaced.get(p.id)} />
           ))}
         </div>
-        {!a.parts.length ? <p className="px-2 py-3 text-[14px] text-ink-2">No parts yet.</p> : null}
+        {!a.parts.length ? <p className="px-2 py-3 text-[14px] text-ink-2">{t("design.noParts")}</p> : null}
       </div>
       )}
 
-      <HardwareList title={a.qty > 1 ? `Hardware · per ${a.name || "assembly"}, ×${a.qty} in total` : "Hardware"} lines={a.hardware} items={items} byId={byId}
+      <HardwareList title={a.qty > 1 ? t("design.hardwarePer", { name: a.name || t("design.assemblyLower"), qty: String(a.qty) }) : t("design.hardware")} lines={a.hardware} items={items} byId={byId}
         onEdit={(fn) => upd((x) => fn(x.hardware))} />
 
       {!readOnly ? (
         <div className="flex flex-wrap gap-1 border-t border-line px-3 py-2 sm:px-4">
-          {!drawn ? <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={addPart}>Add part</Button> : null}
-          <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => upd((x) => { x.hardware.push({ id: newId(), item_id: null, name: "", qty: 1, unit_price: null }); })}>Add hardware</Button>
+          {!drawn ? <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={addPart}>{t("design.addPart")}</Button> : null}
+          <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => upd((x) => { x.hardware.push({ id: newId(), item_id: null, name: "", qty: 1, unit_price: null }); })}>{t("design.addHardware")}</Button>
         </div>
       ) : null}
     </Card>
@@ -200,9 +203,11 @@ function AssemblyCard({ a, index, count, items, byId }: { a: Assembly; index: nu
 function DrawnParts({ a, byId, projectId }: { a: Assembly; byId: Map<string, CatalogItem>; projectId: string }) {
   const active = useActivePart();
   const focus = usePartFocus.getState();
+  const t = useTranslations("project.design");
+  const tf = useTranslations("frame");
   return (
     <div className="flex flex-col gap-1 px-2 sm:px-3">
-      {a.frame_warnings.length ? <p className="px-2 text-[13px] text-warn">{a.frame_warnings[0]}{a.frame_warnings.length > 1 ? ` (+${a.frame_warnings.length - 1} more)` : ""}</p> : null}
+      {a.frame_warnings.length ? <p className="px-2 text-[13px] text-warn">{a.frame_warnings.length > 1 ? t("warningMore", { warning: a.frame_warnings[0], n: String(a.frame_warnings.length - 1) }) : a.frame_warnings[0]}</p> : null}
       {a.parts.map((p, i) => {
         const item = p.item_id ? byId.get(p.item_id) : undefined;
         return (
@@ -210,20 +215,20 @@ function DrawnParts({ a, byId, projectId }: { a: Assembly; byId: Map<string, Cat
             className={cn("grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-x-2 rounded-xl px-2 py-1.5 transition-colors", active === p.id && "bg-surface-2/70")}>
             <AsmChip letter={a.letter}>{a.letter}{i + 1}</AsmChip>
             <span className="flex min-w-0 flex-col">
-              <span className="truncate text-[15px]">{p.name || "Bar"}</span>
-              <span className="truncate text-[13px] text-ink-2">{item?.name.en ?? "No material"}</span>
+              <span className="truncate text-[15px]">{p.name || t("bar")}</span>
+              <span className="truncate text-[13px] text-ink-2">{item?.name.en ?? t("noMaterial")}</span>
             </span>
             <span className="flex flex-col items-end">
-              <span className="tnum text-[15px] font-semibold">{p.qty} × {p.length_mm} mm</span>
-              <span className="text-[13px] text-ink-2">{cutSummary(p.cuts)}</span>
+              <span className="tnum text-[15px] font-semibold"><Ltr>{p.qty} × {p.length_mm} mm</Ltr></span>
+              <span className="text-[13px] text-ink-2">{cutSummary(p.cuts, tf)}</span>
             </span>
           </div>
         );
       })}
-      {!a.parts.length ? <p className="px-2 py-3 text-[14px] text-ink-2">No bars with a material yet.</p> : null}
+      {!a.parts.length ? <p className="px-2 py-3 text-[14px] text-ink-2">{t("noBars")}</p> : null}
       <Link href={`/projects/${projectId}/frame/${a.id}`}
         className="mx-2 mb-2 mt-1 inline-flex h-9 items-center gap-2 self-start rounded-xl bg-surface-2 px-3 text-[14px] font-medium hover:bg-surface-3">
-        <Box size={15} />Edit in 3D
+        <Box size={15} />{t("edit3d")}
       </Link>
     </div>
   );
@@ -243,7 +248,8 @@ function PartRow({ a, p, label, items, byId, problem }: {
   const edit = useEditor((s) => s.edit);
   const readOnly = useEditor((s) => s.readOnly);
   const { units, id: projectId } = useProjectCtx();
-  const sketchName = (sid: string) => useEditor.getState().content?.sketches.find((x) => x.id === sid)?.name ?? "a sketch";
+  const t = useTranslations("project.design");
+  const sketchName = (sid: string) => useEditor.getState().content?.sketches.find((x) => x.id === sid)?.name ?? t("aSketch");
   // A link to a line that's gone (someone deleted it meanwhile): the length is editable again.
   const linkedLine = (link: NonNullable<Part["sketch"]>) => {
     const sk = useEditor.getState().content?.sketches.find((x) => x.id === link.sketch_id);
@@ -270,8 +276,8 @@ function PartRow({ a, p, label, items, byId, problem }: {
       <div className="flex items-center [grid-area:chip]">
         {readOnly ? (problem ? <Tip content={problem}><span>{chip}</span></Tip> : chip) : (
           // The label is the part's select toggle (shift-click: a range), for batch changes.
-          <Tip content={problem ?? (selected ? "Selected · click to unselect" : "Select · shift-click for a range")}>
-            <button type="button" aria-pressed={selected} aria-label={`Select ${label}`} data-part-toggle className="-m-1 rounded-lg p-1"
+          <Tip content={problem ?? (selected ? t("selectedTip") : t("selectTip"))}>
+            <button type="button" aria-pressed={selected} aria-label={t("select", { label })} data-part-toggle className="-m-1 rounded-lg p-1"
               onClick={(e) => usePartSelection.getState().toggle(p.id, e.shiftKey, selectableParts(useEditor.getState().content))}>
               {chip}
             </button>
@@ -279,36 +285,36 @@ function PartRow({ a, p, label, items, byId, problem }: {
         )}
       </div>
       <div className="min-w-0 [grid-area:name]">
-        <InlineText value={p.name} placeholder="Part name" ariaLabel={`${label} name`} readOnly={readOnly} onCommit={(v) => upd((x) => { x.name = v; })} className="w-full text-[15px]" boxed />
+        <InlineText value={p.name} placeholder={t("partName")} ariaLabel={t("nameOf", { label })} readOnly={readOnly} onCommit={(v) => upd((x) => { x.name = v; })} className="w-full text-[15px]" boxed />
       </div>
       <div className="flex justify-end [grid-area:del]">
-        {!readOnly ? <IconButton label={`Delete ${label}`} size="sm" className="text-ink-3 opacity-100 @2xl:opacity-40 @2xl:group-hover:opacity-100 @2xl:focus:opacity-100"
+        {!readOnly ? <IconButton label={t("deleteOf", { label })} size="sm" className="text-ink-3 opacity-100 @2xl:opacity-40 @2xl:group-hover:opacity-100 @2xl:focus:opacity-100"
           onClick={() => edit((d) => { const x = d.assemblies.find((y) => y.id === a.id); if (x) x.parts = x.parts.filter((y) => y.id !== p.id); })}><X size={16} /></IconButton> : null}
       </div>
       <div className="min-w-0 [grid-area:mat]">
-        <ItemPicker items={items} value={p.item_id} kinds={["lumber", "sheet"]} ariaLabel={`${label} material`} disabled={readOnly}
+        <ItemPicker items={items} value={p.item_id} kinds={["lumber", "sheet"]} ariaLabel={t("materialOf", { label })} disabled={readOnly}
           onChange={(id) => { if (!id) return; rememberMaterial(id); upd((x) => { x.item_id = id; const it = byId.get(id); if (it?.kind !== "sheet") { x.width_mm = null; x.grain_locked = false; } }); }} />
       </div>
       <div className={cn(NUMS, "[grid-area:nums]")}>
-        <QtyInput ariaLabel={`${label} quantity`} value={p.qty} disabled={readOnly} onChange={(n) => upd((x) => { x.qty = n; }, `qty-${p.id}`)} />
+        <QtyInput ariaLabel={t("qtyOf", { label })} value={p.qty} disabled={readOnly} onChange={(n) => upd((x) => { x.qty = n; }, `qty-${p.id}`)} />
         {p.sketch && linkedLine(p.sketch) !== null ? (
           // Cut to a sketch line: its length is changed there.
-          <Tip content={`From ${sketchName(p.sketch.sketch_id)}: change it in the sketch`}>
-            <Link href={`/projects/${projectId}/sketch/${p.sketch.sketch_id}`} aria-label={`${label} length ${lengthInput(p.length_mm, units)} ${units}, from a sketch`}
+          <Tip content={t("fromSketch", { sketch: sketchName(p.sketch.sketch_id) })}>
+            <Link href={`/projects/${projectId}/sketch/${p.sketch.sketch_id}`} aria-label={t("lengthFromSketch", { label, length: lengthInput(p.length_mm, units), units })}
               className="tnum flex h-9 items-center justify-end gap-1.5 rounded-lg bg-surface-2/60 px-2.5 text-[14px] text-ink hover:bg-surface-2">
               <PencilRuler size={13} className="shrink-0 text-ink-3" />{lengthInput(p.length_mm, units)}<span className="text-[12px] text-ink-3">{units}</span>
             </Link>
           </Tip>
         ) : (
-          <LengthInput ariaLabel={`${label} length`} units={units} value={p.length_mm} placeholder="Length"
+          <LengthInput ariaLabel={t("lengthOf", { label })} units={units} value={p.length_mm} placeholder={t("length")}
             invalid={!!problem && problem.includes("length")} onChange={(mm) => upd((x) => { x.length_mm = mm ?? 0; })} />
         )}
         {isSheet ? (
-          <LengthInput ariaLabel={`${label} width`} units={units} value={p.width_mm} placeholder="Width" allowEmpty
+          <LengthInput ariaLabel={t("widthOf", { label })} units={units} value={p.width_mm} placeholder={t("width")} allowEmpty
             invalid={!!problem && problem.includes("width")} onChange={(mm) => upd((x) => { x.width_mm = mm; })}
             start={item?.has_grain ? (
-              <Tip content={p.grain_locked ? "Grain runs along the length. Won't be rotated." : "Free to rotate on the sheet. Click to lock grain direction."}>
-                <button type="button" aria-pressed={p.grain_locked} aria-label={`${label} grain lock`} disabled={readOnly}
+              <Tip content={p.grain_locked ? t("grainLocked") : t("grainFree")}>
+                <button type="button" aria-pressed={p.grain_locked} aria-label={t("grainLockOf", { label })} disabled={readOnly}
                   onClick={() => upd((x) => { x.grain_locked = !x.grain_locked; })}
                   className={cn("flex h-8 w-8 items-center justify-center rounded-md", p.grain_locked ? "bg-accent-soft text-ink" : "text-ink-3 hover:bg-surface-3 hover:text-ink-2")}>
                   <GrainIcon />
@@ -332,19 +338,20 @@ function GrainIcon() {
 function ExtrasCard({ lines, items, byId }: { lines: HardwareLine[]; items: CatalogItem[]; byId: Map<string, CatalogItem> }) {
   const edit = useEditor((s) => s.edit);
   const readOnly = useEditor((s) => s.readOnly);
+  const t = useTranslations("project.design");
   if (readOnly && !lines.length) return null;
   return (
     <Card className="@container flex flex-col">
       <div className="flex items-center justify-between gap-3 px-4 pb-1 pt-4 sm:px-5">
         <div className="flex flex-col">
-          <h2 className="text-[17px] font-semibold">Extras</h2>
-          <p className="text-[13px] text-ink-2">Glue, finish and anything bought once for the whole project.</p>
+          <h2 className="text-[17px] font-semibold">{t("extras")}</h2>
+          <p className="text-[13px] text-ink-2">{t("extrasText")}</p>
         </div>
       </div>
       <HardwareList lines={lines} items={items} byId={byId} onEdit={(fn) => edit((d) => fn(d.extras))} />
       {!readOnly ? (
         <div className="border-t border-line px-3 py-2 sm:px-4">
-          <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => edit((d) => { d.extras.push({ id: newId(), item_id: null, name: "", qty: 1, unit_price: null }); })}>Add item</Button>
+          <Button size="sm" variant="ghost" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => edit((d) => { d.extras.push({ id: newId(), item_id: null, name: "", qty: 1, unit_price: null }); })}>{t("addItem")}</Button>
         </div>
       ) : null}
     </Card>
@@ -356,6 +363,7 @@ function HardwareList({ title, lines, items, byId, onEdit }: {
   onEdit: (fn: (list: HardwareLine[]) => void) => void;
 }) {
   const readOnly = useEditor((s) => s.readOnly);
+  const t = useTranslations("project.design");
   if (!lines.length) return null;
   const upd = (id: string, fn: (h: HardwareLine) => void) => onEdit((list) => { const h = list.find((x) => x.id === id); if (h) fn(h); });
   return (
@@ -365,18 +373,18 @@ function HardwareList({ title, lines, items, byId, onEdit }: {
         const item = h.item_id ? byId.get(h.item_id) : undefined;
         return (
           <div key={h.id} className="group grid grid-cols-[minmax(0,1fr)_112px_32px] items-center gap-2 rounded-xl px-2 py-1 @lg:grid-cols-[minmax(0,1fr)_112px_104px_32px]">
-            <ItemPicker items={items} value={h.item_id} kinds={["hardware"]} ariaLabel="Hardware item" disabled={readOnly} allowFree
-              placeholder={h.name || "Choose or type hardware"}
+            <ItemPicker items={items} value={h.item_id} kinds={["hardware"]} ariaLabel={t("hardwareItem")} disabled={readOnly} allowFree
+              placeholder={h.name || t("chooseHardware")}
               onChange={(id, free) => upd(h.id, (x) => { if (id) { x.item_id = id; x.name = byId.get(id)?.name.en ?? x.name; } else if (free) { x.item_id = null; x.name = free; } })} />
-            <QtyInput ariaLabel="Hardware quantity" value={h.qty} min={0} decimals={1} disabled={readOnly} onChange={(n) => upd(h.id, (x) => { x.qty = n; })} />
+            <QtyInput ariaLabel={t("hardwareQty")} value={h.qty} min={0} decimals={1} disabled={readOnly} onChange={(n) => upd(h.id, (x) => { x.qty = n; })} />
             <div className="hidden @lg:block">
               {item?.price != null ? (
                 <span className="tnum flex h-9 items-center justify-end text-[13px] text-ink-2">{money(item.price)}{item.pack_size > 1 ? ` / ${item.pack_size}` : ""}</span>
               ) : (
-                <NumberInput ariaLabel="Price each" value={h.unit_price} min={0} decimals={2} suffix="₪" onChange={(n) => upd(h.id, (x) => { x.unit_price = n; })} />
+                <NumberInput ariaLabel={t("priceEach")} value={h.unit_price} min={0} decimals={2} suffix="₪" onChange={(n) => upd(h.id, (x) => { x.unit_price = n; })} />
               )}
             </div>
-            {!readOnly ? <IconButton label="Remove hardware" size="sm" className="text-ink-3 @2xl:opacity-40 @2xl:group-hover:opacity-100 @2xl:focus:opacity-100"
+            {!readOnly ? <IconButton label={t("removeHardware")} size="sm" className="text-ink-3 @2xl:opacity-40 @2xl:group-hover:opacity-100 @2xl:focus:opacity-100"
               onClick={() => onEdit((list) => { const i = list.findIndex((x) => x.id === h.id); if (i >= 0) list.splice(i, 1); })}><X size={16} /></IconButton> : <span />}
           </div>
         );

@@ -3,18 +3,19 @@
  * Everything here mutates the sketch it's given (the editor hands a copy), then re-solves it.
  */
 
+import type { Translator } from "@/lib/lang";
 import { LIMIT, measure, solve, type SolveResult, type V2 } from "./solve";
 import { AXES, baseOf, DIMENSIONS, isBuiltIn, isMid, midOf, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type ConstraintKind, type Shape, type Sketch } from "./types";
 
 const newId = () => crypto.randomUUID().replace(/-/g, "");
 const id = () => newId().slice(0, 10);
 
-/** An empty sketch: "Sketch 3", or named for the assembly it's drawn for ("Bench sketch"). */
-export function newSketch(existing: { name: string }[], assembly?: { id: string; name: string }): Sketch {
+/** An empty sketch: "Sketch 3", or named for the assembly it's drawn for ("Bench sketch"), in the app's language. */
+export function newSketch(existing: { name: string }[], t: Translator<"sketch">, assembly?: { id: string; name: string }): Sketch {
   const names = new Set(existing.map((s) => s.name));
-  const base = assembly?.name ? `${assembly.name} sketch` : null;
-  let name = base ?? `Sketch ${existing.length + 1}`;
-  for (let n = base ? 2 : existing.length + 1; names.has(name); n++) name = base ? `${base} ${n}` : `Sketch ${n}`;
+  const base = assembly?.name ? t("names.forAssembly", { name: assembly.name }) : null;
+  let name = base ?? t("names.sketch", { n: existing.length + 1 });
+  for (let n = base ? 2 : existing.length + 1; names.has(name); n++) name = base ? `${base} ${n}` : t("names.sketch", { n });
   return { id: newId(), name: name.slice(0, 80), assembly_id: assembly?.id ?? null, points: [], shapes: [], constraints: [] };
 }
 
@@ -231,7 +232,7 @@ export function picked(sk: Sketch, ids: string[]): Picked {
 export type RelationOption = { kind: ConstraintKind; label: string; refs: string[]; side?: number; each?: string[][] };
 
 /** The relations that make sense for what's selected (each needs exactly that selection). */
-export function relationOptions(sk: Sketch, ids: string[]): RelationOption[] {
+export function relationOptions(sk: Sketch, ids: string[], t: Translator<"sketch">): RelationOption[] {
   const { points: P, lines: L, round: R } = picked(sk, ids);
   const n = P.length + L.length + R.length;
   const out: RelationOption[] = [];
@@ -241,49 +242,49 @@ export function relationOptions(sk: Sketch, ids: string[]): RelationOption[] {
   if (n === L.length && L.length >= 1 && !(L.length === 1 && axis) && !L.every((x) => AXES.includes(x))) {
     // Level or plumb (not the one a selected line already is the other of).
     const already = (kind: ConstraintKind) => L.some((l) => sk.constraints.some((c) => c.kind === kind && c.refs.length === 1 && c.refs[0] === l));
-    if (!axis && !already("vertical")) out.push({ kind: "horizontal", label: "Horizontal", refs: L, each: L.map((l) => [l]) });
-    if (!axis && !already("horizontal")) out.push({ kind: "vertical", label: "Vertical", refs: L, each: L.map((l) => [l]) });
+    if (!axis && !already("vertical")) out.push({ kind: "horizontal", label: t("options.horizontal"), refs: L, each: L.map((l) => [l]) });
+    if (!axis && !already("horizontal")) out.push({ kind: "vertical", label: t("options.vertical"), refs: L, each: L.map((l) => [l]) });
     if (L.length === 2) {
-      out.push({ kind: "parallel", label: "Parallel", refs: L }, { kind: "perpendicular", label: "Perpendicular", refs: L });
-      if (!axis) out.push({ kind: "equal", label: "Equal length", refs: L });
-      out.push({ kind: "collinear", label: AXES.includes(L[1]) ? "On axis" : "Collinear", refs: AXES.includes(L[0]) ? [L[1], L[0]] : L });
+      out.push({ kind: "parallel", label: t("options.parallel"), refs: L }, { kind: "perpendicular", label: t("options.perpendicular"), refs: L });
+      if (!axis) out.push({ kind: "equal", label: t("options.equalLength"), refs: L });
+      out.push({ kind: "collinear", label: AXES.includes(L[1]) ? t("options.onAxis") : t("options.collinear"), refs: AXES.includes(L[0]) ? [L[1], L[0]] : L });
     }
     if (L.length > 2 && !axis) {
-      out.push({ kind: "parallel", label: "Parallel", refs: L, each: toFirst(L) }, { kind: "equal", label: "Equal length", refs: L, each: toFirst(L) });
+      out.push({ kind: "parallel", label: t("options.parallel"), refs: L, each: toFirst(L) }, { kind: "equal", label: t("options.equalLength"), refs: L, each: toFirst(L) });
     }
     if (L.length === 3) {
-      const sym = mirrorLines(sk, L);
+      const sym = mirrorLines(sk, L, t);
       if (sym) out.push(sym);
     }
   }
   if (n >= 2 && n === P.length) {
     // Points level with (or above) the first: midpoints of two lines lined up, say.
-    out.push({ kind: "horizontal", label: "Align horizontally", refs: P, each: toFirst(P) }, { kind: "vertical", label: "Align vertically", refs: P, each: toFirst(P) });
+    out.push({ kind: "horizontal", label: t("options.alignHorizontally"), refs: P, each: toFirst(P) }, { kind: "vertical", label: t("options.alignVertically"), refs: P, each: toFirst(P) });
   }
   if (n === 2 && P.length === 2) {
     const [mid, other] = isMid(P[0]) ? [P[0], P[1]] : [P[1], P[0]];
-    if (!isMid(mid) || isMid(other)) out.push({ kind: "coincident", label: P.includes(ORIGIN) ? "Join to origin" : "Join", refs: P });
-    else if (baseOf(mid) !== other) out.push({ kind: "midpoint", label: "Join to midpoint", refs: [other, baseOf(mid)] });
+    if (!isMid(mid) || isMid(other)) out.push({ kind: "coincident", label: P.includes(ORIGIN) ? t("options.joinToOrigin") : t("options.join"), refs: P });
+    else if (baseOf(mid) !== other) out.push({ kind: "midpoint", label: t("options.joinToMidpoint"), refs: [other, baseOf(mid)] });
   }
   if (n === 2 && P.length === 1 && L.length === 1 && P[0] !== ORIGIN) {
-    out.push({ kind: "on_line", label: AXES.includes(L[0]) ? "On axis" : "On line", refs: [P[0], L[0]] });
-    if (!axis && !isMid(P[0])) out.push({ kind: "midpoint", label: "Midpoint", refs: [P[0], L[0]] });
+    out.push({ kind: "on_line", label: AXES.includes(L[0]) ? t("options.onAxis") : t("options.onLine"), refs: [P[0], L[0]] });
+    if (!axis && !isMid(P[0])) out.push({ kind: "midpoint", label: t("options.midpoint"), refs: [P[0], L[0]] });
   }
   if (n === 3 && P.length === 2 && L.length === 1) {
-    out.push({ kind: "symmetric", label: AXES.includes(L[0]) ? "Symmetric about axis" : "Symmetric", refs: [P[0], P[1], L[0]] });
+    out.push({ kind: "symmetric", label: AXES.includes(L[0]) ? t("options.symmetricAboutAxis") : t("options.symmetric"), refs: [P[0], P[1], L[0]] });
   }
-  if (n === 2 && P.length === 1 && R.length === 1 && P[0] !== ORIGIN) out.push({ kind: "on_circle", label: "On circle", refs: [P[0], R[0]] });
+  if (n === 2 && P.length === 1 && R.length === 1 && P[0] !== ORIGIN) out.push({ kind: "on_circle", label: t("options.onCircle"), refs: [P[0], R[0]] });
   if (n === 2 && L.length === 1 && R.length === 1) {
-    out.push({ kind: "tangent", label: "Tangent", refs: [L[0], R[0]], side: tangentSide(sk, L[0], R[0]) });
+    out.push({ kind: "tangent", label: t("options.tangent"), refs: [L[0], R[0]], side: tangentSide(sk, L[0], R[0]) });
   }
   if (n === 2 && R.length === 2) {
-    out.push({ kind: "equal", label: "Equal radius", refs: R }, { kind: "tangent", label: "Tangent", refs: R, side: circlesSide(sk, R[0], R[1]) });
+    out.push({ kind: "equal", label: t("options.equalRadius"), refs: R }, { kind: "tangent", label: t("options.tangent"), refs: R, side: circlesSide(sk, R[0], R[1]) });
     const [c0, c1] = R.map((r) => (shapeById(sk, r) as { c: string }).c);
-    if (c0 !== c1) out.push({ kind: "coincident", label: "Concentric", refs: [c0, c1] });
+    if (c0 !== c1) out.push({ kind: "coincident", label: t("options.concentric"), refs: [c0, c1] });
   }
   if (n >= 1 && n === P.length) {
     const loose = P.filter((p) => !isFixed(sk, p) && !isMid(p));
-    if (loose.length) out.push({ kind: "fix", label: n > 1 ? "Fix in place" : "Fix", refs: loose });
+    if (loose.length) out.push({ kind: "fix", label: n > 1 ? t("options.fixInPlace") : t("options.fix"), refs: loose });
   }
   // Not the ones already there (the same relation on the same things, either way round).
   const key = (kind: string, refs: string[]) => `${kind}:${kind === "symmetric" ? [...refs.slice(0, 2)].sort().concat(refs[2]) : [...refs].sort()}`;
@@ -301,7 +302,7 @@ export function relationOptions(sk: Sketch, ids: string[]): RelationOption[] {
  * last picked. Each end is paired with the end nearest its mirror image; an end the two share
  * just sits on the mirror line.
  */
-function mirrorLines(sk: Sketch, L: string[]): RelationOption | null {
+function mirrorLines(sk: Sketch, L: string[], t: Translator<"sketch">): RelationOption | null {
   const lines = L.map((x) => shapeById(sk, x)).filter((s) => s?.kind === "line") as (Shape & { kind: "line" })[];
   if (lines.length !== 3) return null;
   const helpers = lines.filter((l) => l.construction);
@@ -321,7 +322,7 @@ function mirrorLines(sk: Sketch, L: string[]): RelationOption | null {
   const [pa, pb] = dist(ra, pointAt(sk, l2.a)) <= dist(ra, pointAt(sk, l2.b)) ? [l2.a, l2.b] : [l2.b, l2.a];
   const each = [[l1.a, pa], [l1.b, pb]].map(([p, q]) => (p === q ? [p, mirror.id] : [p, q, mirror.id]));
   if (each.some((r) => r[0] === ORIGIN && r.length === 2)) return null;
-  return { kind: "symmetric", label: "Symmetric", refs: [l1.id, l2.id, mirror.id], each };
+  return { kind: "symmetric", label: t("options.symmetric"), refs: [l1.id, l2.id, mirror.id], each };
 }
 
 /** Which side of the line the circle's centre is on, as drawn (+1 left of a→b, −1 right). */
@@ -453,34 +454,35 @@ export function dimensionValue(sk: Sketch, c: Constraint): number {
 // --- names -------------------------------------------------------------------------------------------
 
 /** "Line 2", "Circle 1", "Point 4": numbered by kind, in drawing order. */
-export function itemNames(sk: Sketch): Map<string, string> {
+export function itemNames(sk: Sketch, t: Translator<"sketch">): Map<string, string> {
   const out = new Map<string, string>();
   const count: Record<string, number> = {};
-  const name = (kind: string) => `${kind} ${(count[kind] = (count[kind] ?? 0) + 1)}`;
-  for (const s of sk.shapes) out.set(s.id, name(s.kind === "line" ? "Line" : s.kind === "circle" ? "Circle" : "Arc"));
-  for (const p of sk.points) out.set(p.id, name("Point"));
-  for (const s of sk.shapes) if (s.kind === "line") out.set(midOf(s.id), `${out.get(s.id)} midpoint`);
-  out.set(ORIGIN, "Origin").set(X_AXIS, "X axis").set(Y_AXIS, "Y axis");
+  const name = (kind: "line" | "circle" | "arc" | "point") => t(`names.${kind}`, { n: (count[kind] = (count[kind] ?? 0) + 1) });
+  for (const s of sk.shapes) out.set(s.id, name(s.kind));
+  for (const p of sk.points) out.set(p.id, name("point"));
+  for (const s of sk.shapes) if (s.kind === "line") out.set(midOf(s.id), t("names.midpoint", { line: out.get(s.id)! }));
+  out.set(ORIGIN, t("names.origin")).set(X_AXIS, t("names.xAxis")).set(Y_AXIS, t("names.yAxis"));
   return out;
 }
 
-const RELATION_NAMES: Partial<Record<ConstraintKind, string>> = {
-  coincident: "joined", horizontal: "horizontal", vertical: "vertical", parallel: "parallel", perpendicular: "perpendicular",
-  equal: "equal", tangent: "tangent", on_line: "on", on_circle: "on", midpoint: "midpoint of", fix: "fixed", collinear: "in line with",
-};
+/** The relations named in a sentence ("Line 1 parallel Line 2"); the rest have their own wording. */
+const RELATIONS = ["coincident", "horizontal", "vertical", "parallel", "perpendicular", "equal", "tangent", "on_line", "on_circle", "midpoint", "fix", "collinear"] as const;
+const isRelation = (k: ConstraintKind): k is (typeof RELATIONS)[number] => (RELATIONS as readonly string[]).includes(k);
 
 /** "Line 3 length", "Angle Line 1 → Line 2", "Line 1 ∥ Line 2"… */
-export function constraintName(c: Constraint, names: Map<string, string>): string {
+export function constraintName(c: Constraint, names: Map<string, string>, t: Translator<"sketch">): string {
   const [a, b, m] = c.refs.map((r) => names.get(r) ?? "?");
-  if (c.kind === "horizontal" && c.refs.length === 2) return `${a} level with ${b}`;
-  if (c.kind === "vertical" && c.refs.length === 2) return `${a} plumb with ${b}`;
+  if (c.kind === "horizontal" && c.refs.length === 2) return t("constraint.levelWith", { a, b });
+  if (c.kind === "vertical" && c.refs.length === 2) return t("constraint.plumbWith", { a, b });
   switch (c.kind) {
-    case "symmetric": return `${a} and ${b} mirrored about ${m}`;
-    case "distance": return c.refs.length === 1 ? `${a} length` : `${a} to ${b}`;
-    case "point_line_distance": return `${a} to ${b}`;
-    case "angle": return `Angle ${a} → ${b}`;
-    case "radius": return `${a} radius`;
-    case "diameter": return `${a} diameter`;
-    default: return b ? `${a} ${RELATION_NAMES[c.kind]} ${b}` : `${a} ${RELATION_NAMES[c.kind]}`;
+    case "symmetric": return t("constraint.symmetric", { a, b, m });
+    case "distance": return c.refs.length === 1 ? t("constraint.length", { a }) : t("constraint.between", { a, b });
+    case "point_line_distance": return t("constraint.between", { a, b });
+    case "angle": return t("constraint.angle", { a, b });
+    case "radius": return t("constraint.radius", { a });
+    case "diameter": return t("constraint.diameter", { a });
+    default:
+      if (!isRelation(c.kind)) return a;
+      return b ? t(`relation.${c.kind}`, { a, b }) : t(`relationOne.${c.kind}`, { a });
   }
 }

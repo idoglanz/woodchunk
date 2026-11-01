@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslations } from "use-intl";
 import { OverviewView } from "@/components/admin/overview";
 import { PeopleView } from "@/components/admin/people";
 import { PersonSheet } from "@/components/admin/person-sheet";
@@ -21,6 +22,7 @@ export function AdminPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [range, setRange] = useState<Range>("30");
   const [open, setOpen] = useState<string | null>(null);
+  const t = useTranslations("admin");
   const days = Number(range);
   const overview = useQuery({
     queryKey: ["admin", "overview", days], enabled: admin, placeholderData: (prev) => prev,
@@ -28,18 +30,18 @@ export function AdminPage() {
   });
   const people = useQuery({ queryKey: ["admin", "users"], enabled: admin, queryFn: () => unwrap<Person[]>(api.GET("/api/admin/users")) });
 
-  if (me.data && !admin) return <Page><EmptyState title="Admins only" text="Ask an admin if you need access." /></Page>;
+  if (me.data && !admin) return <Page><EmptyState title={t("adminsOnly")} text={t("askAdmin")} /></Page>;
   const failed = overview.error ?? people.error;
 
   return (
     <Page>
       <div className="flex flex-col gap-6">
-        <PageTitle title="Admin" subtitle="How much people use Woodchunk. What they build stays private."
-          actions={<Segmented label="Time range" size="sm" value={range} onChange={setRange}
-            options={[{ value: "30", label: "30 days" }, { value: "90", label: "90 days" }, { value: "180", label: "180 days" }]} />} />
-        <Segmented label="Admin sections" value={tab} onChange={setTab} className="self-start"
-          options={[{ value: "overview", label: "Overview" }, { value: "people", label: people.data ? `People · ${people.data.length}` : "People" }]} />
-        {failed ? <Card className="p-5 text-[15px] text-kerf">{failed instanceof Error ? failed.message : "Couldn't load the admin data."}</Card> : null}
+        <PageTitle title={t("title")} subtitle={t("subtitle")}
+          actions={<Segmented label={t("timeRange")} size="sm" value={range} onChange={setRange}
+            options={[{ value: "30", label: t("days", { n: 30 }) }, { value: "90", label: t("days", { n: 90 }) }, { value: "180", label: t("days", { n: 180 }) }]} />} />
+        <Segmented label={t("sections")} value={tab} onChange={setTab} className="self-start"
+          options={[{ value: "overview", label: t("overview") }, { value: "people", label: people.data ? t("peopleTab", { n: people.data.length }) : t("people") }]} />
+        {failed ? <Card className="p-5 text-[15px] text-kerf">{failed instanceof Error ? failed.message : t("loadError")}</Card> : null}
         {tab === "overview" ? (
           overview.data ? <div className={overview.isPlaceholderData ? "opacity-60 transition-opacity" : undefined}><OverviewView o={overview.data} /></div> : (
             <div className="flex flex-col gap-3">

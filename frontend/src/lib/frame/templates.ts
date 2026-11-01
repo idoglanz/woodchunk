@@ -1,10 +1,12 @@
 /**
  * Starting frames. Node positions are expressions of the template's parameters, so editing W, D or H
  * later moves every node that depends on it. Structural options (shelf count, lower frame) apply
- * when the frame is created.
+ * when the frame is created. Names and labels are written in the app's language (`t`) when the frame
+ * is created; after that they are the user's.
  */
 
 import type { Assembly } from "@/lib/api/client";
+import type { Translator } from "@/lib/lang";
 import type { ProfileSpec } from "./types";
 
 const newId = () => crypto.randomUUID().replace(/-/g, "");
@@ -56,7 +58,7 @@ class Builder {
   }
 
   /** Four rails around a W × D rectangle at height z, between existing corner nodes. */
-  ring(corners: string[], name = "Rail") {
+  ring(corners: string[], name: string) {
     for (let i = 0; i < 4; i++) this.member(corners[i], corners[(i + 1) % 4], "rails", name);
   }
 
@@ -73,83 +75,89 @@ class Builder {
 
 const XY: [string | number, string | number][] = [[0, 0], ["W", 0], ["W", "D"], [0, "D"]];
 
-function legsAndRings(t: FrameTemplate, ctx: BuildCtx, levels: (string | number)[], lowerName = "Stretcher"): StoredFrame {
+function legsAndRings(t: FrameTemplate, ctx: BuildCtx, levels: (string | number)[], names: { leg: string; top: string; lower: string }): StoredFrame {
   const b = new Builder(ctx);
   const columns = XY.map(([x, y]) => levels.map((z) => b.node(x, y, z)));
   // Legs from the floor to the top, through every level (levels sit on the legs' spans: T-joints).
   const floor = XY.map(([x, y]) => b.node(x, y, 0));
-  for (let i = 0; i < 4; i++) b.member(floor[i], columns[i][levels.length - 1], "legs", "Leg");
-  levels.forEach((_, k) => b.ring(columns.map((c) => c[k]), k === levels.length - 1 ? "Apron" : lowerName));
+  for (let i = 0; i < 4; i++) b.member(floor[i], columns[i][levels.length - 1], "legs", names.leg);
+  levels.forEach((_, k) => b.ring(columns.map((c) => c[k]), k === levels.length - 1 ? names.top : names.lower));
   return b.frame(t.params);
 }
 
-const table: FrameTemplate = {
-  id: "table", name: "Table", summary: "Four legs with aprons under the top; optional lower frame.",
-  params: [{ name: "W", label: "Width", mm: 1200 }, { name: "D", label: "Depth", mm: 600 }, { name: "H", label: "Height", mm: 750 }, { name: "S", label: "Lower frame height", mm: 150, option: "lower" }],
-  roles: [{ key: "legs", label: "Legs" }, { key: "rails", label: "Aprons and rails" }],
-  options: [{ key: "lower", label: "Lower frame", kind: "toggle", value: 0 }],
-  build(ctx) { return legsAndRings(this, ctx, ctx.options.lower ? ["S", "H"] : ["H"]); },
-};
+/** The starting frames, worded in the app's language. */
+export function frameTemplates(t: Translator<"frame">): FrameTemplate[] {
+  const W = t("params.width"), D = t("params.depth"), H = t("params.height");
+  const m = (k: "leg" | "apron" | "stretcher" | "shelfRail" | "upright" | "bottomRail" | "topRail" | "stile" | "middleRail") => t(`members.${k}`);
 
-const workbench: FrameTemplate = {
-  ...table, id: "workbench", name: "Workbench", summary: "Sturdy bench frame with a lower shelf frame.",
-  params: [{ name: "W", label: "Width", mm: 1500 }, { name: "D", label: "Depth", mm: 700 }, { name: "H", label: "Height", mm: 900 }, { name: "S", label: "Shelf height", mm: 200, option: "lower" }],
-  options: [{ key: "lower", label: "Lower shelf frame", kind: "toggle", value: 1 }],
-  build(ctx) { return legsAndRings(this, ctx, ctx.options.lower ? ["S", "H"] : ["H"], "Shelf rail"); },
-};
+  const table: FrameTemplate = {
+    id: "table", name: t("templates.table.name"), summary: t("templates.table.summary"),
+    params: [{ name: "W", label: W, mm: 1200 }, { name: "D", label: D, mm: 600 }, { name: "H", label: H, mm: 750 }, { name: "S", label: t("params.lowerFrameHeight"), mm: 150, option: "lower" }],
+    roles: [{ key: "legs", label: t("roles.legs") }, { key: "rails", label: t("roles.apronsAndRails") }],
+    options: [{ key: "lower", label: t("options.lowerFrame"), kind: "toggle", value: 0 }],
+    build(ctx) { return legsAndRings(this, ctx, ctx.options.lower ? ["S", "H"] : ["H"], { leg: m("leg"), top: m("apron"), lower: m("stretcher") }); },
+  };
 
-const cart: FrameTemplate = {
-  id: "cart", name: "Cart / box frame", summary: "A box of 12 bars: a frame at the bottom and at the top.",
-  params: [{ name: "W", label: "Width", mm: 900 }, { name: "D", label: "Depth", mm: 500 }, { name: "H", label: "Height", mm: 800 }, { name: "S", label: "Middle shelf height", mm: 400, option: "middle" }],
-  roles: [{ key: "legs", label: "Uprights" }, { key: "rails", label: "Rails" }],
-  options: [{ key: "middle", label: "Middle shelf frame", kind: "toggle", value: 0 }],
-  build(ctx) {
-    const b = new Builder(ctx);
-    const levels: (string | number)[] = ctx.options.middle ? [0, "S", "H"] : [0, "H"];
-    const columns = XY.map(([x, y]) => levels.map((z) => b.node(x, y, z)));
-    for (let i = 0; i < 4; i++) b.member(columns[i][0], columns[i][levels.length - 1], "legs", "Upright");
-    levels.forEach((_, k) => b.ring(columns.map((c) => c[k]), k === 0 ? "Bottom rail" : k === levels.length - 1 ? "Top rail" : "Shelf rail"));
-    return b.frame(this.params);
-  },
-};
+  const workbench: FrameTemplate = {
+    ...table, id: "workbench", name: t("templates.workbench.name"), summary: t("templates.workbench.summary"),
+    params: [{ name: "W", label: W, mm: 1500 }, { name: "D", label: D, mm: 700 }, { name: "H", label: H, mm: 900 }, { name: "S", label: t("params.shelfHeight"), mm: 200, option: "lower" }],
+    options: [{ key: "lower", label: t("options.lowerShelfFrame"), kind: "toggle", value: 1 }],
+    build(ctx) { return legsAndRings(this, ctx, ctx.options.lower ? ["S", "H"] : ["H"], { leg: m("leg"), top: m("apron"), lower: m("shelfRail") }); },
+  };
 
-const shelf: FrameTemplate = {
-  id: "shelf", name: "Shelf unit", summary: "Four uprights with a frame for every shelf.",
-  params: [{ name: "W", label: "Width", mm: 800 }, { name: "D", label: "Depth", mm: 350 }, { name: "H", label: "Height", mm: 1800 }, { name: "S", label: "Bottom shelf height", mm: 100 }],
-  roles: [{ key: "legs", label: "Uprights" }, { key: "rails", label: "Shelf rails" }],
-  options: [{ key: "shelves", label: "Shelves", kind: "count", value: 4, min: 2, max: 8 }],
-  build(ctx) {
-    const n = Math.max(2, Math.min(8, Math.round(ctx.options.shelves || 4)));
-    const levels = Array.from({ length: n }, (_, k) => (k === 0 ? "S" : k === n - 1 ? "H" : `S + (H - S) * ${k} / ${n - 1}`));
-    return legsAndRings(this, ctx, levels, "Shelf rail");
-  },
-};
+  const cart: FrameTemplate = {
+    id: "cart", name: t("templates.cart.name"), summary: t("templates.cart.summary"),
+    params: [{ name: "W", label: W, mm: 900 }, { name: "D", label: D, mm: 500 }, { name: "H", label: H, mm: 800 }, { name: "S", label: t("params.middleShelfHeight"), mm: 400, option: "middle" }],
+    roles: [{ key: "legs", label: t("roles.uprights") }, { key: "rails", label: t("roles.rails") }],
+    options: [{ key: "middle", label: t("options.middleShelfFrame"), kind: "toggle", value: 0 }],
+    build(ctx) {
+      const b = new Builder(ctx);
+      const levels: (string | number)[] = ctx.options.middle ? [0, "S", "H"] : [0, "H"];
+      const columns = XY.map(([x, y]) => levels.map((z) => b.node(x, y, z)));
+      for (let i = 0; i < 4; i++) b.member(columns[i][0], columns[i][levels.length - 1], "legs", m("upright"));
+      levels.forEach((_, k) => b.ring(columns.map((c) => c[k]), k === 0 ? m("bottomRail") : k === levels.length - 1 ? m("topRail") : m("shelfRail")));
+      return b.frame(this.params);
+    },
+  };
 
-const gate: FrameTemplate = {
-  id: "gate", name: "Gate / panel", summary: "A flat W × H frame standing up, with optional middle rails.",
-  params: [{ name: "W", label: "Width", mm: 1000 }, { name: "H", label: "Height", mm: 1200 }],
-  roles: [{ key: "legs", label: "Stiles (sides)" }, { key: "rails", label: "Rails" }],
-  options: [{ key: "middle", label: "Middle rails", kind: "count", value: 1, min: 0, max: 4 }],
-  build(ctx) {
-    const b = new Builder(ctx);
-    const bl = b.node(0, 0, 0), br = b.node("W", 0, 0), tl = b.node(0, 0, "H"), tr = b.node("W", 0, "H");
-    b.member(bl, tl, "legs", "Stile");
-    b.member(br, tr, "legs", "Stile");
-    b.member(bl, br, "rails", "Bottom rail");
-    b.member(tl, tr, "rails", "Top rail");
-    const m = Math.max(0, Math.min(4, Math.round(ctx.options.middle ?? 0)));
-    for (let k = 1; k <= m; k++) {
-      const z = `H * ${k} / ${m + 1}`;
-      b.member(b.node(0, 0, z), b.node("W", 0, z), "rails", "Middle rail");
-    }
-    return b.frame(this.params);
-  },
-};
+  const shelf: FrameTemplate = {
+    id: "shelf", name: t("templates.shelf.name"), summary: t("templates.shelf.summary"),
+    params: [{ name: "W", label: W, mm: 800 }, { name: "D", label: D, mm: 350 }, { name: "H", label: H, mm: 1800 }, { name: "S", label: t("params.bottomShelfHeight"), mm: 100 }],
+    roles: [{ key: "legs", label: t("roles.uprights") }, { key: "rails", label: t("roles.shelfRails") }],
+    options: [{ key: "shelves", label: t("options.shelves"), kind: "count", value: 4, min: 2, max: 8 }],
+    build(ctx) {
+      const n = Math.max(2, Math.min(8, Math.round(ctx.options.shelves || 4)));
+      const levels = Array.from({ length: n }, (_, k) => (k === 0 ? "S" : k === n - 1 ? "H" : `S + (H - S) * ${k} / ${n - 1}`));
+      return legsAndRings(this, ctx, levels, { leg: m("leg"), top: m("apron"), lower: m("shelfRail") });
+    },
+  };
 
-const empty: FrameTemplate = {
-  id: "empty", name: "Start empty", summary: "Draw every bar yourself, snapping to joints and axes.",
-  params: [], roles: [{ key: "rails", label: "Bars" }], options: [],
-  build(ctx) { return new Builder(ctx).frame([]); },
-};
+  const gate: FrameTemplate = {
+    id: "gate", name: t("templates.gate.name"), summary: t("templates.gate.summary"),
+    params: [{ name: "W", label: W, mm: 1000 }, { name: "H", label: H, mm: 1200 }],
+    roles: [{ key: "legs", label: t("roles.stiles") }, { key: "rails", label: t("roles.rails") }],
+    options: [{ key: "middle", label: t("options.middleRails"), kind: "count", value: 1, min: 0, max: 4 }],
+    build(ctx) {
+      const b = new Builder(ctx);
+      const bl = b.node(0, 0, 0), br = b.node("W", 0, 0), tl = b.node(0, 0, "H"), tr = b.node("W", 0, "H");
+      b.member(bl, tl, "legs", m("stile"));
+      b.member(br, tr, "legs", m("stile"));
+      b.member(bl, br, "rails", m("bottomRail"));
+      b.member(tl, tr, "rails", m("topRail"));
+      const n = Math.max(0, Math.min(4, Math.round(ctx.options.middle ?? 0)));
+      for (let k = 1; k <= n; k++) {
+        const z = `H * ${k} / ${n + 1}`;
+        b.member(b.node(0, 0, z), b.node("W", 0, z), "rails", m("middleRail"));
+      }
+      return b.frame(this.params);
+    },
+  };
 
-export const TEMPLATES: FrameTemplate[] = [table, workbench, cart, shelf, gate, empty];
+  const empty: FrameTemplate = {
+    id: "empty", name: t("templates.empty.name"), summary: t("templates.empty.summary"),
+    params: [], roles: [{ key: "rails", label: t("roles.bars") }], options: [],
+    build(ctx) { return new Builder(ctx).frame([]); },
+  };
+
+  return [table, workbench, cart, shelf, gate, empty];
+}

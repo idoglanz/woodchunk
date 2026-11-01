@@ -170,6 +170,11 @@ h1, h2, h3 {
   font-variant-numeric: tabular-nums;
 }
 
+/* Hebrew pages: a field takes the direction of what's typed in it (English reads left to right). */
+[dir="rtl"] :is(input, textarea) {
+  unicode-bidi: plaintext;
+}
+
 .hatch {
   background-image: var(--hatch);
 }

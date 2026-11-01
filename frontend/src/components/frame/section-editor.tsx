@@ -1,14 +1,16 @@
 "use client";
 
 import { Eye, RotateCcw, RotateCw } from "lucide-react";
+import { useTranslations } from "use-intl";
 import { Button } from "@/components/ui/button";
+import { Ltr } from "@/components/ui/misc";
 import { UPRIGHT_Z, type MemberResult } from "@/lib/frame/kernel";
 import type { Anchor, FrameMember } from "@/lib/frame/types";
 
-const POINTS: { key: Exclude<Anchor, "auto">; ku: number; kv: number; name: string }[] = [
-  { key: "tl", ku: -1, kv: 1, name: "top left corner" }, { key: "t", ku: 0, kv: 1, name: "top edge" }, { key: "tr", ku: 1, kv: 1, name: "top right corner" },
-  { key: "l", ku: -1, kv: 0, name: "left edge" }, { key: "c", ku: 0, kv: 0, name: "centre" }, { key: "r", ku: 1, kv: 0, name: "right edge" },
-  { key: "bl", ku: -1, kv: -1, name: "bottom left corner" }, { key: "b", ku: 0, kv: -1, name: "bottom edge" }, { key: "br", ku: 1, kv: -1, name: "bottom right corner" },
+const POINTS: { key: Exclude<Anchor, "auto">; ku: number; kv: number }[] = [
+  { key: "tl", ku: -1, kv: 1 }, { key: "t", ku: 0, kv: 1 }, { key: "tr", ku: 1, kv: 1 },
+  { key: "l", ku: -1, kv: 0 }, { key: "c", ku: 0, kv: 0 }, { key: "r", ku: 1, kv: 0 },
+  { key: "bl", ku: -1, kv: -1 }, { key: "b", ku: 0, kv: -1 }, { key: "br", ku: 1, kv: -1 },
 ];
 
 const BOX = 180; // drawing size in px
@@ -22,7 +24,9 @@ export function SectionEditor({ member, solved, readOnly, onAnchor, onRoll, onLo
   member: FrameMember; solved: MemberResult | undefined; readOnly?: boolean;
   onAnchor: (a: Anchor) => void; onRoll: (deg: number) => void; onLookAlong: () => void;
 }) {
+  const t = useTranslations("frame");
   if (!solved) return null;
+  const pointName = (key: Exclude<Anchor, "auto">) => t(`section.points.${key}`);
   const p = solved.profile;
   const roll = ((member.roll_deg ?? 0) * Math.PI) / 180;
   const anchor = member.anchor ?? "auto";
@@ -42,12 +46,12 @@ export function SectionEditor({ member, solved, readOnly, onAnchor, onRoll, onLo
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between">
-        <span className="text-[12px] font-medium tracking-[0.01em] text-ink-2">Section · where the line runs</span>
-        <span className="tnum text-[12px] text-ink-3">{p.w} × {p.h}{p.t ? ` × ${p.t}` : ""}</span>
+        <span className="text-[12px] font-medium tracking-[0.01em] text-ink-2">{t("section.title")}</span>
+        <span className="tnum text-[12px] text-ink-3"><Ltr>{p.w} × {p.h}{p.t ? ` × ${p.t}` : ""}</Ltr></span>
       </div>
       <div className="flex items-center gap-3">
-        <svg width={BOX} height={BOX} viewBox={`0 0 ${BOX} ${BOX}`} role="group" aria-label="Bar section" className="shrink-0 rounded-[12px] bg-surface-2">
-          <text x={BOX / 2} y={13} textAnchor="middle" fontSize="10" fill="var(--ink-3)">↑ {upright ? "back" : "up"}</text>
+        <svg width={BOX} height={BOX} viewBox={`0 0 ${BOX} ${BOX}`} role="group" aria-label={t("section.aria")} className="shrink-0 rounded-[12px] bg-surface-2">
+          <text x={BOX / 2} y={13} textAnchor="middle" fontSize="10" fill="var(--ink-3)">↑ {upright ? t("section.back") : t("section.up")}</text>
           <path d={path} fillRule="evenodd" fill="var(--steel-3d)" stroke="var(--line-strong)" strokeWidth={1} />
           {POINTS.map((pt) => {
             const [x, y] = toSvg(pt.ku * w2, pt.kv * h2);
@@ -60,9 +64,9 @@ export function SectionEditor({ member, solved, readOnly, onAnchor, onRoll, onLo
                 {on ? <path d={`M${x - 3} ${y - 3}L${x + 3} ${y + 3}M${x + 3} ${y - 3}L${x - 3} ${y + 3}`} stroke="var(--ink)" strokeWidth={1.3} /> : null}
                 {!readOnly ? (
                   <circle cx={x} cy={y} r={12} fill="transparent" className="cursor-pointer" role="button" tabIndex={0}
-                    aria-label={`Run the line along the ${pt.name}`} aria-pressed={chosen}
+                    aria-label={t("section.runAlong", { point: pointName(pt.key) })} aria-pressed={chosen}
                     onClick={() => onAnchor(pt.key)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onAnchor(pt.key); } }}>
-                    <title>{`Line along the ${pt.name}`}</title>
+                    <title>{t("section.lineAlong", { point: pointName(pt.key) })}</title>
                   </circle>
                 ) : null}
               </g>
@@ -71,18 +75,18 @@ export function SectionEditor({ member, solved, readOnly, onAnchor, onRoll, onLo
         </svg>
         <div className="flex min-w-0 flex-col gap-2">
           <p className="text-[12px] leading-snug text-ink-2">
-            {anchor === "auto" ? <>Automatic: <b className="font-medium text-ink">{current?.name ?? "centre"}</b>, keeping the frame&apos;s outside sizes.</>
-              : <>Line along the <b className="font-medium text-ink">{current?.name}</b>.</>}
+            {anchor === "auto" ? t.rich("section.automatic", { point: pointName(current?.key ?? "c"), b: (c) => <b className="font-medium text-ink">{c}</b> })
+              : t.rich("section.lineAlongRich", { point: current ? pointName(current.key) : "", b: (c) => <b className="font-medium text-ink">{c}</b> })}
           </p>
           {!readOnly ? <>
-            {anchor !== "auto" ? <Button size="sm" variant="ghost" className="self-start" onClick={() => onAnchor("auto")}>Back to automatic</Button> : null}
+            {anchor !== "auto" ? <Button size="sm" variant="ghost" className="self-start" onClick={() => onAnchor("auto")}>{t("section.backToAuto")}</Button> : null}
             <div className="flex items-center gap-1">
-              <Button size="sm" icon={<RotateCcw size={14} />} aria-label="Turn 90° the other way" onClick={() => onRoll(deg - 90)} />
+              <Button size="sm" icon={<RotateCcw size={14} />} aria-label={t("section.turnBack")} onClick={() => onRoll(deg - 90)} />
               <span className="tnum w-12 text-center text-[13px] font-medium">{(((deg % 360) + 360) % 360)}°</span>
-              <Button size="sm" icon={<RotateCw size={14} />} aria-label="Turn 90°" onClick={() => onRoll(deg + 90)} />
+              <Button size="sm" icon={<RotateCw size={14} />} aria-label={t("section.turn")} onClick={() => onRoll(deg + 90)} />
             </div>
           </> : null}
-          <Button size="sm" variant="ghost" icon={<Eye size={14} />} className="self-start" onClick={onLookAlong}>Look along it</Button>
+          <Button size="sm" variant="ghost" icon={<Eye size={14} />} className="self-start" onClick={onLookAlong}>{t("section.lookAlong")}</Button>
         </div>
       </div>
     </div>

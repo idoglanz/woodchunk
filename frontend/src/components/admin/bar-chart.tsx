@@ -1,31 +1,36 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useLocale, useTranslations } from "use-intl";
 import { Card } from "@/components/ui/misc";
 import { niceMax, shortDay, type Point } from "@/lib/admin";
 import { cn } from "@/lib/cn";
+import { dateLocale, numberLocale } from "@/lib/lang";
 
 export type Series = { name: string; color: string };
 
-function range(p: Point): string {
-  return p.from === p.to ? shortDay(p.from) : `${shortDay(p.from)} – ${shortDay(p.to)}`;
+function range(p: Point, locale: string): string {
+  return p.from === p.to ? shortDay(p.from, locale) : `${shortDay(p.from, locale)} – ${shortDay(p.to, locale)}`;
 }
 
 /**
  * Bars over time, stacked when there's more than one series. Hover or tap a bar for its numbers.
  * One series needs no legend (the title names it); several get one, with totals, so colour never carries identity alone.
  */
-export function BarChart({ title, headline, note, series, points, unit = "", legend, empty = "Nothing yet." }: {
+export function BarChart({ title, headline, note, series, points, unit = "", legend, empty }: {
   title: string; headline?: ReactNode; note?: ReactNode; series: Series[]; points: Point[]; unit?: string;
   /** Replaces the default legend (series names with totals). */
   legend?: ReactNode; empty?: string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
+  const t = useTranslations("admin");
+  const lang = useLocale();
+  const day = dateLocale(lang);
   const totals = points.map((p) => p.values.reduce((a, b) => a + b, 0));
   const max = niceMax(Math.max(0, ...totals));
   const blank = totals.every((t) => t === 0);
   const h = hover === null ? null : points[hover];
-  const fmt = (n: number) => `${n.toLocaleString("en-US")}${unit}`;
+  const fmt = (n: number) => `${n.toLocaleString(numberLocale(lang))}${unit}`;
   const sums = series.map((_, i) => points.reduce((a, p) => a + p.values[i], 0));
 
   return (
@@ -57,11 +62,11 @@ export function BarChart({ title, headline, note, series, points, unit = "", leg
             </div>
           ))}
         </div>
-        {blank ? <p className="pointer-events-none absolute inset-x-0 top-16 text-center text-[13px] text-ink-3">{empty}</p> : null}
+        {blank ? <p className="pointer-events-none absolute inset-x-0 top-16 text-center text-[13px] text-ink-3">{empty ?? t("nothingYet")}</p> : null}
         {h && hover !== null ? (
           <div className="pointer-events-none absolute -top-2 z-10 min-w-36 -translate-y-full rounded-[10px] bg-surface px-3 py-2 text-[12px] shadow-[var(--shadow-pop)] dark:border dark:border-line"
             style={hover < points.length / 2 ? { insetInlineStart: `${(hover / points.length) * 100}%` } : { insetInlineEnd: `${((points.length - hover - 1) / points.length) * 100}%` }}>
-            <p className="font-semibold">{range(h)}</p>
+            <p className="font-semibold">{range(h, day)}</p>
             {series.map((s, k) => (
               <p key={s.name} className="tnum flex items-center justify-between gap-4 text-ink-2">
                 <span className="flex items-center gap-1.5">{series.length > 1 ? <span className="h-2 w-2 rounded-full" style={{ background: s.color }} /> : null}{s.name}</span>
@@ -71,7 +76,7 @@ export function BarChart({ title, headline, note, series, points, unit = "", leg
           </div>
         ) : null}
         <div className="tnum mt-1.5 flex justify-between text-[11px] text-ink-3">
-          {points.length ? <><span>{shortDay(points[0].from)}</span><span>{shortDay(points[points.length - 1].to)}</span></> : null}
+          {points.length ? <><span>{shortDay(points[0].from, day)}</span><span>{shortDay(points[points.length - 1].to, day)}</span></> : null}
         </div>
       </div>
 

@@ -1,0 +1,12 @@
+{
+  "decrease": "Decrease {label}",
+  "increase": "Increase {label}",
+  "fewer": "Fewer {label}",
+  "more": "More {label}",
+  "status": {
+    "planning": "Planning",
+    "bought": "Bought",
+    "cut": "Cut",
+    "done": "Done"
+  }
+}

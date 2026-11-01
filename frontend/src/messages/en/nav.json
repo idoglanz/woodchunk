@@ -1,0 +1,12 @@
+{
+  "main": "Main",
+  "projects": "Projects",
+  "catalog": "Catalog",
+  "templates": "Templates",
+  "inventory": "Inventory",
+  "account": "Account",
+  "settings": "Settings",
+  "admin": "Admin",
+  "signOut": "Sign out",
+  "credit": "Brought to you free by the Glanz workshop"
+}

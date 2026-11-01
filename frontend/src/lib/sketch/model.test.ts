@@ -1,11 +1,15 @@
+import { createTranslator } from "use-intl";
 import { describe, expect, it } from "vitest";
+import { en } from "@/messages";
 import { addCircle, addConstraint, addDimension, addLine, addPoint, addRectangle, addRelation, deleteItems, dimensionFor, mergePoints, newSketch, pointAt, relationOptions, setConstruction, setDimension, tidy } from "./model";
 import { LIMIT, measure, solve } from "./solve";
 import { midOf, ORIGIN, X_AXIS, Y_AXIS, type Sketch } from "./types";
 import { hitTest, jointAngles, measured, readings } from "./view";
 
+const t = createTranslator({ locale: "en", messages: en, namespace: "sketch" });
+
 function rectangle() {
-  const sk = newSketch([]);
+  const sk = newSketch([], t);
   const a = addPoint(sk, [0, 0]);
   const lines = addRectangle(sk, a, [1150, 610]);
   return { sk, a, lines };
@@ -15,12 +19,12 @@ const lengthOf = (sk: Sketch, id: string) => measure(sk, { id: "", kind: "distan
 
 describe("sketch editing", () => {
   it("names new sketches after the ones there are", () => {
-    expect(newSketch([{ name: "Sketch 1" }, { name: "Sketch 2" }]).name).toBe("Sketch 3");
-    expect(newSketch([{ name: "Sketch 2" }]).name).toBe("Sketch 3");
+    expect(newSketch([{ name: "Sketch 1" }, { name: "Sketch 2" }], t).name).toBe("Sketch 3");
+    expect(newSketch([{ name: "Sketch 2" }], t).name).toBe("Sketch 3");
   });
 
   it("makes a line drawn nearly level exactly level", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const l = addLine(sk, addPoint(sk, [0, 0]), addPoint(sk, [500, 8]));
     expect(sk.constraints.map((c) => [c.kind, c.refs[0]])).toEqual([["horizontal", l]]);
     const steep = addLine(sk, addPoint(sk, [0, 0]), addPoint(sk, [300, 400]));
@@ -41,7 +45,7 @@ describe("sketch editing", () => {
   });
 
   it("refuses a value the rest can't meet, leaving the sketch as it was", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const [a, b, c] = [addPoint(sk, [0, 0]), addPoint(sk, [300, 10]), addPoint(sk, [100, 300])];
     const ab = addLine(sk, a, b, false), bc = addLine(sk, b, c, false), ca = addLine(sk, c, a, false);
     const d1 = addDimension(sk, "distance", [ab]).constraint;
@@ -57,8 +61,8 @@ describe("sketch editing", () => {
 
   it("offers the relations and dimension that fit the selection", () => {
     const { sk, a, lines } = rectangle();
-    expect(relationOptions(sk, [lines[0], lines[2]]).map((o) => o.kind)).toEqual(["parallel", "perpendicular", "equal", "collinear"]);
-    expect(relationOptions(sk, [a]).map((o) => o.kind)).toEqual(["fix"]);
+    expect(relationOptions(sk, [lines[0], lines[2]], t).map((o) => o.kind)).toEqual(["parallel", "perpendicular", "equal", "collinear"]);
+    expect(relationOptions(sk, [a], t).map((o) => o.kind)).toEqual(["fix"]);
     expect(dimensionFor(sk, [lines[0]])?.kind).toBe("distance");
     expect(dimensionFor(sk, [lines[0], lines[1]])?.kind).toBe("angle");
     // Parallel lines: the gap between them.
@@ -66,7 +70,7 @@ describe("sketch editing", () => {
   });
 
   it("joins two points into one", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const l1 = addLine(sk, addPoint(sk, [0, 0]), addPoint(sk, [100, 50]), false);
     const p = addPoint(sk, [102, 49]);
     const l2 = addLine(sk, p, addPoint(sk, [200, 200]), false);
@@ -100,7 +104,7 @@ describe("sketch editing", () => {
   });
 
   it("measures the corner you see where chained lines meet, not its supplement", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const [a, b, c] = [addPoint(sk, [0, 0]), addPoint(sk, [100, 0]), addPoint(sk, [50, 86.6])];
     const ab = addLine(sk, a, b), bc = addLine(sk, b, c, false);
     const angle = addDimension(sk, "angle", [ab, bc]).constraint;
@@ -112,7 +116,7 @@ describe("sketch editing", () => {
   });
 
   it("never solves a circle to a negative radius (a drag across its tangent line is held)", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const [a, b] = [addPoint(sk, [0, 0]), addPoint(sk, [400, 0])];
     const l = addLine(sk, a, b);
     addConstraint(sk, "fix", [a]);
@@ -127,7 +131,7 @@ describe("sketch editing", () => {
   });
 
   it("joins onto a fixed point without moving it, and refuses two fixed points apart", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const [p, q, r] = [addPoint(sk, [0, 0]), addPoint(sk, [100, 50]), addPoint(sk, [300, 0])];
     addLine(sk, q, r, false);
     addConstraint(sk, "fix", [p]);
@@ -147,20 +151,20 @@ describe("sketch editing", () => {
   });
 
   it("handles big sketches", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     for (let i = 0; i < 55; i++) {
       const a = addPoint(sk, [i * 300, 0]);
       for (const l of addRectangle(sk, a, [i * 300 + 200, 100]).slice(0, 2)) addConstraint(sk, "distance", [l], 200);
     }
     expect(sk.points.length).toBeGreaterThan(200);
-    const t = performance.now();
+    const t0 = performance.now();
     expect(solve(sk).ok).toBe(true);
     expect(solve(sk, { quick: true, drag: [{ point: sk.points[5].id, to: [1000, 300] }] }).ok).toBe(true);
-    expect(performance.now() - t).toBeLessThan(1000); // separate pieces are solved one by one
+    expect(performance.now() - t0).toBeLessThan(1000); // separate pieces are solved one by one
   });
 
   it("counts where separate pieces sit relative to each other as free", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const pieces = [0, 2000].map((x0) => {
       const lines = addRectangle(sk, addPoint(sk, [x0, 0]), [x0 + 1000, 500]);
       addConstraint(sk, "distance", [lines[0]], 1000);
@@ -175,7 +179,7 @@ describe("sketch editing", () => {
   });
 
   it("holds a drawing attached to the origin: a dimensioned rectangle from it is fully defined", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const lines = addRectangle(sk, ORIGIN, [1150, 610]);
     addDimension(sk, "distance", [lines[0]]);
     addDimension(sk, "distance", [lines[1]]);
@@ -190,7 +194,7 @@ describe("sketch editing", () => {
   });
 
   it("measures from the axes and keeps a point on one", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const p = addPoint(sk, [300, 7]);
     expect(dimensionFor(sk, [p, X_AXIS])).toEqual({ kind: "point_line_distance", refs: [p, X_AXIS] });
     expect(addRelation(sk, { kind: "on_line", label: "", refs: [p, X_AXIS] }).ok).toBe(true);
@@ -206,13 +210,13 @@ describe("sketch editing", () => {
 
 describe("relations like a sketch tool has them", () => {
   const relate = (sk: Sketch, ids: string[], label: string) => {
-    const o = relationOptions(sk, ids).find((x) => x.label === label);
+    const o = relationOptions(sk, ids, t).find((x) => x.label === label);
     expect(o, `${label} offered`).toBeDefined();
     expect(addRelation(sk, o!).ok).toBe(true);
   };
 
   it("lines up two lines' midpoints, and joins a point to one", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const top = addLine(sk, addPoint(sk, [0, 300]), addPoint(sk, [800, 300]));
     const shelf = addLine(sk, addPoint(sk, [60, 0]), addPoint(sk, [500, 0]));
     relate(sk, [midOf(top), midOf(shelf)], "Align vertically");
@@ -220,7 +224,7 @@ describe("relations like a sketch tool has them", () => {
     // Still level, still its own length: only slid along.
     expect(lengthOf(sk, shelf)).toBeCloseTo(440, 6);
     const p = addPoint(sk, [390, 160]);
-    const o = relationOptions(sk, [p, midOf(top)]).find((x) => x.label === "Join to midpoint")!;
+    const o = relationOptions(sk, [p, midOf(top)], t).find((x) => x.label === "Join to midpoint")!;
     expect(o.refs).toEqual([p, top]);
     expect(addRelation(sk, o).ok).toBe(true);
     expect(pointAt(sk, p)).toEqual(pointAt(sk, midOf(top)).map((v) => expect.closeTo(v, 6)));
@@ -230,7 +234,7 @@ describe("relations like a sketch tool has them", () => {
   });
 
   it("picks a line's midpoint only right at its middle, and attaches to points, midpoints and axes", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const l = addLine(sk, addPoint(sk, [100, 100]), addPoint(sk, [500, 100]));
     expect(hitTest(sk, [302, 103], 10)).toBe(midOf(l));
     expect(hitTest(sk, [380, 103], 10)).toBe(l);
@@ -241,7 +245,7 @@ describe("relations like a sketch tool has them", () => {
   });
 
   it("puts lines in line, and mirrors points about a line or an axis", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const a = addLine(sk, addPoint(sk, [0, 0]), addPoint(sk, [100, 100]), false);
     const b = addLine(sk, addPoint(sk, [300, 260]), addPoint(sk, [400, 410]), false);
     relate(sk, [a, b], "Collinear");
@@ -251,7 +255,7 @@ describe("relations like a sketch tool has them", () => {
     expect(across(p)).toBeCloseTo(0, 6);
     expect(across(q)).toBeCloseTo(0, 6);
 
-    const m = newSketch([]);
+    const m = newSketch([], t);
     const [u, v] = [addPoint(m, [-210, 50]), addPoint(m, [190, 70])];
     relate(m, [u, v, Y_AXIS], "Symmetric about axis");
     expect(pointAt(m, u)[0]).toBeCloseTo(-pointAt(m, v)[0], 6);
@@ -259,7 +263,7 @@ describe("relations like a sketch tool has them", () => {
   });
 
   it("mirrors two lines about a centre line, the shared end on it", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const apex = addPoint(sk, [10, 300]);
     const left = addLine(sk, addPoint(sk, [-400, 0]), apex, false);
     const right = addLine(sk, apex, addPoint(sk, [380, 20]), false);
@@ -276,23 +280,23 @@ describe("relations like a sketch tool has them", () => {
   });
 
   it("makes several lines parallel or equal to the first, and circles concentric", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const ls = [0, 1, 2].map((i) => addLine(sk, addPoint(sk, [i * 100, 0]), addPoint(sk, [i * 100 + 50 + i * 20, 300 - i * 40]), false));
-    const par = relationOptions(sk, ls).find((o) => o.kind === "parallel")!;
+    const par = relationOptions(sk, ls, t).find((o) => o.kind === "parallel")!;
     expect(par.each).toEqual([[ls[0], ls[1]], [ls[0], ls[2]]]);
     relate(sk, ls, "Equal length");
     expect(lengthOf(sk, ls[2])).toBeCloseTo(lengthOf(sk, ls[0]), 6);
     // Already equal: not offered again.
-    expect(relationOptions(sk, ls).some((o) => o.label === "Equal length")).toBe(false);
+    expect(relationOptions(sk, ls, t).some((o) => o.label === "Equal length")).toBe(false);
 
-    const c = newSketch([]);
+    const c = newSketch([], t);
     const [c1, c2] = [addCircle(c, addPoint(c, [0, 0]), 40), addCircle(c, addPoint(c, [12, 9]), 70)];
     relate(c, [c1, c2], "Concentric");
     expect(c.points).toHaveLength(1);
   });
 
   it("aligns any number of points with the first", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const ps = [addPoint(sk, [0, 0]), addPoint(sk, [100, 20]), addPoint(sk, [300, -15])];
     relate(sk, ps, "Align horizontally");
     expect(sk.points.every((p) => Math.abs(p.y - sk.points[0].y) < 1e-6)).toBe(true);
@@ -301,7 +305,7 @@ describe("relations like a sketch tool has them", () => {
 
 describe("helpers and driven lengths", () => {
   it("doesn't count what helper lines can do as freedom", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const lines = addRectangle(sk, ORIGIN, [1200, 600]);
     addDimension(sk, "distance", [lines[0]]);
     addDimension(sk, "distance", [lines[1]]);
@@ -322,7 +326,7 @@ describe("helpers and driven lengths", () => {
   });
 
   it("knows which lines' lengths the rest decides", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const lines = addRectangle(sk, ORIGIN, [1200, 600]);
     const corner = (sk.shapes.find((s) => s.id === lines[1]) as { b: string }).b;
     const brace = addLine(sk, ORIGIN, corner, false);
@@ -332,14 +336,14 @@ describe("helpers and driven lengths", () => {
     const r = solve(sk);
     expect([...r.driven].sort()).toEqual([...lines, brace].sort());
     // Sliding but square: a free rectangle's width is decided by its dimension, not its place.
-    const free = newSketch([]);
+    const free = newSketch([], t);
     const fl = addRectangle(free, addPoint(free, [100, 100]), [300, 200]);
     addDimension(free, "distance", [fl[0]]);
     expect(solve(free).driven).toEqual(new Set([fl[0], fl[2]]));
   });
 
   it("swings a dragged line round where it's held, as far as it can", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const end = addPoint(sk, [100, 0]);
     const l = addLine(sk, ORIGIN, end, false);
     addConstraint(sk, "distance", [l], 100);
@@ -353,12 +357,12 @@ describe("helpers and driven lengths", () => {
 
 describe("measuring", () => {
   it("reads off lengths, distances, angles and sizes without adding anything", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const lines = addRectangle(sk, ORIGIN, [1200, 600]);
     const corner = (sk.shapes.find((s) => s.id === lines[1]) as { b: string }).b;
     const brace = addLine(sk, ORIGIN, corner, false);
     const before = structuredClone(sk);
-    const values = (ids: string[]) => readings(sk, ids)!.values.map((v) => [v.label, Math.round(v.value * 10) / 10]);
+    const values = (ids: string[]) => readings(sk, ids, t)!.values.map((v) => [v.label, Math.round(v.value * 10) / 10]);
     expect(values([brace])).toEqual([["Length", 1341.6], ["From level", 26.6]]);
     expect(values([lines[0], brace])).toEqual([["Angle", 26.6], ["The other way", 153.4]]);
     expect(values([lines[0], lines[2]])).toEqual([["Gap (parallel)", 600]]);
@@ -370,7 +374,7 @@ describe("measuring", () => {
   });
 
   it("finds the angles where lines meet, not the square or dimensioned ones", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const lines = addRectangle(sk, ORIGIN, [1200, 600]);
     const corner = (sk.shapes.find((s) => s.id === lines[1]) as { b: string }).b;
     const brace = addLine(sk, ORIGIN, corner, false);

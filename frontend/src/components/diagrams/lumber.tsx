@@ -1,8 +1,10 @@
 "use client";
 
+import { usePlanWords } from "@/components/diagrams/words";
 import type { LumberPlan } from "@/lib/api/client";
 import { asmColors, Ltr } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
+import type { Lang } from "@/lib/i18n";
 import { fmtMeters } from "@/lib/units";
 import type { CSSProperties } from "react";
 
@@ -29,12 +31,15 @@ export function Ruler({ max, className, style }: { max: number; className?: stri
   );
 }
 
-export function LumberBars({ plan, labels = true, print = false, active, onPick }: {
+export function LumberBars({ plan, labels = true, print = false, active, onPick, lang }: {
   plan: LumberPlan; labels?: boolean; print?: boolean;
+  /** An export's own language; the app's when not given. */
+  lang?: Lang;
   /** Part id to emphasise; the other pieces fade back. */
   active?: string | null;
   onPick?: (partId: string) => void;
 }) {
+  const t = usePlanWords(lang);
   const max = Math.max(...plan.patterns.map((p) => p.stock_length), 1);
   const dim = !!active && plan.patterns.some((pat) => pat.segments.some((s) => s.part_id === active));
   // Wide enough that the smallest piece can show its label (on a phone a 6 m board would otherwise
@@ -54,21 +59,21 @@ export function LumberBars({ plan, labels = true, print = false, active, onPick 
         <div key={i} className="avoid-break flex flex-col gap-1 @[480px]:flex-row @[480px]:items-center @[480px]:gap-3">
           <span className="tnum flex shrink-0 gap-1.5 text-[13px] leading-tight @[480px]:w-[68px] @[480px]:flex-col @[480px]:gap-0">
             <span className="font-semibold"><Ltr>{fmtMeters(pat.stock_length)}</Ltr></span>
-            <span className="text-ink-3">×{pat.count}{pat.source !== "buy" ? (pat.source === "inventory" ? " · yours" : " · bought") : ""}</span>
+            <span className="text-ink-3">×{pat.count}{pat.source !== "buy" ? ` · ${pat.source === "inventory" ? t("diagram.yours") : t("diagram.bought")}` : ""}</span>
           </span>
           <div className="min-w-0 flex-1" style={{ minWidth: minBars }}>
             <div className={cn("flex h-11 gap-[2px] overflow-hidden rounded-[6px]", print ? "border border-black bg-black" : "bg-kerf")}
               style={{ width: `${(pat.stock_length / max) * 100}%` }}
-              role="img" aria-label={`${fmtMeters(pat.stock_length)} board: ${pat.segments.filter((s) => s.kind === "part").map((s) => `${s.label} ${s.length} mm`).join(", ")}`}>
+              role="img" aria-label={t("diagram.boardAria", { len: fmtMeters(pat.stock_length), list: pat.segments.filter((s) => s.kind === "part").map((s) => `${s.label} ${s.length} mm`).join(", ") })}>
               {pat.segments.map((s, j) => {
                 const angled = (s.cuts ?? []).map((e) => !!(e.miter || e.bevel));
-                const ends = angled.some(Boolean) ? ` · ends ${s.cuts.map((e) => (e.miter || e.bevel ? `${e.miter}°${e.bevel ? ` + ${e.bevel}° bevel` : ""}` : "square")).join(" / ")}` : "";
-                const title = s.kind === "part" ? `${s.label} ${s.name} · ${s.length} mm${ends}` : s.kind === "offcut" ? `Offcut ${Math.round(s.length)} mm → inventory` : `Waste ${Math.round(s.length)} mm`;
+                const ends = angled.some(Boolean) ? ` · ${t("diagram.ends", { list: s.cuts.map((e) => (e.miter || e.bevel ? `${e.miter}°${e.bevel ? ` + ${t("diagram.bevel", { deg: String(e.bevel) })}` : ""}` : t("diagram.square"))).join(" / ") })}` : "";
+                const title = s.kind === "part" ? `${s.label} ${s.name} · ${s.length} mm${ends}` : s.kind === "offcut" ? t("diagram.offcut", { n: String(Math.round(s.length)) }) : t("diagram.waste", { n: String(Math.round(s.length)) });
                 if (s.kind === "waste") return <div key={j} title={title} className="hatch min-w-[2px] bg-surface-2" style={{ flex: `${s.length} 1 0` }} />;
                 if (s.kind === "offcut") {
                   return (
                     <div key={j} title={title} className="@container flex min-w-[2px] items-center justify-center rounded-e-[6px] border-[1.5px] border-dashed border-line-strong bg-surface text-ink-2" style={{ flex: `${s.length} 1 0` }}>
-                      <span className="tnum hidden truncate px-1.5 text-[11px] font-medium @min-[72px]:inline">{Math.round(s.length)} → keep</span>
+                      <span className="tnum hidden truncate px-1.5 text-[11px] font-medium @min-[72px]:inline">{t("diagram.keep", { n: String(Math.round(s.length)) })}</span>
                     </div>
                   );
                 }

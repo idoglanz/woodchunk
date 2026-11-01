@@ -67,8 +67,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               </button>
             }>
               <div className="px-2.5 pb-2 pt-1.5">
-                <p className="text-[14px] font-semibold">{user?.name}</p>
-                <p className="text-[12px] text-ink-2">{user?.email}</p>
+                <p className="text-[14px] font-semibold"><bdi>{user?.name}</bdi></p>
+                <p className="text-[12px] text-ink-2"><bdi>{user?.email}</bdi></p>
               </div>
               <MenuSeparator />
               <div className="md:hidden">

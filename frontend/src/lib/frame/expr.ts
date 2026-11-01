@@ -3,7 +3,17 @@
  * Mirrors backend/app/services/frame/expr.py; keep the two in step.
  */
 
-export class ExprError extends Error {}
+import { enFrame } from "./i18n";
+
+export type ExprErrorKey = "notFinite" | "tooLong" | "unexpectedEnd" | "divisionByZero" | "tooDeep" | "unknownParam" | "missingClose"
+  | "unexpected" | "empty" | "notFiniteResult" | "tooFar";
+
+/** A bad expression. `key` and `values` name the message (frame.expr.*), so it can be shown in any language. */
+export class ExprError extends Error {
+  constructor(readonly key: ExprErrorKey, readonly values: Record<string, string> = {}) {
+    super(enFrame(`expr.${key}`, values));
+  }
+}
 
 const MAX_LENGTH = 200;
 const MAX_DEPTH = 32;
@@ -24,16 +34,16 @@ function tokenize(src: string): Token[] {
 
 export function evaluate(src: number | string, params: Record<string, number>): number {
   if (typeof src === "number") {
-    if (!Number.isFinite(src)) throw new ExprError("Not a finite number");
+    if (!Number.isFinite(src)) throw new ExprError("notFinite");
     return src;
   }
-  if (src.length > MAX_LENGTH) throw new ExprError(`Expressions are limited to ${MAX_LENGTH} characters`);
+  if (src.length > MAX_LENGTH) throw new ExprError("tooLong", { max: String(MAX_LENGTH) });
   const tokens = tokenize(src.trim());
   let pos = 0;
   let depth = 0;
   const peek = () => tokens[pos];
   const take = () => {
-    if (pos >= tokens.length) throw new ExprError(`Unexpected end of "${src}"`);
+    if (pos >= tokens.length) throw new ExprError("unexpectedEnd", { src });
     return tokens[pos++];
   };
 
@@ -52,14 +62,14 @@ export function evaluate(src: number | string, params: Record<string, number>): 
       const rhs = factor();
       if (t.value === "*") v *= rhs;
       else {
-        if (rhs === 0) throw new ExprError(`Division by zero in "${src}"`);
+        if (rhs === 0) throw new ExprError("divisionByZero", { src });
         v /= rhs;
       }
     }
     return v;
   };
   const factor = (): number => {
-    if (++depth > MAX_DEPTH) throw new ExprError("Expression is nested too deeply");
+    if (++depth > MAX_DEPTH) throw new ExprError("tooDeep");
     try {
       return factorInner();
     } finally {
@@ -70,22 +80,22 @@ export function evaluate(src: number | string, params: Record<string, number>): 
     const { kind, value } = take();
     if (kind === "num") return Number(value);
     if (kind === "name") {
-      if (!(value in params)) throw new ExprError(`Unknown parameter "${value}"`);
+      if (!(value in params)) throw new ExprError("unknownParam", { name: value });
       return params[value];
     }
     if (value === "-") return -factor();
     if (value === "(") {
       const v = expr();
       const close = take();
-      if (close.kind !== "op" || close.value !== ")") throw new ExprError(`Missing ")" in "${src}"`);
+      if (close.kind !== "op" || close.value !== ")") throw new ExprError("missingClose", { src });
       return v;
     }
-    throw new ExprError(`Unexpected "${value}" in "${src}"`);
+    throw new ExprError("unexpected", { token: value, src });
   };
 
-  if (!tokens.length) throw new ExprError("Empty expression");
+  if (!tokens.length) throw new ExprError("empty");
   const value = expr();
-  if (pos !== tokens.length) throw new ExprError(`Unexpected "${tokens[pos].value}" in "${src}"`);
-  if (!Number.isFinite(value)) throw new ExprError(`"${src}" is not a finite number`);
+  if (pos !== tokens.length) throw new ExprError("unexpected", { token: tokens[pos].value, src });
+  if (!Number.isFinite(value)) throw new ExprError("notFiniteResult", { src });
   return value;
 }

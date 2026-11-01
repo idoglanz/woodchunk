@@ -1,0 +1,42 @@
+{
+  "templates": {
+    "title": "Templates",
+    "subtitle": "Start from a proven build and change the sizes. Ask Woodchunk to adapt it, e.g. “make it <m>150 cm</m> wide”.",
+    "emptyTitle": "No templates yet",
+    "emptyText": "Save any project as a template from its ••• menu.",
+    "delete": "Delete template",
+    "deleteError": "Couldn't delete.",
+    "other": "other",
+    "parts": "{n, plural, one {# part} other {# parts}}",
+    "yours": "yours",
+    "use": "Use template"
+  },
+  "inventory": {
+    "title": "Inventory",
+    "subtitle": "Boards, sheets and offcuts you already own. New plans use them first, for free.",
+    "addStock": "Add stock",
+    "emptyTitle": "Your inventory is empty",
+    "emptyText": "When you mark a project as cut, its usable leftovers appear here. You can also add wood you already have.",
+    "unknownMaterial": "Unknown material",
+    "offcut": "Offcut",
+    "full": "Full",
+    "fromProject": "From {name}",
+    "quantity": "Quantity",
+    "added": "Added {n, plural, one {# piece} other {# pieces}} to your inventory",
+    "addError": "Couldn't add it.",
+    "addTitle": "Add stock you own",
+    "material": "Material",
+    "kind": "Kind",
+    "fullBoard": "Full board / sheet",
+    "length": "Length",
+    "width": "Width",
+    "howMany": "How many"
+  },
+  "join": {
+    "expired": "This link has expired",
+    "invitedBy": "{name} invited you to",
+    "access": "You'll be able to {role, select, editor {view and edit} other {view}} the project.",
+    "error": "Couldn't join.",
+    "join": "Join project"
+  }
+}

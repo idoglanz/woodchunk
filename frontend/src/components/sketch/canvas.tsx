@@ -11,7 +11,7 @@ import { AXES, baseOf, isMid, midOf, ORIGIN, X_AXIS, Y_AXIS, type Constraint, ty
 import { useSketchUI, type Anchor } from "@/lib/sketch/ui";
 import { arcSweep, bounds, dimensionMarks, glyphAnchor, gridOf, hitTest, jointAngles, measured, measurementsFor, radiusOf, readings, type Marks, type Measure, type View } from "@/lib/sketch/view";
 import { toast } from "@/lib/toast";
-import { isTyping } from "@/lib/typing";
+import { isTyping, shortcutKey } from "@/lib/typing";
 import { lengthInput, parseLength, type Units } from "@/lib/units";
 
 const SNAP_PX = 10;
@@ -352,9 +352,11 @@ export function SketchCanvas(props: CanvasProps) {
       const { tool, anchors, typed } = useSketchUI.getState();
       if (!anchors.length || !["line", "rect", "circle"].includes(tool) || isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       // Digits; once started, a unit (cm, m, in, ft, ", ') and, for a rectangle, "x" between the sizes.
-      const accepts = /^[0-9.,]$/.test(e.key) || (!!typed && (/^[cmintf"']$/i.test(e.key) || (tool === "rect" && /^[x*× ]$/i.test(e.key))));
+      // (On a Hebrew keyboard, the Latin letter on the key: and not a shortcut, as ס for X would be.)
+      const k = /^[\x20-\x7e×]$/.test(e.key) ? e.key : shortcutKey(e);
+      const accepts = /^[0-9.,]$/.test(k) || (!!typed && (/^[cmintf"']$/i.test(k) || (tool === "rect" && /^[x*× ]$/i.test(k))));
       if (accepts) {
-        useSketchUI.getState().set({ typed: typed + e.key });
+        useSketchUI.getState().set({ typed: typed + k });
         e.preventDefault();
         e.stopImmediatePropagation();
       } else if (e.key === "Backspace" && typed) {

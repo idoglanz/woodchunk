@@ -3,6 +3,7 @@
 import { ArrowLeft, Box, Download, Maximize, MousePointer2, PenLine, Redo2, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslations } from "use-intl";
 import { CutList } from "@/components/frame/cut-list";
 import { Inspector } from "@/components/frame/inspector";
 import { barAnchors, DimensionLabels, dimensionAnchors, onCanvasOrPage } from "@/components/frame/edit-layers";
@@ -11,7 +12,7 @@ import { useFrameEdit } from "@/components/frame/use-frame-edit";
 import { MiniView, Viewport, type EditHandlers, type JointMarker } from "@/components/frame/viewport";
 import { useProjectCtx } from "@/components/project/context";
 import { IconButton } from "@/components/ui/button";
-import { EmptyState, Skeleton } from "@/components/ui/misc";
+import { EmptyState, Ltr, Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import type { Assembly, CatalogItem } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
@@ -26,11 +27,10 @@ import { FLAT, flatPlane, resetFrameUI, useFrameUI, type Tool, type View } from 
 import { useCatalog, useItemMap } from "@/lib/queries";
 import { isTyping, shortcutKey } from "@/lib/typing";
 
-const VIEWS: { value: View; label: string }[] = [
-  { value: "iso", label: "3D" }, { value: "front", label: "Front" }, { value: "side", label: "Side" }, { value: "top", label: "Top" },
-];
+const VIEWS: View[] = ["iso", "front", "side", "top"];
 
 export function FrameEditor({ assemblyId }: { assemblyId: string }) {
+  const t = useTranslations("frame");
   const { id } = useProjectCtx();
   const asm = useEditor((s) => s.content?.assemblies.find((a) => a.id === assemblyId));
   const readOnlyProject = useEditor((s) => s.readOnly);
@@ -43,8 +43,8 @@ export function FrameEditor({ assemblyId }: { assemblyId: string }) {
   // Leaving the editor resets its view state (next time starts fitted, in Select, nothing pending).
   useEffect(() => () => resetFrameUI(), []);
 
-  if (!asm) return <EmptyState title="Assembly not found" text="It may have been deleted." action={<Link href={`/projects/${id}/build`} className="font-semibold text-info">Back to Build</Link>} />;
-  if (!asm.frame) return <EmptyState title="No 3D frame yet" text="Start one from the assembly's menu on the Build tab." action={<Link href={`/projects/${id}/build`} className="font-semibold text-info">Back to Build</Link>} />;
+  if (!asm) return <EmptyState title={t("editor.notFound")} text={t("editor.notFoundText")} action={<Link href={`/projects/${id}/build`} className="font-semibold text-info">{t("editor.backToBuild")}</Link>} />;
+  if (!asm.frame) return <EmptyState title={t("editor.noFrame")} text={t("editor.noFrameText")} action={<Link href={`/projects/${id}/build`} className="font-semibold text-info">{t("editor.backToBuild")}</Link>} />;
   if (!catalog.data) return <div className="p-6"><Skeleton className="h-[70dvh] w-full rounded-[16px]" /></div>;
   return <Loaded asm={asm} frame={asm.frame as Frame} byId={byId} readOnly={readOnly} smallScreen={!desktop && !readOnlyProject} projectId={id} />;
 }
@@ -52,6 +52,7 @@ export function FrameEditor({ assemblyId }: { assemblyId: string }) {
 function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
   asm: Assembly; frame: Frame; byId: Map<string, CatalogItem>; readOnly: boolean; smallScreen: boolean; projectId: string;
 }) {
+  const t = useTranslations("frame");
   // While a joint is dragged the frame is previewed (model and cut list) and saved on release.
   const drag = useFrameUI((s) => s.drag);
   const shown = useMemo(() => {
@@ -60,7 +61,7 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
     moveNode(copy, drag.node, drag.at);
     return copy;
   }, [frame, drag]);
-  const result = useMemo(() => solveFrame(shown, byId), [shown, byId]);
+  const result = useMemo(() => solveFrame(shown, byId, t), [shown, byId, t]);
   const steel = useMemo(() => new Set([...byId.values()].filter((i) => i.material === "steel").map((i) => i.id)), [byId]);
   const joints = useMemo(() => jointMarkers(shown, result.members), [shown, result.members]);
   const ed = { past: useEditor((s) => s.past.length), future: useEditor((s) => s.future.length), undo: useEditor((s) => s.undo), redo: useEditor((s) => s.redo) };
@@ -78,10 +79,10 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
     if (readOnly) return [];
     // A flat view doesn't label the size that runs toward the viewer (Front: no depth).
     const along: Record<string, number> = { W: 0, D: 1, H: 2 };
-    const sizes = dimensionAnchors(shown).filter((a) => mode === "3d" || along[a.short] !== FLAT[mode].normal);
+    const sizes = dimensionAnchors(shown, t).filter((a) => mode === "3d" || along[a.short] !== FLAT[mode].normal);
     const depthAt = mode === "3d" ? 0 : flatPlane(mode, depths[mode], nodePositions(shown).values()).at;
-    return [...sizes, ...(mode === "3d" ? [] : barAnchors(shown, FLAT[mode].normal, depthAt))];
-  }, [shown, readOnly, mode, depths]);
+    return [...sizes, ...(mode === "3d" ? [] : barAnchors(shown, FLAT[mode].normal, depthAt, t))];
+  }, [shown, readOnly, mode, depths, t]);
 
   const handlers: EditHandlers = useMemo(() => ({
     onMove: (node, at, join) => {
@@ -151,33 +152,33 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
     <div className="flex h-[calc(100dvh-52px)] flex-col overflow-hidden md:flex-row">
       <div className={cn("relative min-h-[46dvh] min-w-0 flex-1", tool === "draw" && !readOnly && "cursor-crosshair")}>
         <div className="absolute inset-x-3 top-3 z-10 flex flex-wrap items-center gap-2">
-          <Link href={`/projects/${projectId}/build`} aria-label="Back to Build"
+          <Link href={`/projects/${projectId}/build`} aria-label={t("editor.backToBuild")}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-ink-2 shadow-[var(--shadow-card)] backdrop-blur hover:text-ink"><ArrowLeft size={18} className="rtl:-scale-x-100" /></Link>
-          <span className="rounded-full bg-surface/90 px-3 py-1.5 text-[14px] font-semibold shadow-[var(--shadow-card)] backdrop-blur">{asm.letter} · {asm.name}</span>
+          <span className="rounded-full bg-surface/90 px-3 py-1.5 text-[14px] font-semibold shadow-[var(--shadow-card)] backdrop-blur">{asm.letter} · <bdi>{asm.name}</bdi></span>
           {!readOnly ? (
-            <div role="radiogroup" aria-label="Tool" className="flex rounded-full bg-surface/90 p-0.5 shadow-[var(--shadow-card)] backdrop-blur">
-              {TOOLS.map((t) => (
-                <button key={t.value} type="button" role="radio" aria-checked={tool === t.value} title={`${t.label} (${t.key})`}
-                  onClick={() => useFrameUI.getState().setTool(t.value)}
-                  className={cn("inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium", tool === t.value ? "bg-ink text-surface" : "text-ink-2 hover:text-ink")}>
-                  <t.icon size={14} />{t.label}
+            <div role="radiogroup" aria-label={t("editor.tool")} className="flex rounded-full bg-surface/90 p-0.5 shadow-[var(--shadow-card)] backdrop-blur">
+              {TOOLS.map((x) => (
+                <button key={x.value} type="button" role="radio" aria-checked={tool === x.value} title={t("editor.toolTitle", { tool: t(`editor.${x.value}`), key: x.key })}
+                  onClick={() => useFrameUI.getState().setTool(x.value)}
+                  className={cn("inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium", tool === x.value ? "bg-ink text-surface" : "text-ink-2 hover:text-ink")}>
+                  <x.icon size={14} />{t(`editor.${x.value}`)}
                 </button>
               ))}
             </div>
           ) : null}
           {!readOnly && selected?.kind === "member" && tool === "select" ? (
-            <IconButton label="Delete bar (Delete)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={deleteSelected}><Trash2 size={16} /></IconButton>
+            <IconButton label={t("editor.deleteBar")} size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={deleteSelected}><Trash2 size={16} /></IconButton>
           ) : null}
           <div className="ms-auto flex items-center gap-2">
-            <Segmented size="sm" label="View" value={view === "fit" || view === "along" ? "iso" : view} onChange={(v) => look(v)} options={VIEWS} className="bg-surface/90 shadow-[var(--shadow-card)] backdrop-blur" />
-            <IconButton label={ortho ? "Perspective" : "Orthographic"} size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]"
+            <Segmented size="sm" label={t("editor.view")} value={view === "fit" || view === "along" ? "iso" : view} onChange={(v) => look(v)} options={VIEWS.map((v) => ({ value: v, label: t(`editor.views.${v}`) }))} className="bg-surface/90 shadow-[var(--shadow-card)] backdrop-blur" />
+            <IconButton label={ortho ? t("editor.perspective") : t("editor.orthographic")} size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]"
               onClick={() => useFrameUI.getState().setOrtho(!ortho)} aria-pressed={ortho}><Box size={16} /></IconButton>
-            <IconButton label="Fit to frame" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={() => look("fit")}><Maximize size={16} /></IconButton>
-            <IconButton label="Download 3D model (STL)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!result.members.length}
-              onClick={() => saveBlob(frameStl(result.members), `${asm.name || "frame"}.stl`)}><Download size={16} /></IconButton>
+            <IconButton label={t("editor.fit")} size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={() => look("fit")}><Maximize size={16} /></IconButton>
+            <IconButton label={t("editor.download")} size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!result.members.length}
+              onClick={() => saveBlob(frameStl(result.members), `${asm.name || t("editor.fileName")}.stl`)}><Download size={16} /></IconButton>
             {!readOnly ? <>
-              <IconButton label="Undo (⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.past} onClick={ed.undo}><Undo2 size={16} className="rtl:-scale-x-100" /></IconButton>
-              <IconButton label="Redo (⇧⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.future} onClick={ed.redo}><Redo2 size={16} className="rtl:-scale-x-100" /></IconButton>
+              <IconButton label={t("editor.undo")} size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.past} onClick={ed.undo}><Undo2 size={16} className="rtl:-scale-x-100" /></IconButton>
+              <IconButton label={t("editor.redo")} size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.future} onClick={ed.redo}><Redo2 size={16} className="rtl:-scale-x-100" /></IconButton>
             </> : null}
           </div>
         </div>
@@ -189,39 +190,38 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
         {mode !== "3d" && !readOnly ? <DepthChip mode={mode} frame={shown} /> : null}
         {mode !== "3d" ? <MiniView members={result.members} steel={steel} /> : null}
       </div>
-      <aside aria-label="Frame details"
+      <aside aria-label={t("editor.details")}
         className="flex max-h-[54dvh] w-full shrink-0 flex-col overflow-y-auto border-t border-line bg-surface md:max-h-none md:w-[360px] md:border-s md:border-t-0">
         {!readOnly ? <Inspector asm={asm} frame={frame} result={result} byId={byId} /> : null}
-        {smallScreen ? <p className="border-b border-line px-4 py-3 text-[13px] text-ink-2">Look around and check the cut list here. To change the frame, open it on a larger screen.</p> : null}
+        {smallScreen ? <p className="border-b border-line px-4 py-3 text-[13px] text-ink-2">{t("editor.smallScreen")}</p> : null}
         <CutList asm={asm} result={result} byId={byId} />
       </aside>
     </div>
   );
 }
 
-const TOOLS: { value: Tool; label: string; key: string; icon: typeof PenLine }[] = [
-  { value: "select", label: "Select", key: "V", icon: MousePointer2 },
-  { value: "draw", label: "Draw", key: "L", icon: PenLine },
+// Shortcut letters stay Latin (Hebrew keyboards map to them).
+const TOOLS: { value: Tool; key: string; icon: typeof PenLine }[] = [
+  { value: "select", key: "V", icon: MousePointer2 },
+  { value: "draw", key: "L", icon: PenLine },
 ];
 
-const SNAP_NAMES: Record<string, string> = {
-  node: "On a joint", mid: "Middle of a bar", "on-bar": "On a bar (T-joint)", axis: "Along an axis",
-  meet: "Meets a bar (T-joint)", square: "Square to a bar (T-joint)",
-};
+const SNAP_KEYS = { node: "node", mid: "mid", "on-bar": "onBar", axis: "axis", meet: "meet", square: "square" } as const;
 
 /** While a joint is dragged: what it snapped to, and what releasing there does. */
 function DragHint({ frame }: { frame: Frame }) {
+  const t = useTranslations("frame");
   const snap = useFrameUI((s) => s.drag?.snap);
   const flat = useFrameUI((s) => s.mode !== "3d");
   if (!snap) return null;
   const bar = (id: string) => {
     const i = frame.members.findIndex((m) => m.id === id);
-    return i < 0 ? "a bar" : frame.members[i].name || `Bar ${i + 1}`;
+    return i < 0 ? t("drag.aBar") : frame.members[i].name || t("barN", { n: String(i + 1) });
   };
-  const text = snap.kind === "node" ? "Release to join these joints"
-    : snap.kind === "mid" ? `Middle of ${bar(snap.member)}: release for a T-joint`
-    : snap.kind === "on-bar" ? `On ${bar(snap.member)}: release for a T-joint`
-    : snap.aligned.length ? `Lined up with a joint on ${snap.aligned.map((g) => "XYZ"[g.axis]).join(" and ")}` : null;
+  const text = snap.kind === "node" ? t("drag.join")
+    : snap.kind === "mid" ? t("drag.mid", { bar: bar(snap.member) })
+    : snap.kind === "on-bar" ? t("drag.onBar", { bar: bar(snap.member) })
+    : snap.aligned.length ? t("drag.aligned", { axes: snap.aligned.map((g) => "XYZ"[g.axis]).join(t("drag.and")) }) : null;
   if (!text) return null;
   return (
     <div className={cn("pointer-events-none absolute inset-x-3 bottom-3 z-10 flex justify-center", flat && "pe-[13rem] sm:pe-[16rem]")}>
@@ -231,6 +231,7 @@ function DragHint({ frame }: { frame: Frame }) {
 }
 
 function DrawHint() {
+  const t = useTranslations("frame");
   const start = useFrameUI((s) => s.drawStart);
   const typed = useFrameUI((s) => s.typed);
   const lock = useFrameUI((s) => s.lockAxis);
@@ -239,13 +240,13 @@ function DrawHint() {
   return (
     <div className={cn("pointer-events-none absolute inset-x-3 bottom-3 z-10 flex justify-center", flat && "pe-[13rem] sm:pe-[16rem]")}>
       <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-2xl bg-surface/95 px-4 py-2 text-[13px] text-ink-2 shadow-[var(--shadow-pop)] backdrop-blur">
-        {!start ? <span>Click a joint, a bar or the {flat ? "grid" : "floor"} to start a bar.</span> : <>
-          <span>Click to place the next joint, or type a length</span>
-          <span className="tnum min-w-16 rounded-md bg-surface-2 px-2 py-0.5 text-center font-semibold text-ink">{typed ? `${typed} mm` : hover?.len ? `${hover.len} mm` : "— mm"}</span>
-          <span>then Enter.</span>
+        {!start ? <span>{t("drawHint.start", { where: flat ? "grid" : "floor" })}</span> : <>
+          <span>{t("drawHint.next")}</span>
+          <span className="tnum min-w-16 rounded-md bg-surface-2 px-2 py-0.5 text-center font-semibold text-ink"><Ltr>{typed ? `${typed} mm` : hover?.len ? `${hover.len} mm` : "— mm"}</Ltr></span>
+          <span>{t("drawHint.enter")}</span>
         </>}
-        {hover && hover.kind !== "plane" ? <span className="font-medium text-ink">{SNAP_NAMES[hover.kind] ?? ""}</span> : null}
-        <span className="text-ink-3">{lock !== null ? `Locked to ${"XYZ"[lock]}` : "Shift locks an axis"} · Esc {start ? "ends the chain" : "back to Select"}</span>
+        {hover && hover.kind !== "plane" ? <span className="font-medium text-ink">{hover.kind in SNAP_KEYS ? t(`snap.${SNAP_KEYS[hover.kind as keyof typeof SNAP_KEYS]}`) : ""}</span> : null}
+        <span className="text-ink-3">{lock !== null ? t("drawHint.locked", { axis: "XYZ"[lock] }) : t("drawHint.shiftLocks")} · {start ? t("drawHint.escEnds") : t("drawHint.escBack")}</span>
       </div>
     </div>
   );

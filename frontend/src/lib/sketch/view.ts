@@ -4,6 +4,7 @@
  * millimetres one screen pixel covers, for offsets that should look the same at any zoom.
  */
 
+import type { Translator } from "@/lib/lang";
 import { measure, type V2 } from "./solve";
 import { cornerSide, lineOf, picked, pointAt, shapeById } from "./model";
 import { isMid, midOf, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Shape, type Sketch } from "./types";
@@ -272,7 +273,7 @@ export type Reading = { label: string; kind: "distance" | "angle"; value: number
  * `mark`) and the values to show. A line: its length and slope; a circle: its size; a point: where
  * it is; two things: the distance (or angle) between them. Null when there's nothing to read.
  */
-export function readings(sk: Sketch, ids: string[]): { mark: Measure | null; values: Reading[] } | null {
+export function readings(sk: Sketch, ids: string[], t: Translator<"sketch">): { mark: Measure | null; values: Reading[] } | null {
   const { points: P, lines: L, round: R } = picked(sk, ids);
   const n = P.length + L.length + R.length;
   const dist = (refs: string[]) => measured(sk, { kind: "distance", refs });
@@ -282,26 +283,26 @@ export function readings(sk: Sketch, ids: string[]): { mark: Measure | null; val
     if (AXES_IDS.has(L[0])) return null;
     const [a, b] = lineOf(sk, L[0])!;
     const slope = ((Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI + 180) % 180;
-    return { mark: { kind: "distance", refs: L }, values: [{ label: "Length", kind: "distance", value: dist(L) }, { label: "From level", kind: "angle", value: slope }] };
+    return { mark: { kind: "distance", refs: L }, values: [{ label: t("readings.length"), kind: "distance", value: dist(L) }, { label: t("readings.fromLevel"), kind: "angle", value: slope }] };
   }
   if (n === 1 && R.length === 1) {
     const s = shapeById(sk, R[0])!;
-    if (s.kind === "circle") return { mark: { kind: "diameter", refs: R }, values: [{ label: "Diameter", kind: "distance", value: 2 * s.r }, { label: "Radius", kind: "distance", value: s.r }] };
+    if (s.kind === "circle") return { mark: { kind: "diameter", refs: R }, values: [{ label: t("readings.diameter"), kind: "distance", value: 2 * s.r }, { label: t("readings.radius"), kind: "distance", value: s.r }] };
     const sweep = s.kind === "arc" ? (arcSweep(sk, s).sweep * 180) / Math.PI : 0;
-    return { mark: { kind: "radius", refs: R }, values: [{ label: "Radius", kind: "distance", value: radius(R[0]) }, { label: "Sweep", kind: "angle", value: sweep }] };
+    return { mark: { kind: "radius", refs: R }, values: [{ label: t("readings.radius"), kind: "distance", value: radius(R[0]) }, { label: t("readings.sweep"), kind: "angle", value: sweep }] };
   }
   if (n === 1 && P.length === 1) {
     const [x, y] = pointAt(sk, P[0]);
-    return { mark: null, values: [{ label: "X", kind: "distance", value: x }, { label: "Y", kind: "distance", value: y }] };
+    return { mark: null, values: [{ label: t("readings.x"), kind: "distance", value: x }, { label: t("readings.y"), kind: "distance", value: y }] };
   }
   if (n !== 2) return null;
   if (P.length === 2) {
     const [p, q] = P.map((x) => pointAt(sk, x));
-    return { mark: { kind: "distance", refs: P }, values: [{ label: "Distance", kind: "distance", value: dist(P) }, { label: "Across (X)", kind: "distance", value: Math.abs(q[0] - p[0]) }, { label: "Up (Y)", kind: "distance", value: Math.abs(q[1] - p[1]) }] };
+    return { mark: { kind: "distance", refs: P }, values: [{ label: t("readings.distance"), kind: "distance", value: dist(P) }, { label: t("readings.across"), kind: "distance", value: Math.abs(q[0] - p[0]) }, { label: t("readings.up"), kind: "distance", value: Math.abs(q[1] - p[1]) }] };
   }
   if (P.length === 1 && L.length === 1) {
     const m: Measure = { kind: "point_line_distance", refs: [P[0], L[0]] };
-    return { mark: m, values: [{ label: "Distance (square to the line)", kind: "distance", value: measured(sk, m) }] };
+    return { mark: m, values: [{ label: t("readings.square"), kind: "distance", value: measured(sk, m) }] };
   }
   if (L.length === 2) {
     const side = cornerSide(sk, L);
@@ -310,24 +311,24 @@ export function readings(sk: Sketch, ids: string[]): { mark: Measure | null; val
       // Parallel: the gap between them.
       const [line, other] = AXES_IDS.has(L[0]) ? [L[1], L[0]] : [L[0], L[1]];
       const m: Measure = { kind: "point_line_distance", refs: [(shapeById(sk, line) as { a: string }).a, other] };
-      return { mark: m, values: [{ label: "Gap (parallel)", kind: "distance", value: measured(sk, m) }] };
+      return { mark: m, values: [{ label: t("readings.gapParallel"), kind: "distance", value: measured(sk, m) }] };
     }
-    return { mark: { kind: "angle", refs: L, side }, values: [{ label: "Angle", kind: "angle", value: angle }, { label: "The other way", kind: "angle", value: 180 - angle }] };
+    return { mark: { kind: "angle", refs: L, side }, values: [{ label: t("readings.angle"), kind: "angle", value: angle }, { label: t("readings.otherWay"), kind: "angle", value: 180 - angle }] };
   }
   if (P.length === 1 && R.length === 1) {
     const m: Measure = { kind: "distance", refs: [P[0], centre(R[0])] };
     const d = measured(sk, m);
-    return { mark: m, values: [{ label: "To the centre", kind: "distance", value: d }, { label: "To the edge", kind: "distance", value: Math.abs(d - radius(R[0])) }] };
+    return { mark: m, values: [{ label: t("readings.toCentre"), kind: "distance", value: d }, { label: t("readings.toEdge"), kind: "distance", value: Math.abs(d - radius(R[0])) }] };
   }
   if (L.length === 1 && R.length === 1) {
     const m: Measure = { kind: "point_line_distance", refs: [centre(R[0]), L[0]] };
     const d = measured(sk, m);
-    return { mark: m, values: [{ label: "Centre to line", kind: "distance", value: d }, { label: "Edge to line", kind: "distance", value: d - radius(R[0]) }] };
+    return { mark: m, values: [{ label: t("readings.centreToLine"), kind: "distance", value: d }, { label: t("readings.edgeToLine"), kind: "distance", value: d - radius(R[0]) }] };
   }
   if (R.length === 2) {
     const m: Measure = { kind: "distance", refs: [centre(R[0]), centre(R[1])] };
     const d = measured(sk, m);
-    return { mark: m, values: [{ label: "Centre to centre", kind: "distance", value: d }, { label: "Edge to edge", kind: "distance", value: d - radius(R[0]) - radius(R[1]) }] };
+    return { mark: m, values: [{ label: t("readings.centreToCentre"), kind: "distance", value: d }, { label: t("readings.edgeToEdge"), kind: "distance", value: d - radius(R[0]) - radius(R[1]) }] };
   }
   return null;
 }

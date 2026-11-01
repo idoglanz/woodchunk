@@ -4,5 +4,24 @@
     "minutesAgo": "לפני {n} דק׳",
     "hoursAgo": "לפני {n} שע׳",
     "daysAgo": "לפני {n} ימ׳"
+  },
+  "cancel": "ביטול",
+  "save": "שמירה",
+  "saved": "נשמר",
+  "close": "סגירה",
+  "add": "הוספה",
+  "edit": "עריכה",
+  "remove": "הסרה",
+  "restore": "שחזור",
+  "undo": "ביטול",
+  "create": "יצירה",
+  "tryAgain": "ניסיון חוזר",
+  "untitledProject": "פרויקט ללא שם",
+  "errors": {
+    "generic": "משהו השתבש.",
+    "badInput": "בדקו את הערכים שהזנתם: {msg}",
+    "aiBusy": "עוזר ה־AI עמוס כרגע. נסו שוב בעוד דקה.",
+    "server": "משהו השתבש בשרת. נסו שוב.",
+    "offline": "אין חיבור ל־Woodchunk. בדקו את החיבור."
   }
 }

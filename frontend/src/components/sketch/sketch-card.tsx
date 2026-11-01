@@ -4,6 +4,7 @@ import { Copy, MoreHorizontal, PencilRuler, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { useTranslations } from "use-intl";
 import { useProjectCtx } from "@/components/project/context";
 import { Button, IconButton } from "@/components/ui/button";
 import { AsmChip, Card } from "@/components/ui/misc";
@@ -21,18 +22,19 @@ export function SketchesCard() {
   const sketches = useEditor((s) => s.content?.sketches ?? []);
   const readOnly = useEditor((s) => s.readOnly);
   const create = useNewSketch();
+  const t = useTranslations("sketch.card");
   if (!sketches.length && readOnly) return null;
   return (
     <Card className="flex flex-col">
       <div className="flex items-center gap-3 px-4 pb-2 pt-4 sm:px-5">
         <PencilRuler size={18} className="text-ink-2" />
-        <h2 className="text-[17px] font-semibold">Sketches</h2>
-        {!readOnly && sketches.length ? <Button size="sm" variant="ghost" className="ms-auto" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => create()}>New sketch</Button> : null}
+        <h2 className="text-[17px] font-semibold">{t("sketches")}</h2>
+        {!readOnly && sketches.length ? <Button size="sm" variant="ghost" className="ms-auto" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => create()}>{t("newSketch")}</Button> : null}
       </div>
       {!sketches.length ? (
         <div className="flex flex-wrap items-center gap-3 px-4 pb-4 sm:px-5">
-          <p className="min-w-0 flex-1 text-[14px] text-ink-2">Draw it roughly, pin the sizes and angles you know, and the rest is worked out.</p>
-          <Button size="sm" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => create()}>New sketch</Button>
+          <p className="min-w-0 flex-1 text-[14px] text-ink-2">{t("emptyText")}</p>
+          <Button size="sm" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => create()}>{t("newSketch")}</Button>
         </div>
       ) : (
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3 px-4 pb-4 sm:px-5">
@@ -51,10 +53,11 @@ export function useNewSketch() {
   const { id } = useProjectCtx();
   const router = useRouter();
   const edit = useEditor((s) => s.edit);
+  const t = useTranslations("sketch");
   return (assembly?: { id: string; name: string }) => {
     const existing = useEditor.getState().content?.sketches ?? [];
-    if (existing.length >= MAX_SKETCHES) { toast.error(`A project holds up to ${MAX_SKETCHES} sketches. Delete one to start another.`); return; }
-    const sk = newSketch(existing, assembly);
+    if (existing.length >= MAX_SKETCHES) { toast.error(t("card.limit", { max: MAX_SKETCHES })); return; }
+    const sk = newSketch(existing, t, assembly);
     edit((d) => { d.sketches.push(sk); });
     router.push(`/projects/${id}/sketch/${sk.id}`);
   };
@@ -66,7 +69,8 @@ function SketchTile({ sk, readOnly }: { sk: Sketch; readOnly: boolean }) {
   const full = useEditor((s) => (s.content?.sketches.length ?? 0) >= MAX_SKETCHES);
   const asm = useEditor((s) => s.content?.assemblies.find((a) => a.id === sk.assembly_id));
   const status = useMemo(() => (sk.shapes.length ? solve(sk) : null), [sk]);
-  const note = !status ? "Empty" : !status.ok ? "Conflicting" : status.dof ? `${status.dof} to pin down` : "Fully defined";
+  const t = useTranslations("sketch");
+  const note = !status ? t("card.noteEmpty") : !status.ok ? t("card.noteConflicting") : status.dof ? t("card.noteToPin", { n: status.dof }) : t("card.noteDefined");
   return (
     <li className="group relative flex flex-col overflow-hidden rounded-xl bg-surface-2/60 ring-1 ring-line hover:ring-line-strong">
       <Link href={`/projects/${id}/sketch/${sk.id}`} className="flex flex-col">
@@ -78,15 +82,15 @@ function SketchTile({ sk, readOnly }: { sk: Sketch; readOnly: boolean }) {
       </Link>
       {!readOnly ? (
         <div className="absolute end-1.5 top-1.5">
-          <Menu trigger={<IconButton label="Sketch options" size="sm" className="bg-surface/90"><MoreHorizontal size={16} /></IconButton>}>
+          <Menu trigger={<IconButton label={t("card.options")} size="sm" className="bg-surface/90"><MoreHorizontal size={16} /></IconButton>}>
             <MenuItem icon={<Copy size={16} />} disabled={full} onSelect={() => edit((d) => {
               const i = d.sketches.findIndex((x) => x.id === sk.id);
-              d.sketches.splice(i + 1, 0, { ...structuredClone(sk), id: newId(), name: `${sk.name} copy`.slice(0, 80) });
-            })}>Duplicate</MenuItem>
+              d.sketches.splice(i + 1, 0, { ...structuredClone(sk), id: newId(), name: t("names.copy", { name: sk.name }).slice(0, 80) });
+            })}>{t("card.duplicate")}</MenuItem>
             <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => edit((d) => {
               d.sketches = d.sketches.filter((x) => x.id !== sk.id);
               syncParts(d, sk.id); // its parts keep their lengths, unlinked
-            })}>Delete</MenuItem>
+            })}>{t("card.delete")}</MenuItem>
           </Menu>
         </div>
       ) : null}

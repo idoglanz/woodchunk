@@ -3,6 +3,7 @@
 import { CameraControls, CameraControlsImpl, GizmoHelper, GizmoViewport, Grid, OrthographicCamera, PerspectiveCamera } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { memo, useEffect, useMemo, useRef, type RefObject } from "react";
+import { useTranslations } from "use-intl";
 import { Box3, DoubleSide, EdgesGeometry, Sphere, Vector3 } from "three";
 import { DrawLayer, LabelProjector, NodeHandle, toThree, type DimAnchor } from "@/components/frame/edit-layers";
 import type { Endpoint } from "@/lib/frame/edit";
@@ -30,6 +31,7 @@ export type JointMarker = { id: string; at: Vec; size: number };
  * it renders only when the frame changes.
  */
 export function MiniView({ members, steel }: { members: MemberResult[]; steel: Set<string> }) {
+  const t = useTranslations("frame");
   const c = useCssVars(COLORS);
   const look = useFrameUI((s) => s.look);
   const cam = useMemo(() => {
@@ -43,7 +45,7 @@ export function MiniView({ members, steel }: { members: MemberResult[]; steel: S
   }, [members]);
   if (!cam) return null;
   return (
-    <button type="button" onClick={() => look("iso")} aria-label="Back to the 3D view" title="Back to 3D"
+    <button type="button" onClick={() => look("iso")} aria-label={t("editor.backTo3dView")} title={t("editor.backTo3d")}
       className="absolute bottom-3 end-3 z-10 h-36 w-48 overflow-hidden rounded-[14px] border border-line shadow-[var(--shadow-pop)] sm:h-44 sm:w-60">
       <Canvas frameloop="demand" dpr={[1, 1.5]} style={{ background: c["--view-3d"], pointerEvents: "none" }}
         camera={{ fov: 30, near: 10, far: 200000, position: cam.eye }} onCreated={({ camera }) => camera.lookAt(...cam.target)}>
@@ -56,7 +58,7 @@ export function MiniView({ members, steel }: { members: MemberResult[]; steel: S
           ))}
         </group>
       </Canvas>
-      <span className="absolute start-2 top-2 rounded-full bg-surface/90 px-2 py-0.5 text-[11px] font-semibold text-ink-2">3D</span>
+      <span className="absolute start-2 top-2 rounded-full bg-surface/90 px-2 py-0.5 text-[11px] font-semibold text-ink-2">{t("editor.views.iso")}</span>
     </button>
   );
 }

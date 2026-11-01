@@ -1,1 +1,12 @@
-{}
+{
+  "decrease": "הקטנת {label}",
+  "increase": "הגדלת {label}",
+  "fewer": "פחות {label}",
+  "more": "יותר {label}",
+  "status": {
+    "planning": "בתכנון",
+    "bought": "נקנה",
+    "cut": "נחתך",
+    "done": "הושלם"
+  }
+}

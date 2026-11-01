@@ -12,7 +12,9 @@
  * centred on its bounding box in (u, v); the anchor says which point of it sits on the line.
  */
 
+import type { Translator } from "@/lib/lang";
 import { ExprError, evaluate } from "./expr";
+import { enFrame } from "./i18n";
 import type { Frame, FrameMember, ProfileSpec } from "./types";
 
 export type Vec = [number, number, number];
@@ -191,7 +193,8 @@ function facePlane(target: M, node: Vec, d: Vec): [Plane, number] | null {
 
 const square = (node: Vec, d: Vec, shift = 0): Plane => ({ point: add(node, scale(d, -shift)), normal: scale(d, -1) });
 
-export function solve(frame: Frame, profiles: Record<string, Profile>): FrameResult {
+/** `t` words the warnings (English by default, as the server writes them). */
+export function solve(frame: Frame, profiles: Record<string, Profile>, t: Translator<"frame"> = enFrame): FrameResult {
   const warnings: string[] = [];
   const params = Object.fromEntries((frame.params ?? []).map((p) => [p.name, p.mm]));
   const defaults = { corner: "butt", lines: "outside", ...frame.defaults };
@@ -200,25 +203,25 @@ export function solve(frame: Frame, profiles: Record<string, Profile>): FrameRes
   for (const n of frame.nodes) {
     try {
       const p: Vec = [evaluate(n.x, params), evaluate(n.y, params), evaluate(n.z, params)];
-      if (p.some((c) => Math.abs(c) > MAX_COORD)) throw new ExprError("it's more than 100 m from the origin");
+      if (p.some((c) => Math.abs(c) > MAX_COORD)) throw new ExprError("tooFar");
       pos.set(n.id, p);
     } catch (e) {
-      warnings.push(`A joint's position can't be worked out: ${e instanceof ExprError ? e.message : String(e)}`);
+      warnings.push(t("warn.badPosition", { reason: e instanceof ExprError ? t(`expr.${e.key}`, e.values) : String(e) }));
       bad.add(n.id);
     }
   }
 
   const ms: M[] = [];
   frame.members.forEach((m, i) => {
-    const label = m.name || `Bar ${i + 1}`;
-    if (bad.has(m.a) || bad.has(m.b)) { warnings.push(`${label} is left out: one of its joints has a bad position`); return; }
+    const label = m.name || t("barN", { n: String(i + 1) });
+    if (bad.has(m.a) || bad.has(m.b)) { warnings.push(t("warn.leftOut", { bar: label })); return; }
     const a = pos.get(m.a), b = pos.get(m.b);
-    if (!a || !b || m.a === m.b) { warnings.push(`${label} needs two different joints`); return; }
-    if (length(sub(b, a)) < 1) { warnings.push(`${label} has no length`); return; }
+    if (!a || !b || m.a === m.b) { warnings.push(t("warn.twoJoints", { bar: label })); return; }
+    if (length(sub(b, a)) < 1) { warnings.push(t("warn.noLength", { bar: label })); return; }
     const profile = profiles[m.item_id ?? ""] ?? FALLBACK_PROFILE;
     const [x, u, v] = memberAxes(a, b, m.roll_deg ?? 0);
     ms.push(new M(label, m, a, b, x, u, v, profile));
-    if (!m.item_id || !(m.item_id in profiles)) warnings.push(`${label} has no material`);
+    if (!m.item_id || !(m.item_id in profiles)) warnings.push(t("warn.noMaterial", { bar: label }));
   });
 
   // Sum in a fixed order so the result is identical to the server's.
@@ -250,8 +253,8 @@ export function solve(frame: Frame, profiles: Record<string, Profile>): FrameRes
     const spans = spansAt.get(nodeId) ?? [];
     const j = overrides.get(nodeId);
     if (spans.length) {
-      for (const [mm, e] of ends) buttInto(mm, e, node, spans, warnings);
-      if (j) warnings.push("A joint setting on a bar's span (a T-joint) is ignored: bars there always butt");
+      for (const [mm, e] of ends) buttInto(mm, e, node, spans, warnings, t);
+      if (j) warnings.push(t("warn.spanSetting"));
       continue;
     }
     if (ends.length === 1) continue;
@@ -259,35 +262,35 @@ export function solve(frame: Frame, profiles: Record<string, Profile>): FrameRes
     const run = straightPair(ends);
     if (run) {
       for (const [mm, e] of run) mm.planes[e] = square(node, mm.into(e));
-      for (const x of ends) if (!run.includes(x)) buttInto(x[0], x[1], node, [run[0][0], run[1][0]], warnings);
+      for (const x of ends) if (!run.includes(x)) buttInto(x[0], x[1], node, [run[0][0], run[1][0]], warnings, t);
       continue;
     }
     const kind = j ? j.kind : defaults.corner;
     const through = pickThrough(ends, j?.through ?? null);
-    if (j?.through && through[0].m.id !== j.through) warnings.push("A joint's 'runs through' bar isn't at that joint; using the automatic choice");
+    if (j?.through && through[0].m.id !== j.through) warnings.push(t("warn.throughMissing"));
     const others = ends.filter((x) => x !== through);
     if (kind === "miter" && others.length === 2 && ends.length === 3) {
       const [[m1, e1], [m2, e2]] = others;
       miter(m1, e1, m2, e2, node);
-      buttInto(through[0], through[1], node, [m1, m2], warnings);
+      buttInto(through[0], through[1], node, [m1, m2], warnings, t);
     } else if (kind === "miter" && ends.length === 2) {
       const [[m1, e1], [m2, e2]] = ends;
       miter(m1, e1, m2, e2, node);
     } else {
-      if (kind === "miter") warnings.push(`Miters join 2 or 3 bars; ${ends.length} meet at one joint, so they butt`);
+      if (kind === "miter") warnings.push(t("warn.miterCount", { n: String(ends.length) }));
       const [tm, te] = through;
       const dT = tm.into(te);
       let reach = 0;
       for (const [mm, e] of others) {
-        if (dot(mm.into(e), dT) > STRAIGHT) { warnings.push(`${mm.label} and ${tm.label} overlap along the same line`); continue; }
-        buttInto(mm, e, node, [tm], warnings);
+        if (dot(mm.into(e), dT) > STRAIGHT) { warnings.push(t("warn.overlap", { a: mm.label, b: tm.label })); continue; }
+        buttInto(mm, e, node, [tm], warnings, t);
         if (Math.abs(dot(mm.into(e), dT)) < SQUARE_ON) reach = Math.max(reach, Math.max(...mm.outer().map((q) => dot(q, scale(dT, -1)))));
       }
       tm.planes[te] = square(node, dT, reach);
     }
   }
 
-  const results = ms.map((mm) => measure(mm, warnings));
+  const results = ms.map((mm) => measure(mm, warnings, t));
   return { members: results, groups: group(results), warnings: [...new Set(warnings)] };
 }
 
@@ -325,23 +328,23 @@ function miter(m1: M, e1: number, m2: M, e2: number, node: Vec) {
   m2.planes[e2] = { point: node, normal: scale(n, -1) };
 }
 
-function buttInto(mm: M, e: number, node: Vec, targets: M[], warnings: string[]) {
+function buttInto(mm: M, e: number, node: Vec, targets: M[], warnings: string[], tr: Translator<"frame">) {
   const d = mm.into(e);
   let best: [Plane, number] | null = null;
   for (const t of targets) {
     const hit = facePlane(t, node, d);
     if (hit && (best === null || hit[1] > best[1])) best = hit;
   }
-  if (!best) warnings.push(`${mm.label} meets ${targets[0].label} at a very shallow angle; its end is left square`);
+  if (!best) warnings.push(tr("warn.shallow", { a: mm.label, b: targets[0].label }));
   mm.planes[e] = best ? best[0] : square(node, d);
 }
 
-function measure(mm: M, warnings: string[]): MemberResult {
+function measure(mm: M, warnings: string[], t: Translator<"frame">): MemberResult {
   const planes: Plane[] = [];
   for (const e of [0, 1]) {
     let p = mm.planes[e] ?? square(mm.nodePos(e), mm.into(e));
     if (Math.abs(dot(p.normal, mm.x)) < MIN_PLANE_COS) {
-      warnings.push(`${mm.label}: a cut would run along the bar; its end is left square`);
+      warnings.push(t("warn.alongBar", { bar: mm.label }));
       p = square(mm.nodePos(e), mm.into(e));
     }
     planes.push(p);
@@ -353,7 +356,7 @@ function measure(mm: M, warnings: string[]): MemberResult {
     return tb - ta;
   });
   const lp = Math.max(...lengths), sp = Math.min(...lengths);
-  if (sp <= 0) warnings.push(`${mm.label} is used up by its joints (too short for the bars around it)`);
+  if (sp <= 0) warnings.push(t("warn.usedUp", { bar: mm.label }));
 
   const local = planes.map((p) => [dot(p.normal, mm.x), dot(p.normal, mm.u), dot(p.normal, mm.v)] as Vec);
   const top = Math.max(...local.map((n) => bevelOf(n[2])));

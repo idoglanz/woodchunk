@@ -2,13 +2,16 @@
 
 import { Check, ChevronDown, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createTranslator, useTranslations } from "use-intl";
 import { SectionGlyph } from "@/components/project/section-glyph";
 import { FullScreen, Pop } from "@/components/ui/overlay";
 import { Segmented } from "@/components/ui/segmented";
 import type { CatalogItem } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { useMediaQuery } from "@/lib/focus";
+import type { Translator } from "@/lib/lang";
 import { searchItems } from "@/lib/material-search";
+import { en } from "@/messages";
 
 const RECENT_KEY = "wc.recentMaterials";
 
@@ -20,30 +23,35 @@ export function rememberMaterial(id: string) {
   try { localStorage.setItem(RECENT_KEY, JSON.stringify([id, ...readRecent().filter((x) => x !== id)].slice(0, 6))); } catch {}
 }
 
-export function itemDetail(it: CatalogItem): string {
+const EN = createTranslator({ locale: "en", messages: en, namespace: "project" });
+
+/** Stock sizes and prices in a line; pass the app's translator (`useTranslations("project")`) for its words. */
+export function itemDetail(it: CatalogItem, t: Translator<"project"> = EN): string {
   if (it.kind === "lumber") {
     const lengths = it.lumber_stock.map((s) => (s.length_mm / 1000).toFixed(1)).join(" · ");
     return `${lengths} m${it.price_per_m != null ? ` · ₪${it.price_per_m.toFixed(2)}/m` : ""}`;
   }
   if (it.kind === "sheet") {
     const s = it.sheet_stock[0];
-    return s ? `${s.width_mm} × ${s.length_mm}${s.price != null ? ` · ₪${s.price}` : ""}${it.has_grain ? "" : " · no grain"}` : "no sizes";
+    return s ? `${s.width_mm} × ${s.length_mm}${s.price != null ? ` · ₪${s.price}` : ""}${it.has_grain ? "" : ` · ${t("picker.noGrain")}`}` : t("picker.noSizes");
   }
-  return it.pack_size > 1 ? `pack of ${it.pack_size}` : it.unit;
+  return it.pack_size > 1 ? t("picker.packOf", { n: String(it.pack_size) }) : it.unit;
 }
 
 const KIND_KEY = "wc.pickerKind";
-const KIND_LABEL: Record<CatalogItem["kind"], string> = { lumber: "Lumber", sheet: "Sheets", hardware: "Hardware" };
 
 function readKind(): CatalogItem["kind"] | null {
   try { return localStorage.getItem(KIND_KEY) as CatalogItem["kind"] | null; } catch { return null; }
 }
 
-export function ItemPicker({ items, value, onChange, kinds, placeholder = "Choose material", disabled, ariaLabel, className, allowFree }: {
+export function ItemPicker({ items, value, onChange, kinds, placeholder: given, disabled, ariaLabel, className, allowFree }: {
   items: CatalogItem[]; value: string | null | undefined; onChange: (id: string | null, freeText?: string) => void;
   kinds: CatalogItem["kind"][]; placeholder?: string; disabled?: boolean; ariaLabel: string; className?: string; allowFree?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const tp = useTranslations("project");
+  const t = useTranslations("project.picker");
+  const placeholder = given ?? t("choose");
   const phone = useMediaQuery("(max-width: 639.98px)");
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
@@ -90,8 +98,8 @@ export function ItemPicker({ items, value, onChange, kinds, placeholder = "Choos
       className={cn("flex items-center gap-3 rounded-[10px] px-2 py-1.5 text-start", idx === active && "bg-surface-2")}>
       {kind === "hardware" ? null : <SectionGlyph item={it} size={34} />}
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-[14px] leading-snug">{it.name.en}</span>
-        <span className="tnum truncate text-[12px] text-ink-2">{itemDetail(it)}{it.supplier_name ? ` · ${it.supplier_name}` : ""}</span>
+        <span className="text-[14px] leading-snug"><bdi>{it.name.en}</bdi></span>
+        <span className="tnum truncate text-[12px] text-ink-2">{itemDetail(it, tp)}{it.supplier_name ? ` · ${it.supplier_name}` : ""}</span>
       </span>
       <span className="w-4 shrink-0">{it.id === value ? <Check size={15} /> : null}</span>
     </button>
@@ -102,7 +110,7 @@ export function ItemPicker({ items, value, onChange, kinds, placeholder = "Choos
     <button type="button" disabled={disabled} aria-label={ariaLabel} onClick={phone ? () => openChange(true) : undefined}
       className={cn("flex h-9 w-full min-w-0 items-center gap-1.5 rounded-lg bg-surface-2 px-2 text-start text-[14px] transition-colors hover:bg-surface-3 disabled:opacity-60", className)}>
       {current && current.kind !== "hardware" ? <SectionGlyph item={current} size={20} /> : null}
-      <span className={cn("min-w-0 flex-1 truncate", !current && "text-ink-3")}>{current ? current.name.en : placeholder}</span>
+      <span dir="auto" className={cn("min-w-0 flex-1 truncate", !current && "text-ink-3")}>{current ? current.name.en : placeholder}</span>
       <ChevronDown size={14} className="shrink-0 text-ink-3" />
     </button>
   );
@@ -112,8 +120,8 @@ export function ItemPicker({ items, value, onChange, kinds, placeholder = "Choos
           <Search size={15} className="shrink-0 text-ink-3" />
           {/* Phones don't jump into the search: the keyboard would cover the list (and the recent picks). */}
           <input autoFocus={!phone} value={q} onChange={(e) => { setQ(e.target.value); setActive(0); }}
-            placeholder={allowFree ? "Search or type a name" : kind === "sheet" ? "Search, e.g. 18 birch" : "Search, e.g. 44x100 treated"}
-            aria-label="Search catalog" className="ring-on-parent h-10 min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-3"
+            placeholder={allowFree ? t("searchFree") : kind === "sheet" ? t("searchSheet") : t("searchLumber")}
+            aria-label={t("searchCatalog")} className="ring-on-parent h-10 min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-ink-3"
             onKeyDown={(e) => {
               if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => Math.min(flat.length - 1, a + 1)); }
               if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(0, a - 1)); }
@@ -126,26 +134,26 @@ export function ItemPicker({ items, value, onChange, kinds, placeholder = "Choos
             }} />
         </div>
         {tabs ? (
-          <Segmented size="sm" label="Material kind" value={kind} onChange={switchTab} className="self-start"
-            options={kinds.map((k) => ({ value: k, label: q ? `${KIND_LABEL[k]} ${results.filter((i) => i.kind === k).length}` : KIND_LABEL[k] }))} />
+          <Segmented size="sm" label={t("materialKind")} value={kind} onChange={switchTab} className="self-start"
+            options={kinds.map((k) => ({ value: k, label: q ? `${t(`kind.${k}`)} ${results.filter((i) => i.kind === k).length}` : t(`kind.${k}`) }))} />
         ) : null}
       </div>
       <div ref={listRef} className={cn("overflow-y-auto overscroll-contain p-1.5", phone ? "min-h-0 flex-1" : "max-h-[min(60vh,440px)]")}>
-        {recent.length ? <p className="px-2 pb-1 pt-1.5 text-[12px] font-medium text-ink-3">Recent</p> : null}
+        {recent.length ? <p className="px-2 pb-1 pt-1.5 text-[12px] font-medium text-ink-3">{t("recent")}</p> : null}
         <div className="flex flex-col">{recent.map((it, i) => row(it, i))}</div>
-        {recent.length && rest.length ? <p className="px-2 pb-1 pt-2.5 text-[12px] font-medium text-ink-3">All {KIND_LABEL[kind].toLowerCase()}</p> : null}
+        {recent.length && rest.length ? <p className="px-2 pb-1 pt-2.5 text-[12px] font-medium text-ink-3">{t("all", { kind })}</p> : null}
         <div className="flex flex-col">{rest.map((it, i) => row(it, i + recent.length))}</div>
         {!flat.length ? (
           <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
-            <p className="text-[14px] text-ink-2">{q ? `No ${KIND_LABEL[kind].toLowerCase()} matches “${q}”.` : `No ${KIND_LABEL[kind].toLowerCase()} in the catalog yet.`}</p>
+            <p className="text-[14px] text-ink-2">{q ? t("noMatch", { kind, q }) : t("noneYet", { kind })}</p>
             {elsewhere.map((x) => (
               <button key={x.k} type="button" onClick={() => switchTab(x.k)} className="text-[14px] font-semibold text-info">
-                {x.n} in {KIND_LABEL[x.k].toLowerCase()} →
+                {t("inKind", { n: String(x.n), kind: x.k })}
               </button>
             ))}
             {allowFree && q.trim() ? (
               <button type="button" className="rounded-[10px] px-3 py-2 text-[14px] hover:bg-surface-2" onClick={() => { onChange(null, q.trim()); setOpen(false); setQ(""); }}>
-                Use “{q.trim()}” (not in the catalog)
+                {t("useFree", { q: q.trim() })}
               </button>
             ) : null}
           </div>

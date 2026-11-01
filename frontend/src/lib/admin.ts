@@ -1,22 +1,34 @@
+import type { Translator } from "./lang";
 import type { Schemas } from "./api/client";
 
 export type Person = Schemas["PersonUsage"];
 export type Level = Person["level"];
 
-export const LEVELS: Record<Level, { label: string; tone: "ok" | "info" | "neutral"; rank: number; hint: string }> = {
-  high: { label: "Very active", tone: "ok", rank: 3, hint: "8 or more days in the last 30" },
-  regular: { label: "Regular", tone: "info", rank: 2, hint: "3 to 7 days in the last 30" },
-  light: { label: "Light", tone: "neutral", rank: 1, hint: "1 or 2 days in the last 30" },
-  inactive: { label: "Inactive", tone: "neutral", rank: 0, hint: "Not seen in the last 30 days" },
+export const LEVELS: Record<Level, { tone: "ok" | "info" | "neutral"; rank: number }> = {
+  high: { tone: "ok", rank: 3 },
+  regular: { tone: "info", rank: 2 },
+  light: { tone: "neutral", rank: 1 },
+  inactive: { tone: "neutral", rank: 0 },
 };
 
-export const AI_FEATURES: Record<string, string> = {
-  "project.chat": "Project assistant",
-  "project.import": "Cut list import",
-  "catalog.import": "Catalog import",
-  "catalog.organize": "Catalog organize",
-  translate: "Translation",
-};
+/** A level's name and what it means, in the page's language. */
+export function levelText(t: Translator<"admin">, level: Level): { label: string; hint: string } {
+  return { label: t(`level.${level}`), hint: t(`levelHint.${level}`) };
+}
+
+const AI_FEATURES = {
+  "project.chat": "projectChat",
+  "project.import": "projectImport",
+  "catalog.import": "catalogImport",
+  "catalog.organize": "catalogOrganize",
+  translate: "translate",
+} as const;
+
+/** An AI feature's name; one this page doesn't know shows as its id. */
+export function aiFeature(t: Translator<"admin">, feature: string): string {
+  const key = AI_FEATURES[feature as keyof typeof AI_FEATURES];
+  return key ? t(`feature.${key}`) : feature;
+}
 
 export type SortKey = "last_seen" | "created_at" | "name" | "projects" | "ai_calls_30d" | "level";
 export type SortDir = "asc" | "desc";
@@ -78,8 +90,9 @@ export function niceMax(n: number): number {
   return [1, 2, 5, 10].map((m) => m * p).find((v) => v >= n) ?? 10 * p;
 }
 
-export function shortDay(day: string): string {
-  return new Date(`${day}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+/** "1 Nov", in `locale` (from dateLocale). */
+export function shortDay(day: string, locale: string): string {
+  return new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, { day: "numeric", month: "short", timeZone: "UTC" });
 }
 
 export function percent(part: number, whole: number): string {
@@ -87,8 +100,8 @@ export function percent(part: number, whole: number): string {
 }
 
 /** "45 min", "3 h 20 min". */
-export function minutes(n: number): string {
-  if (n < 60) return `${n} min`;
+export function minutes(n: number, t: Translator<"admin">): string {
+  if (n < 60) return t("minutes", { n });
   const h = Math.floor(n / 60), m = n % 60;
-  return m ? `${h} h ${m} min` : `${h} h`;
+  return m ? t("hoursMinutes", { h, m }) : t("hours", { h });
 }

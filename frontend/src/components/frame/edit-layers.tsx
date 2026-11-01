@@ -4,12 +4,14 @@ import { Line, PivotControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Matrix4, Raycaster, Vector2, Vector3 } from "three";
+import { useTranslations } from "use-intl";
 import { cn } from "@/lib/cn";
 import { neighbours, nodePositions, type Endpoint } from "@/lib/frame/edit";
 import type { MemberResult, Vec } from "@/lib/frame/kernel";
 import { snapDrag, snapPoint, typedEnd, type Axis, type DragSnap, type DrawPlane, type Projector, type Snap } from "@/lib/frame/snap";
 import type { Frame } from "@/lib/frame/types";
 import { FLAT, flatPlane, useFrameUI, type DrawStart } from "@/lib/frame/ui";
+import type { Translator } from "@/lib/lang";
 import { isTyping } from "@/lib/typing";
 
 /** Frames are Z-up; three.js is Y-up (the scene group is turned -90° about X). */
@@ -254,7 +256,7 @@ export function DrawLayer({ frame, members, onAdd }: {
   );
 }
 
-const DIM_LABELS: Record<string, string> = { W: "Width", D: "Depth", H: "Height" };
+const DIM_LABELS = { W: "width", D: "depth", H: "height" } as const;
 
 
 /** A label on the model: a frame size (W, D, H) or, in flat views, a bar's length. */
@@ -268,7 +270,7 @@ export type DimAnchor = {
 };
 
 /** Where the frame's main sizes are written on the model: beside its bounding box. */
-export function dimensionAnchors(frame: Frame): DimAnchor[] {
+export function dimensionAnchors(frame: Frame, t: Translator<"frame">): DimAnchor[] {
   const pos = [...nodePositions(frame).values()];
   if (!pos.length) return [];
   const min = [0, 1, 2].map((i) => Math.min(...pos.map((p) => p[i])));
@@ -280,14 +282,14 @@ export function dimensionAnchors(frame: Frame): DimAnchor[] {
     H: [min[0] - off, min[1], (min[2] + max[2]) / 2],
   };
   return (frame.params ?? []).filter((p) => p.name in DIM_LABELS)
-    .map((p) => ({ key: `param:${p.name}`, short: p.name, label: p.label || DIM_LABELS[p.name], mm: p.mm, at: at[p.name] }));
+    .map((p) => ({ key: `param:${p.name}`, short: p.name, label: p.label || t(`params.${DIM_LABELS[p.name as keyof typeof DIM_LABELS]}`), mm: p.mm, at: at[p.name] }));
 }
 
 /**
  * In a flat view: every bar that isn't pointing at the viewer gets its length (joint to joint).
  * Bars that line up in this view (a front and a back rail) get one label: the one nearest `depth`.
  */
-export function barAnchors(frame: Frame, normal: number, depth: number): DimAnchor[] {
+export function barAnchors(frame: Frame, normal: number, depth: number, t: Translator<"frame">): DimAnchor[] {
   const pos = nodePositions(frame);
   const out: DimAnchor[] = [];
   const seen = new Set<string>();
@@ -301,7 +303,7 @@ export function barAnchors(frame: Frame, normal: number, depth: number): DimAnch
     const flat = [a, b].map((p) => [0, 1, 2].filter((k) => k !== normal).map((k) => Math.round(p[k])).join(",")).sort().join("|");
     if (seen.has(flat)) return;
     seen.add(flat);
-    out.push({ key: `bar:${m.id}`, short: "", label: `${m.name || `Bar ${i + 1}`} length`, mm: Math.round(len * 10) / 10,
+    out.push({ key: `bar:${m.id}`, short: "", label: t("dims.barLength", { bar: m.name || t("barN", { n: String(i + 1) }) }), mm: Math.round(len * 10) / 10,
       at: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2], span: [a, b] });
   });
   return out;
@@ -347,6 +349,7 @@ export function DimensionLabels({ anchors, labels, onCommit }: {
 }
 
 function DimLabel({ a, onCommit }: { a: DimAnchor; onCommit: (mm: number) => void }) {
+  const t = useTranslations("frame");
   const [editing, setEditing] = useState(false);
   if (editing) {
     return (
@@ -361,7 +364,7 @@ function DimLabel({ a, onCommit }: { a: DimAnchor; onCommit: (mm: number) => voi
     );
   }
   return (
-    <button type="button" onClick={() => setEditing(true)} aria-label={`${a.label} ${a.mm} mm, click to change`}
+    <button type="button" onClick={() => setEditing(true)} aria-label={t("dims.aria", { label: a.label, mm: String(a.mm) })}
       className={cn("tnum whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold text-ink backdrop-blur hover:bg-accent-soft",
         a.short ? "bg-surface/90 shadow-[var(--shadow-card)]" : "bg-surface/75 px-2 py-0.5 text-[11px] text-ink-2 shadow-[0_0_0_1px_var(--line)]")}>
       {a.short ? <span className="text-ink-3">{a.short} </span> : null}{a.mm}

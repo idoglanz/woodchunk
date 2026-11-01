@@ -4,6 +4,7 @@
  */
 
 import type { Assembly, CatalogItem, Part } from "@/lib/api/client";
+import type { Translator } from "@/lib/lang";
 import { Profile, solve, stableId, type FrameResult } from "./kernel";
 import type { Frame, ProfileSpec } from "./types";
 
@@ -24,11 +25,15 @@ export function profilesFor(items: Iterable<CatalogItem>): Record<string, Profil
   return out;
 }
 
-export function solveFrame(frame: Frame, byId: Map<string, CatalogItem>): FrameResult {
-  return solve(frame, profilesFor(byId.values()));
+/** `t`: the language of the warnings (English by default). */
+export function solveFrame(frame: Frame, byId: Map<string, CatalogItem>, t?: Translator<"frame">): FrameResult {
+  return solve(frame, profilesFor(byId.values()), t);
 }
 
-/** Replace a drawn assembly's parts with its frame's cut list (mutates, for use inside an editor edit). */
+/**
+ * Replace a drawn assembly's parts with its frame's cut list (mutates, for use inside an editor edit).
+ * Stored warnings and fallback names stay English, as the server writes them on save.
+ */
 export function deriveParts(a: Assembly, byId: Map<string, CatalogItem>): FrameResult | null {
   if (!a.frame) return null;
   const res = solveFrame(a.frame as Frame, byId);

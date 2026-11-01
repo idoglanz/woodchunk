@@ -4,6 +4,7 @@
  * the group's own relations and dimensions), and pin each one to the boundary when there is one.
  */
 
+import type { Translator } from "@/lib/lang";
 import { addConstraint, lineOf, pointAt, pointsOf, shapeById } from "./model";
 import { solve, type V2 } from "./solve";
 import { baseOf, isMid, midOf, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "./types";
@@ -76,19 +77,19 @@ export type RepeatPlan = {
 export type RepeatResult = { ok: true; gap: number; end: number } | { ok: false; reason: string };
 
 /** The spacing a plan comes to, without changing anything. */
-export function planSpacing(sk: Sketch, ids: string[], plan: RepeatPlan): RepeatResult {
+export function planSpacing(sk: Sketch, ids: string[], plan: RepeatPlan, t: Translator<"sketch">): RepeatResult {
   const ext = extent(sk, ids, plan.axis);
-  if (!ext) return { ok: false, reason: "Select the shapes to repeat." };
+  if (!ext) return { ok: false, reason: t("repeat.selectShapes") };
   const width = ext.max - ext.min;
-  if ("gap" in plan.span) return plan.span.gap < 0 ? { ok: false, reason: "The gap can't be negative." } : { ok: true, gap: plan.span.gap, end: 0 };
+  if ("gap" in plan.span) return plan.span.gap < 0 ? { ok: false, reason: t("repeat.negativeGap") } : { ok: true, gap: plan.span.gap, end: 0 };
   let span: number;
   if ("between" in plan.span) {
     const [a, b] = plan.span.between.map((l) => boundaryAt(sk, l, plan.axis));
-    if (a === null || b === null) return { ok: false, reason: `Pick two ${plan.axis === "x" ? "upright" : "level"} lines to fit between.` };
+    if (a === null || b === null) return { ok: false, reason: t("repeat.pickLines", { axis: plan.axis }) };
     span = Math.abs(b - a);
   } else span = plan.span.length;
   const s = spacing(plan.count, width, span, plan.ends);
-  return s ? { ok: true, ...s } : { ok: false, reason: `${plan.count} of them don't fit: they need ${Math.round(plan.count * width)} mm.` };
+  return s ? { ok: true, ...s } : { ok: false, reason: t("repeat.dontFit", { count: plan.count, mm: Math.round(plan.count * width) }) };
 }
 
 /**
@@ -96,15 +97,15 @@ export function planSpacing(sk: Sketch, ids: string[], plan: RepeatPlan): Repeat
  * two lines, each one's start is dimensioned from the first line, so they stay put. Refused (and
  * nothing changed) when it doesn't fit or the result doesn't solve.
  */
-export function repeat(sk: Sketch, ids: string[], plan: RepeatPlan, newId: () => string): RepeatResult {
-  const res = planSpacing(sk, ids, plan);
+export function repeat(sk: Sketch, ids: string[], plan: RepeatPlan, newId: () => string, t: Translator<"sketch">): RepeatResult {
+  const res = planSpacing(sk, ids, plan, t);
   if (!res.ok) return res;
   const { shapes, points } = groupOf(sk, ids);
-  if (points.includes(ORIGIN)) return { ok: false, reason: "That's attached to the origin: repeat a copy of it instead." };
+  if (points.includes(ORIGIN)) return { ok: false, reason: t("repeat.onOrigin") };
   // What a sketch can hold (the server's limits).
   const more = plan.count - 1;
   if (sk.points.length + points.length * more > 2000 || sk.shapes.length + shapes.length * more > 2000 || sk.constraints.length + 3 * shapes.length * more > 4000) {
-    return { ok: false, reason: "That's more than one sketch holds: repeat fewer, or a smaller group." };
+    return { ok: false, reason: t("repeat.tooMany") };
   }
   const ext = extent(sk, ids, plan.axis)!;
   const width = ext.max - ext.min;
@@ -179,8 +180,8 @@ export function repeat(sk: Sketch, ids: string[], plan: RepeatPlan, newId: () =>
   if (!landed) {
     // Usually: the original is tied in place (to an axis, the origin or other lines) and can't move to the first spot.
     return { ok: false, reason: start !== ext.min
-      ? `It's held in place along ${plan.axis.toUpperCase()} by a dimension or relation: use "Set gap" to repeat from where it is, or remove that first.`
-      : "That doesn't fit with the rest of the sketch." };
+      ? t("repeat.held", { axis: plan.axis.toUpperCase() })
+      : t("repeat.noFit") };
   }
   Object.assign(sk, trial, { points: solved.sketch.points, shapes: solved.sketch.shapes });
   return res;

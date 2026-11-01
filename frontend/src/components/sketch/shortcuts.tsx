@@ -1,6 +1,7 @@
 "use client";
 
 import { Keyboard } from "lucide-react";
+import { useTranslations, type Messages } from "use-intl";
 import { IconButton } from "@/components/ui/button";
 import { Pop } from "@/components/ui/overlay";
 import type { ConstraintKind } from "@/lib/sketch/types";
@@ -14,42 +15,46 @@ export const RELATION_KEYS: Partial<Record<ConstraintKind, string>> = {
 const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 const MOD = IS_MAC ? "⌘" : "Ctrl";
 
-const GROUPS: { title: string; rows: [string[], string][] }[] = [
+// Keys keep their Latin letters (a Hebrew keyboard maps to them); words in them ("click") are translated.
+type Key = string | { word: "doubleClick" | "click" | "drag" };
+type Row = [Key[], keyof Messages["sketch"]["shortcuts"]["rows"]];
+
+const GROUPS: { title: keyof Messages["sketch"]["shortcuts"]["groups"]; rows: Row[] }[] = [
   {
-    title: "Tools",
+    title: "tools",
     rows: [
-      [["V"], "Select"], [["L"], "Line"], [["R"], "Rectangle"], [["C"], "Circle"], [["A"], "Arc"],
-      [["D"], "Dimension (with something selected: dimension it)"], [["Q"], "Measure (adds nothing)"],
+      [["V"], "select"], [["L"], "line"], [["R"], "rect"], [["C"], "circle"], [["A"], "arc"],
+      [["D"], "dimension"], [["Q"], "measure"],
     ],
   },
   {
-    title: "Drawing",
+    title: "drawing",
     rows: [
-      [["600", "Enter"], "Line length, or a circle's diameter"],
-      [["1200x600", "Enter"], "Rectangle size"],
-      [["Esc"], "Stop drawing, clear the selection, then back to Select"],
-      [["G"], "Snap to grid on or off"], [["Alt", "click"], "Place without snapping"],
-      [["X"], "Selected shapes to helpers (construction) and back"],
+      [["600", "Enter"], "lineLength"],
+      [["1200x600", "Enter"], "rectSize"],
+      [["Esc"], "esc"],
+      [["G"], "snap"], [["Alt", { word: "click" }], "noSnap"],
+      [["X"], "helpers"],
     ],
   },
   {
-    title: "Selection",
+    title: "selection",
     rows: [
-      [["Double-click"], "Select a whole shape"],
-      [[`${MOD} A`], "Select everything"],
-      [["Del"], "Delete"],
-      [["←↑↓→"], "Nudge 1 mm (Shift: 10 mm)"],
-      [["Shift H"], "Horizontal"], [["Shift V"], "Vertical"], [["Shift P"], "Parallel"], [["Shift R"], "Perpendicular (right angle)"],
-      [["Shift E"], "Equal"], [["Shift T"], "Tangent"], [["Shift J"], "Join points (circles: concentric)"], [["Shift O"], "On a line, circle or axis"],
-      [["Shift M"], "Midpoint"], [["Shift L"], "Collinear"], [["Shift S"], "Symmetric (two points or lines, and the line between)"], [["Shift F"], "Fix in place"],
-      [["Shift H"], "Two or more points: line them up level (V: one above the other)"],
+      [[{ word: "doubleClick" }], "wholeShape"],
+      [[`${MOD} A`], "all"],
+      [["Del"], "delete"],
+      [["←↑↓→"], "nudge"],
+      [["Shift H"], "horizontal"], [["Shift V"], "vertical"], [["Shift P"], "parallel"], [["Shift R"], "perpendicular"],
+      [["Shift E"], "equal"], [["Shift T"], "tangent"], [["Shift J"], "join"], [["Shift O"], "on"],
+      [["Shift M"], "midpoint"], [["Shift L"], "collinear"], [["Shift S"], "symmetric"], [["Shift F"], "fix"],
+      [["Shift H"], "align"],
     ],
   },
   {
-    title: "View",
+    title: "view",
     rows: [
-      [["F"], "Fit the sketch"], [["+", "−"], "Zoom in, out"], [["Space", "drag"], "Pan"], [["M"], "Show all measurements (and the angles where lines meet)"],
-      [[`${MOD} Z`], "Undo"], [[`${MOD} Shift Z`], "Redo"], [["?"], "This list"],
+      [["F"], "fit"], [["+", "−"], "zoom"], [["Space", { word: "drag" }], "pan"], [["M"], "showAll"],
+      [[`${MOD} Z`], "undo"], [[`${MOD} Shift Z`], "redo"], [["?"], "list"],
     ],
   },
 ];
@@ -60,18 +65,19 @@ export function Kbd({ children }: { children: string }) {
 
 /** The keyboard shortcuts, from a button in the toolbar (or ?). */
 export function ShortcutsHelp({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const t = useTranslations("sketch.shortcuts");
   return (
     <Pop open={open} onOpenChange={onOpenChange} align="end" className="max-h-[70dvh] w-[340px] overflow-y-auto p-4"
-      trigger={<IconButton label="Keyboard shortcuts (?)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]"><Keyboard size={16} /></IconButton>}>
+      trigger={<IconButton label={t("button")} size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]"><Keyboard size={16} /></IconButton>}>
       <div className="flex flex-col gap-4">
         {GROUPS.map((g) => (
           <section key={g.title}>
-            <h3 className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.04em] text-ink-3">{g.title}</h3>
+            <h3 className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.04em] text-ink-3">{t(`groups.${g.title}`)}</h3>
             <ul className="flex flex-col gap-1.5">
               {g.rows.map(([keys, what]) => (
                 <li key={what} className="flex items-center justify-between gap-3 text-[13px]">
-                  <span className="text-ink-2">{what}</span>
-                  <span className="flex shrink-0 items-center gap-1">{keys.map((k) => <Kbd key={k}>{k}</Kbd>)}</span>
+                  <span className="text-ink-2">{t(`rows.${what}`)}</span>
+                  <span className="flex shrink-0 items-center gap-1">{keys.map((k) => { const label = typeof k === "string" ? k : t(`keys.${k.word}`); return <Kbd key={label}>{label}</Kbd>; })}</span>
                 </li>
               ))}
             </ul>

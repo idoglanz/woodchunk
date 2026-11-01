@@ -3,6 +3,7 @@
 import { Descope } from "@descope/nextjs-sdk";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from "use-intl";
 import { Credit } from "@/components/shell/credit";
 import { Logo } from "@/components/shell/logo";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ export function SignIn() {
   const params = useSearchParams();
   const next = params.get("next") || "/";
   const [email, setEmail] = useState("");
+  const t = useTranslations("signIn");
 
   useEffect(() => {
     if (ready && signedIn) router.replace(next.startsWith("/") ? next : "/");
@@ -28,7 +30,7 @@ export function SignIn() {
             <Logo size={56} />
             <div className="flex flex-col gap-1.5">
               <h1 className="text-[28px] font-bold tracking-[-0.02em]">Woodchunk</h1>
-              <p className="text-[15px] text-ink-2">Know exactly what to buy and how to cut it.</p>
+              <p className="text-[15px] text-ink-2">{t("tagline")}</p>
             </div>
           </div>
           <div className="w-full rounded-[20px] bg-surface p-6 shadow-[var(--shadow-card)] dark:border dark:border-line">
@@ -36,10 +38,10 @@ export function SignIn() {
               <Descope flowId={DESCOPE_FLOW_ID} theme="light" />
             ) : (
               <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); if (email.includes("@")) devSignIn(email); }}>
-                <Field label="Email" htmlFor="email" hint="Local development: any email signs you in.">
+                <Field label={t("email")} htmlFor="email" hint={t("devHint")}>
                   <TextInput id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
                 </Field>
-                <Button type="submit" variant="primary">Continue</Button>
+                <Button type="submit" variant="primary">{t("continue")}</Button>
               </form>
             )}
           </div>

@@ -4,5 +4,24 @@
     "minutesAgo": "{n} min ago",
     "hoursAgo": "{n} h ago",
     "daysAgo": "{n} d ago"
+  },
+  "cancel": "Cancel",
+  "save": "Save",
+  "saved": "Saved",
+  "close": "Close",
+  "add": "Add",
+  "edit": "Edit",
+  "remove": "Remove",
+  "restore": "Restore",
+  "undo": "Undo",
+  "create": "Create",
+  "tryAgain": "Try again",
+  "untitledProject": "Untitled project",
+  "errors": {
+    "generic": "Something went wrong.",
+    "badInput": "Check the values you entered: {msg}",
+    "aiBusy": "The AI assistant is busy right now. Try again in a minute.",
+    "server": "Something went wrong on the server. Try again.",
+    "offline": "Couldn't reach Woodchunk. Check your connection."
   }
 }

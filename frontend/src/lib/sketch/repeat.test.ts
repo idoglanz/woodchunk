@@ -1,14 +1,18 @@
+import { createTranslator } from "use-intl";
 import { describe, expect, it } from "vitest";
+import { en } from "@/messages";
 import { addCircle, addConstraint, addLine, addPoint, addRectangle, newSketch, pointAt } from "./model";
 import { extent, planSpacing, repeat, spacing } from "./repeat";
 import { solve } from "./solve";
+
+const t = createTranslator({ locale: "en", messages: en, namespace: "sketch" });
 
 let n = 0;
 const newId = () => `r${++n}`;
 
 /** Two fixed upright sides 1200 apart, and one 50 × 500 slat between them, drawn roughly. */
 function frame() {
-  const sk = newSketch([]);
+  const sk = newSketch([], t);
   const [a, b, c, d] = [addPoint(sk, [0, 0]), addPoint(sk, [0, 600]), addPoint(sk, [1200, 0]), addPoint(sk, [1200, 600])];
   for (const p of [a, b, c, d]) addConstraint(sk, "fix", [p]);
   const left = addLine(sk, a, b), right = addLine(sk, c, d);
@@ -31,7 +35,7 @@ describe("repeat with even gaps", () => {
   it("fills between two lines, each slat pinned in its place", () => {
     const { sk, left, right, slat } = frame();
     const before = sk.shapes.length;
-    const r = repeat(sk, slat, { axis: "x", count: 7, span: { between: [left, right] }, ends: "equal" }, newId);
+    const r = repeat(sk, slat, { axis: "x", count: 7, span: { between: [left, right] }, ends: "equal" }, newId, t);
     expect(r).toEqual({ ok: true, gap: 106.25, end: 106.25 });
     expect(sk.shapes.length).toBe(before + 6 * 4);
     // Every slat's left edge where it belongs (and its right edge 50 further).
@@ -47,17 +51,17 @@ describe("repeat with even gaps", () => {
   it("refuses what doesn't fit, changing nothing", () => {
     const { sk, left, right, slat } = frame();
     const before = structuredClone(sk);
-    const r = repeat(sk, slat, { axis: "x", count: 30, span: { between: [left, right] }, ends: "equal" }, newId);
+    const r = repeat(sk, slat, { axis: "x", count: 30, span: { between: [left, right] }, ends: "equal" }, newId, t);
     expect(r.ok).toBe(false);
     expect(sk).toEqual(before);
     // Level lines aren't a boundary for a repeat across X.
-    expect(planSpacing(sk, slat, { axis: "x", count: 3, span: { between: [slat[0], slat[2]] }, ends: "equal" }).ok).toBe(false);
+    expect(planSpacing(sk, slat, { axis: "x", count: 3, span: { between: [slat[0], slat[2]] }, ends: "equal" }, t).ok).toBe(false);
   });
 
   it("steps by a set gap from where the group is", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const lines = addRectangle(sk, addPoint(sk, [0, 0]), [100, 20]);
-    const r = repeat(sk, lines, { axis: "y", count: 4, span: { gap: 30 }, ends: "flush" }, newId);
+    const r = repeat(sk, lines, { axis: "y", count: 4, span: { gap: 30 }, ends: "flush" }, newId, t);
     expect(r.ok).toBe(true);
     const e = extent(sk, sk.shapes.map((s) => s.id), "y")!;
     expect(e.max - e.min).toBeCloseTo(4 * 20 + 3 * 30, 6);
@@ -68,7 +72,7 @@ describe("repeat with even gaps", () => {
     const { sk, left, right } = frame();
     const dowel = addCircle(sk, addPoint(sk, [100, 300]), 25);
     addConstraint(sk, "diameter", [dowel], 50);
-    const r = repeat(sk, [dowel], { axis: "x", count: 3, span: { between: [left, right] }, ends: "equal" }, newId);
+    const r = repeat(sk, [dowel], { axis: "x", count: 3, span: { between: [left, right] }, ends: "equal" }, newId, t);
     expect(r.ok).toBe(true);
     const s = solve(sk);
     expect(s.ok).toBe(true);
@@ -77,13 +81,13 @@ describe("repeat with even gaps", () => {
   });
 
   it("doesn't pin copies to where the original is held across the repeat", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const lines = addRectangle(sk, addPoint(sk, [310, 0]), [360, 500]);
     const corner = sk.points[0].id;
     addConstraint(sk, "point_line_distance", [corner, "y_axis"], 310);
     addConstraint(sk, "on_line", [corner, "x_axis"]);
     // A set gap leaves the original where it is: copies keep standing on the X axis, and nothing else.
-    const r = repeat(sk, lines, { axis: "x", count: 3, span: { gap: 30 }, ends: "flush" }, newId);
+    const r = repeat(sk, lines, { axis: "x", count: 3, span: { gap: 30 }, ends: "flush" }, newId, t);
     expect(r.ok).toBe(true);
     const s = solve(sk);
     expect(s.ok).toBe(true);
@@ -93,10 +97,10 @@ describe("repeat with even gaps", () => {
   });
 
   it("explains when the original is held where it can't move to fill a span", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const lines = addRectangle(sk, addPoint(sk, [310, 0]), [360, 500]);
     addConstraint(sk, "point_line_distance", [sk.points[0].id, "y_axis"], 310);
-    const r = repeat(sk, lines, { axis: "x", count: 3, span: { length: 1000 }, ends: "equal" }, newId);
+    const r = repeat(sk, lines, { axis: "x", count: 3, span: { length: 1000 }, ends: "equal" }, newId, t);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toMatch(/held in place/);
   });

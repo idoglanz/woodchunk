@@ -2,9 +2,11 @@
 
 import { Pin, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useTranslations, type Messages } from "use-intl";
 import { AsmChip } from "@/components/ui/misc";
 import { cn } from "@/lib/cn";
 import { useEditor } from "@/lib/editor";
+import type { Translator } from "@/lib/lang";
 import { acting, addArc, addCircle, addConstraint, addLine, addPoint, addRectangle, connected, cornerSide, deleteItems, dimensionFor, isDimension, mergePoints, movable, pointAt, round, take } from "@/lib/sketch/model";
 import { LIMIT, solve, type SolveResult, type V2 } from "@/lib/sketch/solve";
 import { AXES, baseOf, isMid, midOf, ORIGIN, X_AXIS, Y_AXIS, type Constraint, type Sketch } from "@/lib/sketch/types";
@@ -54,6 +56,7 @@ export function SketchCanvas(props: CanvasProps) {
   const gesture = useRef<Gesture | null>(null);
   const [hover, setHover] = useState<{ at: V2; item: string | null; snap: string | null } | null>(null);
   const hoverAt = useRef<V2 | null>(null);
+  const t = useTranslations("sketch");
 
   const px = 1 / view.scale; // mm per screen pixel
   const toScreen = (p: V2): V2 => [(p[0] - view.cx) * view.scale + size.w / 2, size.h / 2 - (p[1] - view.cy) * view.scale];
@@ -212,7 +215,7 @@ export function SketchCanvas(props: CanvasProps) {
         const attached = join.point && isMid(join.point) ? (addConstraint(trial, "midpoint", [point, baseOf(join.point)]), true)
           : join.point ? mergePoints(trial, point, join.point) : (addConstraint(trial, "on_line", [point, join.axis!]), true);
         if (attached && solve(trial, { quick: true }).ok) joined = trial;
-        else toast.error(join.point ? "Those two points can't be joined: it doesn't fit with the rest." : "That point can't go on the axis: it doesn't fit with the rest.");
+        else toast.error(join.point ? t("canvas.joinFail") : t("canvas.axisFail"));
       }
       props.onEdit((d) => {
         if (joined) Object.assign(d, joined);
@@ -307,8 +310,8 @@ export function SketchCanvas(props: CanvasProps) {
     const { tool, anchors } = useSketchUI.getState();
     const first = anchors[0];
     if (!first) return;
-    const sizes = text.split(/\s*[x*×]\s*|\s+/).filter(Boolean).map((t) => parseLength(t, props.units));
-    if (!sizes.length || sizes.some((v) => v === null || v <= 0 || v > LIMIT)) { toast.error(`"${text}" isn't a size`); return; }
+    const sizes = text.split(/\s*[x*×]\s*|\s+/).filter(Boolean).map((v) => parseLength(v, props.units));
+    if (!sizes.length || sizes.some((v) => v === null || v <= 0 || v > LIMIT)) { toast.error(t("canvas.notASize", { text })); return; }
     const toward = hoverAt.current ?? [first.at[0] + 1, first.at[1]];
     if (tool === "line") {
       const length = sizes[0]!;
@@ -392,7 +395,7 @@ export function SketchCanvas(props: CanvasProps) {
   const shownMeasures: Measure[] = measurementsFor(sk, measureAll ? sk.shapes.map((s) => s.id) : ui.selected).filter((m) => !dimensioned.has(m.refs[0]));
   // Angles where lines meet (all of them), or between the two lines selected.
   const twoLines = ui.selected.length === 2 && ui.selected.every((x) => sk.shapes.find((s) => s.id === x)?.kind === "line");
-  const between = twoLines ? readings(sk, ui.selected)?.mark : null;
+  const between = twoLines ? readings(sk, ui.selected, t)?.mark : null;
   // (Worked out once per sketch, not on every pointer move.)
   const joints = useMemo(() => (measureAll ? jointAngles(sk) : []), [sk, measureAll]);
   const angles = [...joints, ...(between?.kind === "angle" && !measureAll ? [between] : [])];
@@ -400,7 +403,7 @@ export function SketchCanvas(props: CanvasProps) {
   const reading = (() => {
     if (ui.tool !== "measure") return null;
     const ids = ui.picks.length === 1 && hover?.item && !ui.picks.includes(hover.item) ? [...ui.picks, hover.item] : ui.picks;
-    const r = ids.length ? readings(sk, acting(ids)) : null;
+    const r = ids.length ? readings(sk, acting(ids), t) : null;
     const marks = r?.mark ? dimensionMarks(sk, r.mark, px, middle) : null;
     return r && marks ? { marks, value: r.values[0] } : null;
   })();
@@ -444,7 +447,7 @@ export function SketchCanvas(props: CanvasProps) {
   // Left to right in Hebrew too: a drawing is never mirrored, and its labels sit at screen x.
   return (
     <div dir="ltr" className="absolute inset-0">
-      <svg ref={svg} width={size.w} height={size.h} role="img" aria-label="Sketch"
+      <svg ref={svg} width={size.w} height={size.h} role="img" aria-label={t("canvas.aria")}
         className={cn("block touch-none select-none", panning ? "cursor-grab active:cursor-grabbing" : ui.tool !== "select" && canDraw ? "cursor-crosshair" : hover?.item ? "cursor-pointer" : "cursor-grab")}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
         onPointerLeave={() => setHover(null)}
@@ -524,7 +527,7 @@ export function SketchCanvas(props: CanvasProps) {
         {preview ? <DimensionLines marks={preview.marks} toScreen={toScreen} scale={view.scale} color="var(--info)" dashed /> : null}
         {reading ? <DimensionLines marks={reading.marks} toScreen={toScreen} scale={view.scale} color="var(--info)" /> : null}
         {angles.map((m) => <DimensionLines key={`a-${m.refs.join()}`} marks={marksOf(m)} toScreen={toScreen} scale={view.scale} color="var(--ink-3)" dashed />)}
-        <Preview hover={hover} toScreen={toScreen} scale={view.scale} />
+        <Preview hover={hover} toScreen={toScreen} scale={view.scale} t={t} />
         {hover && !hover.snap && canDraw && ["line", "rect", "circle", "arc"].includes(ui.tool) ? (() => {
           // Where the next click lands (on the grid when snapping).
           const [x, y] = toScreen(hover.at);
@@ -539,7 +542,7 @@ export function SketchCanvas(props: CanvasProps) {
           if (s?.kind !== "line") return null;
           const [a, b] = [toScreen(pointAt(sk, s.a)), toScreen(pointAt(sk, s.b))];
           return (
-            <span key={line} title={`Cut as ${part.label}${part.name ? ` · ${part.name}` : ""}`}
+            <span key={line} title={`${t("canvas.cutAs", { label: part.label })}${part.name ? ` · ${part.name}` : ""}`}
               className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: a[0] + (b[0] - a[0]) / 3, top: a[1] + (b[1] - a[1]) / 3 }}>
               <AsmChip letter={part.letter} className="h-5 min-w-5 px-1 text-[11px]">{part.label}</AsmChip>
             </span>
@@ -560,7 +563,7 @@ export function SketchCanvas(props: CanvasProps) {
           if (!marks) return null;
           const at = toScreen(marks.label);
           return (
-            <span key={`d-${m.refs[0]}`} title="Worked out from the rest" data-driven={m.refs[0]}
+            <span key={`d-${m.refs[0]}`} title={t("canvas.workedOut")} data-driven={m.refs[0]}
               className="tnum absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-surface/80 px-1.5 py-0.5 text-[12px] font-medium text-ink-3"
               style={{ left: at[0], top: at[1] }}>
               ({fmt(m.kind, measured(sk, m), props.units)})
@@ -577,7 +580,7 @@ export function SketchCanvas(props: CanvasProps) {
           const at = toScreen(marks.label);
           return (
             <button key={`m-${m.refs.join()}`} type="button" disabled={!props.canType}
-              onClick={() => props.onDimension(m.kind, m.refs)} title={props.canType ? "Pin this value" : undefined}
+              onClick={() => props.onDimension(m.kind, m.refs)} title={props.canType ? t("canvas.pin") : undefined}
               className="tnum pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-surface/85 px-1.5 py-0.5 text-[12px] italic text-ink-3 backdrop-blur hover:text-ink disabled:pointer-events-none"
               style={{ left: at[0], top: at[1] }}>
               {fmt(m.kind, measured(sk, m), props.units)}
@@ -664,8 +667,8 @@ function DimensionLines({ marks, toScreen, scale, color, dashed }: {
 }
 
 /** What the next click would make: a line, rectangle, circle or arc from the clicks so far. */
-function Preview({ hover, toScreen, scale }: {
-  hover: { at: V2; snap: string | null } | null; toScreen: (p: V2) => V2; scale: number;
+function Preview({ hover, toScreen, scale, t }: {
+  hover: { at: V2; snap: string | null } | null; toScreen: (p: V2) => V2; scale: number; t: Translator<"sketch">;
 }) {
   const tool = useSketchUI((s) => s.tool);
   const anchors = useSketchUI((s) => s.anchors);
@@ -679,7 +682,7 @@ function Preview({ hover, toScreen, scale }: {
   let label = "";
   if (tool === "line") {
     const angle = Math.abs(Math.atan2(to[1] - anchors[0].at[1], to[0] - anchors[0].at[0]) * 180 / Math.PI);
-    const level = Math.min(angle, 180 - angle) < 2 ? " · level" : Math.abs(angle - 90) < 2 ? " · plumb" : "";
+    const level = Math.min(angle, 180 - angle) < 2 ? ` · ${t("canvas.level")}` : Math.abs(angle - 90) < 2 ? ` · ${t("canvas.plumb")}` : "";
     shape = <path d={`M${a[0]},${a[1]}L${b[0]},${b[1]}`} {...style} />;
     label = `${round(length)} mm${level}`;
   } else if (tool === "rect") {
@@ -712,6 +715,10 @@ function Preview({ hover, toScreen, scale }: {
   );
 }
 
+type GlyphKind = keyof Messages["sketch"]["kinds"];
+/** The relations a badge can stand for, named for its label. */
+const KIND_NAMES = new Set<string>(["coincident", "horizontal", "vertical", "parallel", "perpendicular", "equal", "tangent", "on_line", "on_circle", "midpoint", "fix", "collinear", "symmetric"] satisfies GlyphKind[]);
+
 const GLYPHS: Partial<Record<Constraint["kind"], string>> = {
   horizontal: "H", vertical: "V", parallel: "∥", perpendicular: "⟂", equal: "=", tangent: "T",
   on_line: "⊂", on_circle: "○", midpoint: "M", coincident: "●", collinear: "≡", symmetric: "S",
@@ -719,6 +726,7 @@ const GLYPHS: Partial<Record<Constraint["kind"], string>> = {
 
 /** Small badges for the relations, beside the shapes they hold; click one to select it. */
 function Glyphs({ sketch: sk, toScreen, conflicts, middle }: { sketch: Sketch; toScreen: (p: V2) => V2; conflicts: string[]; middle: V2 }) {
+  const t = useTranslations("sketch.kinds");
   const selected = useSketchUI((s) => s.selected);
   const tool = useSketchUI((s) => s.tool);
   const stack = new Map<string, number>();
@@ -750,8 +758,9 @@ function Glyphs({ sketch: sk, toScreen, conflicts, middle }: { sketch: Sketch; t
     <>
       {out.map(({ key, c, at }) => {
         const on = selected.includes(c.id);
+        const name = KIND_NAMES.has(c.kind) ? t(c.kind as GlyphKind) : c.kind.replace("_", " ");
         return (
-          <button key={key} type="button" aria-label={c.kind.replace("_", " ")} title={c.kind.replace("_", " ")}
+          <button key={key} type="button" aria-label={name} title={name}
             onClick={() => { if (tool === "select") useSketchUI.getState().select([c.id]); }}
             onPointerEnter={() => useSketchUI.getState().set({ hovered: [c.id] })} onPointerLeave={() => useSketchUI.getState().set({ hovered: [] })}
             className={cn("pointer-events-auto absolute flex h-[18px] min-w-[18px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[5px] px-1 text-[11px] font-semibold leading-none shadow-[var(--shadow-card)]",
@@ -773,6 +782,7 @@ function DimensionLabel({ c, sketch, at, units, canType, conflict, onSet, onDele
 }) {
   const editing = useSketchUI((s) => s.editing === c.id);
   const selected = useSketchUI((s) => s.selected.includes(c.id));
+  const t = useTranslations("sketch.canvas");
   const value = c.driving && c.value !== null ? c.value : measured(sketch, c);
   const text = fmt(c.kind, value, units);
   if (editing) {
@@ -789,7 +799,7 @@ function DimensionLabel({ c, sketch, at, units, canType, conflict, onSet, onDele
       onContextMenu={(e) => { e.preventDefault(); useSketchUI.getState().select([c.id]); }}
       className={cn("tnum pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[13px] font-semibold shadow-[var(--shadow-card)] disabled:pointer-events-none",
         selected ? "bg-accent text-accent-ink" : conflict ? "bg-kerf-soft text-kerf" : c.driving ? "bg-surface text-ink hover:bg-surface-2" : "bg-surface/90 font-medium text-ink-3")}
-      style={{ left: at[0], top: at[1] }} title={c.driving ? "Click to change" : "Worked out from the rest"}>
+      style={{ left: at[0], top: at[1] }} title={c.driving ? t("clickToChange") : t("workedOut")}>
       {c.driving ? text : `(${text})`}
     </button>
   );
@@ -799,6 +809,7 @@ function DimensionLabel({ c, sketch, at, units, canType, conflict, onSet, onDele
 export function DimensionInput({ kind, value, units, at, onDone, onDelete }: {
   kind: Constraint["kind"]; value: number; units: Units; at?: V2; onDone: (v: number | null) => void; onDelete?: () => void;
 }) {
+  const t = useTranslations("sketch.canvas");
   const angle = kind === "angle";
   const initial = angle ? String(round(value)) : lengthInput(Math.abs(value), units);
   const [text, setText] = useState(initial);
@@ -813,7 +824,7 @@ export function DimensionInput({ kind, value, units, at, onDone, onDelete }: {
     onDone(angle ? Math.min(180, Math.abs(v)) : Math.max(0.1, Math.min(LIMIT, v)));
   };
   const input = (
-    <input autoFocus inputMode="decimal" aria-label="Value" value={text} onChange={(e) => setText(e.target.value)}
+    <input autoFocus inputMode="decimal" aria-label={t("value")} value={text} onChange={(e) => setText(e.target.value)}
       onFocus={(e) => e.target.select()}
       onBlur={() => finish(true)}
       onKeyDown={(e) => { if (e.key === "Enter") finish(true); if (e.key === "Escape") finish(false); e.stopPropagation(); }}
@@ -826,7 +837,7 @@ export function DimensionInput({ kind, value, units, at, onDone, onDelete }: {
     <span className={cn("flex items-center gap-1", at && "pointer-events-auto absolute -translate-y-1/2")} style={at ? { left: at[0] - 48, top: at[1] } : undefined}>
       {input}
       {/* (Pressed before the input loses focus, so the value isn't saved first.) */}
-      <button type="button" aria-label="Delete dimension" title="Delete dimension"
+      <button type="button" aria-label={t("deleteDimension")} title={t("deleteDimension")}
         onPointerDown={(e) => { e.preventDefault(); done.current = true; onDelete(); }}
         className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-kerf shadow-[var(--shadow-pop)] hover:bg-kerf-soft"><Trash2 size={15} /></button>
     </span>

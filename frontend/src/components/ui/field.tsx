@@ -2,6 +2,7 @@
 
 import { Minus, Plus } from "lucide-react";
 import { forwardRef, useId, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { useTranslations } from "use-intl";
 import { cn } from "@/lib/cn";
 import { lengthInput, parseLength, type Units } from "@/lib/units";
 
@@ -32,7 +33,7 @@ export function TextArea({ className, ...rest }: TextareaHTMLAttributes<HTMLText
 
 export function Select({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={cn(inputBase, "h-10 appearance-none bg-[length:12px] bg-[right_12px_center] bg-no-repeat pe-8 ps-3 text-[15px]", className)}
+    <select className={cn(inputBase, "h-10 appearance-none bg-[length:12px] bg-[right_12px_center] bg-no-repeat rtl:bg-[left_12px_center] pe-8 ps-3 text-[15px]", className)}
       style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E\")" }}
       {...rest}>
       {children}
@@ -114,6 +115,7 @@ export function NumberInput({ value, onChange, min = 0, step, className, ariaLab
 export function QtyInput({ value, onChange, min = 1, max = 9999, decimals = 0, ariaLabel, className, disabled }: {
   value: number; onChange: (n: number) => void; min?: number; max?: number; decimals?: number; ariaLabel: string; className?: string; disabled?: boolean;
 }) {
+  const t = useTranslations("ui");
   const clamp = (n: number) => Math.min(max, Math.max(min, Math.round(n * 10 ** decimals) / 10 ** decimals));
   const shown = String(Math.round(value * 10 ** decimals) / 10 ** decimals);
   const c = useCommitted(shown, (raw) => {
@@ -133,7 +135,7 @@ export function QtyInput({ value, onChange, min = 1, max = 9999, decimals = 0, a
   const btn = "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-2 hover:text-ink disabled:opacity-30 sm:w-7";
   return (
     <div className={cn("flex h-9 items-center rounded-lg bg-surface-2 transition-shadow duration-150 focus-within:shadow-[0_0_0_2px_var(--accent)]", c.bad && "shadow-[0_0_0_1.5px_var(--kerf)]", className)}>
-      <button type="button" tabIndex={-1} aria-label={`Decrease ${ariaLabel}`} disabled={disabled || value <= min} onClick={() => step(-1)} className={btn}>
+      <button type="button" tabIndex={-1} aria-label={t("decrease", { label: ariaLabel })} disabled={disabled || value <= min} onClick={() => step(-1)} className={btn}>
         <Minus size={14} strokeWidth={2.2} />
       </button>
       <input inputMode={decimals ? "decimal" : "numeric"} aria-label={ariaLabel} readOnly={disabled} {...c.props}
@@ -142,7 +144,7 @@ export function QtyInput({ value, onChange, min = 1, max = 9999, decimals = 0, a
           c.props.onKeyDown(e);
         }}
         className="tnum h-9 w-full min-w-0 bg-transparent text-center text-[14px] font-medium outline-none" />
-      <button type="button" tabIndex={-1} aria-label={`Increase ${ariaLabel}`} disabled={disabled || value >= max} onClick={() => step(1)} className={btn}>
+      <button type="button" tabIndex={-1} aria-label={t("increase", { label: ariaLabel })} disabled={disabled || value >= max} onClick={() => step(1)} className={btn}>
         <Plus size={14} strokeWidth={2.2} />
       </button>
     </div>

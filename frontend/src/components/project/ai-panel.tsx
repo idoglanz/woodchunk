@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowUp, Paperclip, RotateCcw, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "use-intl";
 import { PENDING_PROMPT_KEY } from "@/components/home/new-project";
 import { useProjectCtx } from "@/components/project/context";
 import { Button, IconButton, Spinner } from "@/components/ui/button";
@@ -13,12 +14,7 @@ import { money } from "@/lib/format";
 import { qk, useAIStatus, useConversation } from "@/lib/queries";
 import { toast } from "@/lib/toast";
 
-const IDEAS = [
-  "Add a lower shelf to the table",
-  "Make every leg 5 cm longer",
-  "תוסיף שני סוסי עבודה מעץ 44/100",
-  "Which screws do I need?",
-];
+const IDEAS = ["idea1", "idea2", "idea3", "idea4"] as const;
 
 /** `embedded` fills the Build tab's side panel; otherwise it's a sidebar (desktop) or full screen (phone). */
 export function AIPanel({ onClose, embedded }: { onClose: () => void; embedded?: boolean }) {
@@ -26,6 +22,7 @@ export function AIPanel({ onClose, embedded }: { onClose: () => void; embedded?:
   const convo = useConversation(id);
   const ai = useAIStatus();
   const qc = useQueryClient();
+  const t = useTranslations("project.ai");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
@@ -50,7 +47,7 @@ export function AIPanel({ onClose, embedded }: { onClose: () => void; embedded?:
       qc.setQueryData(qk.conversation(id), c);
       void qc.invalidateQueries({ queryKey: qk.aiStatus });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "The assistant didn't answer.");
+      toast.error(e instanceof Error ? e.message : t("noAnswer"));
       setText(m);
     } finally {
       setBusy(null);
@@ -72,7 +69,7 @@ export function AIPanel({ onClose, embedded }: { onClose: () => void; embedded?:
   }, [convo.data, id]);
 
   const importFile = async (file: File) => {
-    setBusy(`Import ${file.name}`);
+    setBusy(t("importing", { name: file.name }));
     try {
       await saveFirst();
       const form = new FormData();
@@ -80,7 +77,7 @@ export function AIPanel({ onClose, embedded }: { onClose: () => void; embedded?:
       const c = await postForm<Conversation>(`/api/ai/projects/${id}/import`, form);
       qc.setQueryData(qk.conversation(id), c);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't import that file.");
+      toast.error(e instanceof Error ? e.message : t("importFailed"));
     } finally {
       setBusy(null);
     }
@@ -94,26 +91,26 @@ export function AIPanel({ onClose, embedded }: { onClose: () => void; embedded?:
   const disabled = readOnly || ai.data?.enabled === false;
 
   return (
-    <aside aria-label="Ask Woodchunk"
+    <aside aria-label={t("title")}
       className={cn("no-print animate-slide flex flex-col bg-surface", embedded ? "h-full min-h-0"
         : "fixed inset-0 z-40 md:sticky md:inset-auto md:top-[52px] md:z-auto md:h-[calc(100dvh-52px)] md:w-[400px] md:shrink-0 md:border-s md:border-line")}>
       <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3" style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}>
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-accent-ink"><Sparkles size={15} /></span>
-          <span className="text-[16px] font-semibold">Ask Woodchunk</span>
+          <span className="text-[16px] font-semibold">{t("title")}</span>
         </div>
         <div className="flex items-center">
-          {messages.length ? <IconButton label="Start over" size="sm" onClick={clear}><RotateCcw size={15} /></IconButton> : null}
-          <IconButton label="Close" size="sm" onClick={onClose}><X size={18} /></IconButton>
+          {messages.length ? <IconButton label={t("startOver")} size="sm" onClick={clear}><RotateCcw size={15} /></IconButton> : null}
+          <IconButton label={t("close")} size="sm" onClick={onClose}><X size={18} /></IconButton>
         </div>
       </div>
 
       <div ref={scroller} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
         {!messages.length && !busy ? (
           <div className="flex flex-col gap-4 pt-2">
-            <p className="text-[15px] text-ink-2">Describe what you&apos;re building or what to change. English or Hebrew. I&apos;ll suggest the parts and you decide what to apply.</p>
+            <p className="text-[15px] text-ink-2">{t("intro")}</p>
             <div className="flex flex-col gap-2">
-              {IDEAS.map((i) => (
+              {IDEAS.map((k) => t(k)).map((i) => (
                 <button key={i} type="button" dir="auto" disabled={disabled} onClick={() => send(i)}
                   className="rounded-xl bg-surface-2 px-3 py-2.5 text-start text-[14px] text-ink transition-colors hover:bg-surface-3 disabled:opacity-50">{i}</button>
               ))}
@@ -130,23 +127,23 @@ export function AIPanel({ onClose, embedded }: { onClose: () => void; embedded?:
         {busy ? (
           <div className="flex flex-col items-end gap-2">
             <p dir="auto" className="max-w-[92%] rounded-[18px] rounded-ee-md bg-accent px-3.5 py-2 text-[15px] text-accent-ink">{busy}</p>
-            <div className="flex items-center gap-2 self-start rounded-[18px] bg-surface-2 px-3.5 py-2.5 text-[14px] text-ink-2"><Spinner className="h-3.5 w-3.5" />Working it out…</div>
+            <div className="flex items-center gap-2 self-start rounded-[18px] bg-surface-2 px-3.5 py-2.5 text-[14px] text-ink-2"><Spinner className="h-3.5 w-3.5" />{t("working")}</div>
           </div>
         ) : null}
       </div>
 
       <form className="flex flex-col gap-2 border-t border-line px-3 pt-3" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
         onSubmit={(e) => { e.preventDefault(); void send(text); }}>
-        {ai.data?.enabled === false ? <p className="px-1 text-[13px] text-warn">The assistant isn&apos;t set up on this server (no Gemini key).</p> : null}
+        {ai.data?.enabled === false ? <p className="px-1 text-[13px] text-warn">{t("notSetUp")}</p> : null}
         <div className="flex items-end gap-2">
           <input ref={fileRef} type="file" accept=".csv,.xlsx,.xlsm,.txt" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importFile(f); e.target.value = ""; }} />
-          <IconButton label="Import a cut list (CSV or Excel)" disabled={disabled || !!busy} onClick={() => fileRef.current?.click()}><Paperclip size={18} /></IconButton>
-          <label htmlFor="ask-input" className="sr-only">Message</label>
+          <IconButton label={t("import")} disabled={disabled || !!busy} onClick={() => fileRef.current?.click()}><Paperclip size={18} /></IconButton>
+          <label htmlFor="ask-input" className="sr-only">{t("message")}</label>
           <textarea id="ask-input" dir="auto" rows={1} value={text} disabled={disabled} onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(text); } }}
-            placeholder="Describe a change…"
+            placeholder={t("placeholder")}
             className="max-h-40 min-h-11 flex-1 resize-none rounded-[22px] bg-surface-2 px-4 py-2.5 text-[15px] outline-none placeholder:text-ink-3 focus:shadow-[0_0_0_2px_var(--accent)]" />
-          <IconButton label="Send" type="submit" variant="primary" className="rounded-full" disabled={disabled || !text.trim() || !!busy}><ArrowUp size={19} strokeWidth={2.4} /></IconButton>
+          <IconButton label={t("send")} type="submit" variant="primary" className="rounded-full" disabled={disabled || !text.trim() || !!busy}><ArrowUp size={19} strokeWidth={2.4} /></IconButton>
         </div>
       </form>
     </aside>
@@ -157,6 +154,7 @@ function ProposalCard({ p }: { p: Proposal }) {
   const { id } = useProjectCtx();
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const t = useTranslations("project.ai");
   const delta = (p.cost_after ?? 0) - (p.cost_before ?? 0);
 
   const act = async (what: "apply" | "discard") => {
@@ -167,12 +165,12 @@ function ProposalCard({ p }: { p: Proposal }) {
         const proj = await unwrap<Project>(api.POST("/api/ai/proposals/{proposal_id}/apply", { params: { path: { proposal_id: p.id } } }));
         useEditor.getState().serverUpdate(proj, true);
         qc.setQueryData(qk.project(proj.id), proj);
-        toast.info("Applied", { label: "Undo", run: () => useEditor.getState().undo() });
+        toast.info(t("applied"), { label: t("undo"), run: () => useEditor.getState().undo() });
       } else {
         await unwrap(api.POST("/api/ai/proposals/{proposal_id}/discard", { params: { path: { proposal_id: p.id } } }));
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't do that.");
+      toast.error(e instanceof Error ? e.message : t("failed"));
     } finally {
       setBusy(false);
       void qc.invalidateQueries({ queryKey: qk.conversation(id) });
@@ -185,8 +183,8 @@ function ProposalCard({ p }: { p: Proposal }) {
   return (
     <div className="w-[92%] overflow-hidden rounded-2xl border border-line bg-surface">
       <div className="flex items-center justify-between gap-2 border-b border-line px-3.5 py-2.5">
-        <span className="text-[14px] font-semibold">{p.summary || "Suggested change"}</span>
-        {p.status !== "pending" ? <span className="text-[12px] font-medium text-ink-3">{p.status === "applied" ? "Applied" : p.status === "stale" ? "Out of date" : "Discarded"}</span> : null}
+        <span className="text-[14px] font-semibold">{p.summary || t("suggested")}</span>
+        {p.status !== "pending" ? <span className="text-[12px] font-medium text-ink-3">{p.status === "applied" ? t("applied") : p.status === "stale" ? t("outOfDate") : t("discarded")}</span> : null}
       </div>
       <ul className="flex flex-col gap-1 px-3.5 py-2.5">
         {p.diff.map((d, i) => (
@@ -203,8 +201,8 @@ function ProposalCard({ p }: { p: Proposal }) {
         </span>
         {p.status === "pending" ? (
           <div className="flex gap-1.5">
-            <Button size="sm" variant="plain" disabled={busy} onClick={() => act("discard")}>Discard</Button>
-            <Button size="sm" variant="primary" loading={busy} onClick={() => act("apply")}>Apply</Button>
+            <Button size="sm" variant="plain" disabled={busy} onClick={() => act("discard")}>{t("discard")}</Button>
+            <Button size="sm" variant="primary" loading={busy} onClick={() => act("apply")}>{t("apply")}</Button>
           </div>
         ) : null}
       </div>

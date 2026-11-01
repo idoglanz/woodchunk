@@ -1,10 +1,14 @@
+import { createTranslator } from "use-intl";
 import { describe, expect, it } from "vitest";
 import type { ProjectContent } from "@/lib/api/client";
+import { en } from "@/messages";
 import { addConstraint, addLine, addPoint, addRectangle, connected, deleteItems, newSketch, setDimension } from "./model";
 import { lineLength, partLabels, partLines, sketchesOf, syncParts } from "./parts";
 
+const t = createTranslator({ locale: "en", messages: en, namespace: "sketch" });
+
 function project() {
-  const sk = newSketch([]);
+  const sk = newSketch([], t);
   const rail = addLine(sk, addPoint(sk, [0, 0]), addPoint(sk, [800, 0]));
   const len = addConstraint(sk, "distance", [rail], 800);
   const part = { id: "p1", name: "Rail", item_id: "i", qty: 2, length_mm: 800, width_mm: null, grain_locked: false, notes: "",
@@ -34,7 +38,7 @@ describe("sketch lines as parts", () => {
   });
 
   it("selects a whole shape from one of its lines", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const [a, b, c] = [addPoint(sk, [0, 0]), addPoint(sk, [10, 0]), addPoint(sk, [10, 10])];
     const l1 = addLine(sk, a, b), l2 = addLine(sk, b, c);
     const apart = addLine(sk, addPoint(sk, [50, 50]), addPoint(sk, [60, 50]));
@@ -44,16 +48,16 @@ describe("sketch lines as parts", () => {
 
   it("lists an assembly's sketches: attached, and the ones its parts are cut from", () => {
     const { content, sk } = project();
-    const other = newSketch(content.sketches, { id: "a", name: "Bench" });
+    const other = newSketch(content.sketches, t, { id: "a", name: "Bench" });
     expect(other.name).toBe("Bench sketch");
     expect(other.assembly_id).toBe("a");
-    content.sketches.push(other, newSketch(content.sketches));
+    content.sketches.push(other, newSketch(content.sketches, t));
     expect(sketchesOf(content, "a").map((x) => [x.sketch.id, x.attached])).toEqual([[sk.id, false], [other.id, true]]);
-    expect(newSketch(content.sketches, { id: "a", name: "Bench" }).name).toBe("Bench sketch 2");
+    expect(newSketch(content.sketches, t, { id: "a", name: "Bench" }).name).toBe("Bench sketch 2");
   });
 
   it("makes one part of a whole rectangle, but a part of each line otherwise", () => {
-    const sk = newSketch([]);
+    const sk = newSketch([], t);
     const rect = addRectangle(sk, addPoint(sk, [0, 0]), [600, 45]);
     expect(partLines(sk, rect)).toHaveLength(1);
     expect(lineLength(sk, partLines(sk, rect)[0])).toBe(600);

@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import { useTranslations } from "use-intl";
 import { StatusPill } from "@/components/ui/misc";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/overlay";
 import { useProjectCtx } from "@/components/project/context";
@@ -28,30 +29,31 @@ export function StatusMenu() {
   const role = useEditor((s) => s.project?.members);
   const { plan, me } = useProjectCtx();
   const s = useSetStatus();
+  const t = useTranslations("project.status");
   const canEdit = !!me && (me.role === "admin" || role?.some((m) => m.user_id === me.id && m.role !== "viewer"));
   if (!canEdit) return <StatusPill status={status} />;
   const blocked = !!plan?.unplaced.length;
   return (
     <Menu align="start" trigger={
-      <button type="button" className="group rounded-full" aria-label="Project status">
+      <button type="button" className="group rounded-full" aria-label={t("label")}>
         <StatusPill status={status} className="h-7 gap-1.5 pe-2 transition-colors group-hover:bg-surface-3 group-hover:text-ink">
           <ChevronDown size={13} className="text-ink-3" />
         </StatusPill>
       </button>
     }>
       {status === "planning" ? (
-        <MenuItem disabled={blocked} onSelect={() => s.set("bought", "Marked as bought. Prices are locked in.")}>
-          Mark as bought{blocked ? " (fix parts first)" : ""}
+        <MenuItem disabled={blocked} onSelect={() => s.set("bought", t("boughtToast"))}>
+          {blocked ? t("markBoughtBlocked") : t("markBought")}
         </MenuItem>
       ) : null}
       {status === "bought" ? <>
-        <MenuItem onSelect={() => s.set("cut", "Marked as cut. Leftovers are in your inventory.")}>Mark as cut</MenuItem>
-        <MenuItem onSelect={() => s.set("bought", "Extra stock marked as bought.")}>Mark extra stock as bought</MenuItem>
+        <MenuItem onSelect={() => s.set("cut", t("cutToast"))}>{t("markCut")}</MenuItem>
+        <MenuItem onSelect={() => s.set("bought", t("extraToast"))}>{t("markExtra")}</MenuItem>
         <MenuSeparator />
-        <MenuItem onSelect={() => s.set("planning")}>Back to planning</MenuItem>
+        <MenuItem onSelect={() => s.set("planning")}>{t("backToPlanning")}</MenuItem>
       </> : null}
-      {status === "cut" ? <MenuItem onSelect={() => s.set("done", "Nice build. The project is now read-only.")}>Mark as done</MenuItem> : null}
-      {status === "done" ? <MenuItem onSelect={() => s.set("cut")}>Reopen</MenuItem> : null}
+      {status === "cut" ? <MenuItem onSelect={() => s.set("done", t("doneToast"))}>{t("markDone")}</MenuItem> : null}
+      {status === "done" ? <MenuItem onSelect={() => s.set("cut")}>{t("reopen")}</MenuItem> : null}
     </Menu>
   );
 }

@@ -1,12 +1,15 @@
 "use client";
 
+import { createTranslator } from "use-intl";
 import { create } from "zustand";
 import { api, ApiError, unwrap, type Assembly, type Part, type Project, type ProjectContent } from "@/lib/api/client";
+import type { Translator } from "@/lib/lang";
 import { equal, merge3, type Conflict, type MergeResult } from "@/lib/merge";
 import { tidy } from "@/lib/sketch/model";
 import { syncParts } from "@/lib/sketch/parts";
 import { solve } from "@/lib/sketch/solve";
 import { toast } from "@/lib/toast";
+import { en } from "@/messages";
 
 type SaveState = "idle" | "pending" | "saving" | "saved" | "error" | "conflict";
 
@@ -48,9 +51,15 @@ let saved: ProjectContent | null = null; // the content the server has
 let clashBase: ProjectContent | null = null;
 let lastCoalesce: { key: string; at: number } | null = null;
 let onSaved: (p: Project) => void = () => {};
+// The editor's own messages, in the app's language (the workspace passes its translator in).
+let tr: Translator<"project"> = createTranslator({ locale: "en", messages: en, namespace: "project" });
 
 export function setOnSaved(fn: (p: Project) => void) {
   onSaved = fn;
+}
+
+export function setEditorTranslator(t: Translator<"project">) {
+  tr = t;
 }
 
 /** Edits made here that the server doesn't have yet. */
@@ -129,7 +138,7 @@ export const useEditor = create<Editor>((set, get) => {
       } else if (e instanceof ApiError && (e.status === 422 || e.status === 403 || e.status === 404)) {
         // Invalid, or no longer allowed (access changed, removed): retrying won't help.
         set({ save: "error" });
-        toast.error(`Not saved: ${e.message}`);
+        toast.error(tr("editor.notSaved", { error: e.message }));
       } else {
         // Offline or the server hiccuped: keep the edits and try again shortly.
         set({ save: "error" });
@@ -246,7 +255,7 @@ export const useEditor = create<Editor>((set, get) => {
 /** Save pending edits before an action that reads the project on the server; throws if they can't be saved. */
 export async function saveFirst(): Promise<void> {
   if (!(await useEditor.getState().flush())) {
-    throw new Error("Your latest changes aren't saved yet, so this was stopped. Check the message at the top and try again.");
+    throw new Error(tr("editor.saveFirst"));
   }
 }
 

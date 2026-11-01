@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TipProvider } from "@/components/ui/overlay";
 import { ApiError } from "@/lib/api/client";
 import { AuthRoot } from "@/lib/auth";
+import { LangProvider } from "@/lib/lang";
 import { ThemeSync } from "@/lib/theme";
 
 let browserClient: QueryClient | undefined;
@@ -31,13 +32,15 @@ function getClient() {
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={getClient()}>
-      <AuthRoot>
-        <TipProvider>
-          <ThemeSync />
-          {children}
-          <Toaster />
-        </TipProvider>
-      </AuthRoot>
+      <LangProvider>
+        <AuthRoot>
+          <TipProvider>
+            <ThemeSync />
+            {children}
+            <Toaster />
+          </TipProvider>
+        </AuthRoot>
+      </LangProvider>
     </QueryClientProvider>
   );
 }

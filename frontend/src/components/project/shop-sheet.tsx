@@ -7,7 +7,7 @@ import { SheetDiagram, cutText } from "@/components/diagrams/sheet";
 import { useProjectCtx } from "@/components/project/context";
 import { useTranslations } from "@/components/project/translations";
 import { Button, Spinner } from "@/components/ui/button";
-import { AsmChip, Skeleton } from "@/components/ui/misc";
+import { AsmChip, Ltr, Skeleton } from "@/components/ui/misc";
 import { Segmented } from "@/components/ui/segmented";
 import { download } from "@/lib/api/client";
 import { useEditor } from "@/lib/editor";
@@ -99,13 +99,13 @@ export function ShopSheetView() {
             <section key={lp.item_id} className="avoid-break flex flex-col gap-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="text-[19px] font-semibold">{lp.name}</h2>
-                <span className="tnum text-[14px] text-ink-2">{t(lang, "buy")}: {lp.buy.map((b) => `${b.qty} × ${fmtMeters(b.length_mm)}`).join(" · ")}</span>
+                <span className="tnum text-[14px] text-ink-2">{t(lang, "buy")}: <Ltr>{lp.buy.map((b) => `${b.qty} × ${fmtMeters(b.length_mm)}`).join(" · ")}</Ltr></span>
               </div>
               <LumberBars plan={lp} />
               <ol className="flex flex-col gap-1 text-[13px]">
                 {lp.patterns.map((pat, i) => (
                   <li key={i} className="tnum flex gap-2">
-                    <span className="w-24 shrink-0 font-semibold">{fmtMeters(pat.stock_length)} ×{pat.count}</span>
+                    <span className="w-24 shrink-0 font-semibold"><Ltr>{fmtMeters(pat.stock_length)} ×{pat.count}</Ltr></span>
                     <span className="text-ink-2">{pat.segments.map((s) => (s.kind === "part" ? `${s.label} ${Math.round(s.length)}` : s.kind === "offcut" ? `${t(lang, "offcut")} ${Math.round(s.length)} (${t(lang, "keep")})` : "")).filter(Boolean).join(" · ")}</span>
                   </li>
                 ))}

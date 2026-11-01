@@ -3,7 +3,7 @@
 import { AlertCircle } from "lucide-react";
 import { useMemo } from "react";
 import { SectionGlyph } from "@/components/project/section-glyph";
-import { AsmChip, Callout } from "@/components/ui/misc";
+import { AsmChip, Callout, Ltr } from "@/components/ui/misc";
 import type { Assembly, CatalogItem } from "@/lib/api/client";
 import { cn } from "@/lib/cn";
 import { useEditor } from "@/lib/editor";
@@ -84,7 +84,7 @@ export function CutList({ asm, result, byId }: { asm: Assembly; result: FrameRes
           {totals.byItem.map((t) => (
             <div key={t.item?.id ?? "x"} className="flex justify-between gap-3">
               <span className="truncate">{t.item?.name.en ?? "No material"}</span>
-              <span className="tnum shrink-0">{fmtMeters(t.mm)}</span>
+              <span className="tnum shrink-0"><Ltr>{fmtMeters(t.mm)}</Ltr></span>
             </div>
           ))}
           {totals.kg ? <div className="flex justify-between gap-3 font-medium text-ink"><span>Steel weight</span><span className="tnum">{totals.kg.toFixed(1)} kg</span></div> : null}

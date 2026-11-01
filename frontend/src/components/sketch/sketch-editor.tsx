@@ -23,7 +23,7 @@ import { isBuiltIn, isMid, type Constraint, type Sketch } from "@/lib/sketch/typ
 import { useSketchUI, type Tool } from "@/lib/sketch/ui";
 import { fit, measured, readings, type View } from "@/lib/sketch/view";
 import { toast } from "@/lib/toast";
-import { isTyping } from "@/lib/typing";
+import { isTyping, shortcutKey } from "@/lib/typing";
 import type { Units } from "@/lib/units";
 
 const TOOLS: { value: Tool; label: string; key: string; icon: typeof PenLine }[] = [
@@ -157,7 +157,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey || isTyping(e.target)) return;
       const s = useSketchUI.getState();
-      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      const key = shortcutKey(e);
       if (e.metaKey || e.ctrlKey) {
         if (key === "a" && canDraw) { e.preventDefault(); s.select(sk.shapes.map((x) => x.id)); }
         return; // ⌘Z and the rest are the app's
@@ -220,7 +220,7 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
         ) : null}
         <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex flex-wrap items-center gap-2 [&>*]:pointer-events-auto">
           <Link href={`/projects/${projectId}/build`} aria-label="Back to Build"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-ink-2 shadow-[var(--shadow-card)] backdrop-blur hover:text-ink"><ArrowLeft size={18} /></Link>
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-ink-2 shadow-[var(--shadow-card)] backdrop-blur hover:text-ink"><ArrowLeft size={18} className="rtl:-scale-x-100" /></Link>
           <span className="max-w-[40vw] truncate rounded-full bg-surface/90 px-3 py-1.5 text-[14px] font-semibold shadow-[var(--shadow-card)] backdrop-blur">{sk.name}</span>
           {canDraw ? (
             <div role="radiogroup" aria-label="Tool" className="flex rounded-full bg-surface/90 p-0.5 shadow-[var(--shadow-card)] backdrop-blur">
@@ -239,8 +239,8 @@ function Loaded({ sk, projectId }: { sk: Sketch; projectId: string }) {
             <IconButton label="Fit to sketch (F)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" onClick={fitView}><Maximize size={16} /></IconButton>
             <span className="hidden md:inline-flex"><ShortcutsHelp open={help} onOpenChange={setHelp} /></span>
             {!readOnly ? <>
-              <IconButton label="Undo (⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!history.past} onClick={history.undo}><Undo2 size={16} /></IconButton>
-              <IconButton label="Redo (⇧⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!history.future} onClick={history.redo}><Redo2 size={16} /></IconButton>
+              <IconButton label="Undo (⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!history.past} onClick={history.undo}><Undo2 size={16} className="rtl:-scale-x-100" /></IconButton>
+              <IconButton label="Redo (⇧⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!history.future} onClick={history.redo}><Redo2 size={16} className="rtl:-scale-x-100" /></IconButton>
             </> : null}
           </div>
         </div>

@@ -144,7 +144,7 @@ All AI goes through one backend `AIService`, ported from zizi: Gemini with a mod
 - Paste or upload a cut list in CSV/XLSX. AI maps the columns and matches materials to the catalog, and the result goes to the same proposal/diff UI as A.
 
 ### 4.8 Language strategy
-- **UI: English** for v1, but built i18n-ready from day one: every string goes through `next-intl`, and Tailwind *logical* properties (`ms-`/`me-`/`ps-`/`pe-`/`start`/`end`) are used everywhere. That makes a Hebrew UI later a translation file plus `dir="rtl"`, not a refactor.
+- **UI: English** for v1, but built i18n-ready from day one: every string goes through `use-intl` (next-intl's core: the app is a client-rendered SPA with no language in the URL, so next-intl's routing and server parts aren't needed), and Tailwind *logical* properties (`ms-`/`me-`/`ps-`/`pe-`/`start`/`end`) are used everywhere. That makes a Hebrew UI later a translation file plus `dir="rtl"`, not a refactor.
 - **Content: bilingual now.** Catalog names are EN/HE, the AI chat accepts either, and exports (shopping list, shop sheet, CSV) have an EN/HE toggle with proper RTL rendering.
 
 ### 4.9 Templates

@@ -225,7 +225,7 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
                 <div className="no-print flex flex-col gap-4">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                     <Link href="/" aria-label="Back to projects" title="Projects"
-                      className="-ms-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 hover:bg-surface-2 hover:text-ink"><ArrowLeft size={19} /></Link>
+                      className="-ms-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-2 hover:bg-surface-2 hover:text-ink"><ArrowLeft size={19} className="rtl:-scale-x-100" /></Link>
                     <div className="order-last flex min-w-0 basis-full items-center gap-3 sm:order-none sm:basis-auto">
                       <TitleInput />
                       {/* Phones: the title has its own row, with the status beside it. Wider: with the actions. */}
@@ -235,8 +235,8 @@ export function ProjectWorkspace({ id, children }: { id: string; children: React
                       <span className="me-1.5 hidden sm:inline-flex"><StatusMenu /></span>
                       <SaveIndicator />
                       {!readOnly ? <>
-                        <IconButton label="Undo (⌘Z)" size="sm" disabled={!ed.past.length} onClick={ed.undo}><Undo2 size={17} /></IconButton>
-                        <IconButton label="Redo (⇧⌘Z)" size="sm" disabled={!ed.future.length} onClick={ed.redo}><Redo2 size={17} /></IconButton>
+                        <IconButton label="Undo (⌘Z)" size="sm" disabled={!ed.past.length} onClick={ed.undo}><Undo2 size={17} className="rtl:-scale-x-100" /></IconButton>
+                        <IconButton label="Redo (⇧⌘Z)" size="sm" disabled={!ed.future.length} onClick={ed.redo}><Redo2 size={17} className="rtl:-scale-x-100" /></IconButton>
                       </> : null}
                       {others.length ? (
                         <button type="button" onClick={() => setSharing(true)} className="me-1 rounded-full"

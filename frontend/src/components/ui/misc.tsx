@@ -5,6 +5,11 @@ import { cn } from "@/lib/cn";
 
 export const ASM = ["a", "b", "c", "d", "e", "f"] as const;
 
+/** A measurement inside text: keeps "1800 × 800 mm" in that order on a Hebrew (right-to-left) page. */
+export function Ltr({ children }: { children: ReactNode }) {
+  return <bdi dir="ltr">{children}</bdi>;
+}
+
 /** Index of an assembly letter in the 6-colour cycle (A→0 … F→5, G→0, AA→…). */
 export function asmIndex(letter: string): number {
   let n = 0;

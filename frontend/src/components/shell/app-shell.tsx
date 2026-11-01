@@ -4,6 +4,7 @@ import { Hammer, LayoutGrid, LibraryBig, LogOut, Settings, Shield, Warehouse } f
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import { useTranslations } from "use-intl";
 import { Credit } from "@/components/shell/credit";
 import { initialsOf } from "@/components/ui/avatars";
 import { Logo } from "@/components/shell/logo";
@@ -11,21 +12,23 @@ import { Menu, MenuItem, MenuSeparator } from "@/components/ui/overlay";
 import { Skeleton } from "@/components/ui/misc";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/cn";
+import { LangSync } from "@/lib/lang";
 import { useMe } from "@/lib/queries";
 import { ThemeSync, type Theme } from "@/lib/theme";
 
 const NAV = [
-  { href: "/", label: "Projects", icon: LayoutGrid, match: (p: string) => p === "/" || p.startsWith("/projects") },
-  { href: "/catalog", label: "Catalog", icon: LibraryBig, match: (p: string) => p.startsWith("/catalog") },
-  { href: "/templates", label: "Templates", icon: Hammer, match: (p: string) => p.startsWith("/templates") },
-  { href: "/inventory", label: "Inventory", icon: Warehouse, match: (p: string) => p.startsWith("/inventory") },
-];
+  { href: "/", label: "projects", icon: LayoutGrid, match: (p: string) => p === "/" || p.startsWith("/projects") },
+  { href: "/catalog", label: "catalog", icon: LibraryBig, match: (p: string) => p.startsWith("/catalog") },
+  { href: "/templates", label: "templates", icon: Hammer, match: (p: string) => p.startsWith("/templates") },
+  { href: "/inventory", label: "inventory", icon: Warehouse, match: (p: string) => p.startsWith("/inventory") },
+] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { ready, signedIn, signOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const me = useMe(ready && signedIn);
+  const t = useTranslations("nav");
 
   useEffect(() => {
     if (ready && !signedIn) router.replace(`/sign-in?next=${encodeURIComponent(pathname)}`);
@@ -41,6 +44,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <ThemeSync theme={user?.prefs.theme as Theme | undefined} />
+      <LangSync lang={user?.prefs.lang} />
       <header className="no-print sticky z-30 border-b border-line backdrop-blur-xl backdrop-saturate-[1.8]"
         style={{ top: "env(safe-area-inset-top, 0px)", background: "color-mix(in srgb, var(--bg) 72%, transparent)" }}>
         <div className="flex h-[52px] items-center gap-6 ps-[max(16px,env(safe-area-inset-left))] pe-[max(16px,env(safe-area-inset-right))] sm:ps-6 sm:pe-6 lg:ps-8 lg:pe-8">
@@ -48,17 +52,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Logo />
             <span className="text-[17px]">Woodchunk</span>
           </Link>
-          <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+          <nav aria-label={t("main")} className="hidden items-center gap-1 md:flex">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href}
                 className={cn("rounded-lg px-3 py-1.5 text-[14px] font-medium transition-colors", n.match(pathname) ? "text-ink" : "text-ink-2 hover:text-ink")}>
-                {n.label}
+                {t(n.label)}
               </Link>
             ))}
           </nav>
           <div className="ms-auto flex items-center gap-2">
             <Menu trigger={
-              <button type="button" aria-label="Account" className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-2 text-[12px] font-semibold text-ink-2 hover:text-ink">
+              <button type="button" aria-label={t("account")} className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-2 text-[12px] font-semibold text-ink-2 hover:text-ink">
                 {user ? initials : <Skeleton className="h-8 w-8 rounded-full" />}
               </button>
             }>
@@ -68,13 +72,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
               <MenuSeparator />
               <div className="md:hidden">
-                {NAV.map((n) => <MenuItem key={n.href} icon={<n.icon size={15} />} onSelect={() => router.push(n.href)}>{n.label}</MenuItem>)}
+                {NAV.map((n) => <MenuItem key={n.href} icon={<n.icon size={15} />} onSelect={() => router.push(n.href)}>{t(n.label)}</MenuItem>)}
                 <MenuSeparator />
               </div>
-              <MenuItem icon={<Settings size={15} />} onSelect={() => router.push("/settings")}>Settings</MenuItem>
-              {user?.role === "admin" ? <MenuItem icon={<Shield size={15} />} onSelect={() => router.push("/admin")}>Admin</MenuItem> : null}
+              <MenuItem icon={<Settings size={15} />} onSelect={() => router.push("/settings")}>{t("settings")}</MenuItem>
+              {user?.role === "admin" ? <MenuItem icon={<Shield size={15} />} onSelect={() => router.push("/admin")}>{t("admin")}</MenuItem> : null}
               <MenuSeparator />
-              <MenuItem icon={<LogOut size={15} />} onSelect={() => { signOut(); router.replace("/sign-in"); }}>Sign out</MenuItem>
+              <MenuItem icon={<LogOut size={15} className="rtl:-scale-x-100" />} onSelect={() => { signOut(); router.replace("/sign-in"); }}>{t("signOut")}</MenuItem>
             </Menu>
           </div>
         </div>

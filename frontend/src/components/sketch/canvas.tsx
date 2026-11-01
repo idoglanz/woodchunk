@@ -439,8 +439,9 @@ export function SketchCanvas(props: CanvasProps) {
   const origin = toScreen([0, 0]);
   const marksOf = (c: Measure) => dimensionMarks(sk, c, px, middle);
 
+  // Left to right in Hebrew too: a drawing is never mirrored, and its labels sit at screen x.
   return (
-    <div className="absolute inset-0">
+    <div dir="ltr" className="absolute inset-0">
       <svg ref={svg} width={size.w} height={size.h} role="img" aria-label="Sketch"
         className={cn("block touch-none select-none", panning ? "cursor-grab active:cursor-grabbing" : ui.tool !== "select" && canDraw ? "cursor-crosshair" : hover?.item ? "cursor-pointer" : "cursor-grab")}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}

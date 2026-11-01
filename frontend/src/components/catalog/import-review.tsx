@@ -48,7 +48,7 @@ export function ImportReview({ id }: { id: string }) {
   return (
     <Page>
       <div className="flex flex-col gap-6">
-        <Link href="/catalog" className="inline-flex items-center gap-1 text-[14px] font-medium text-ink-2 hover:text-ink"><ArrowLeft size={15} />Catalog</Link>
+        <Link href="/catalog" className="inline-flex items-center gap-1 text-[14px] font-medium text-ink-2 hover:text-ink"><ArrowLeft size={15} className="rtl:-scale-x-100" />Catalog</Link>
         <PageTitle title={organize ? "Tidy up the catalog" : "Review import"}
           subtitle={organize ? "Suggested names, Hebrew names and categories. Untick anything you don't want." : `${d.source}${d.supplier_name ? ` · ${d.supplier_name}` : ""}`}
           actions={d.status === "review" && d.items.length ? <Button variant="primary" loading={busy} disabled={!sel.size} onClick={apply}>{organize ? `Apply ${sel.size} changes` : `Add ${sel.size} to catalog`}</Button> : null} />

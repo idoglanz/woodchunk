@@ -17,6 +17,7 @@ Woodworking planner: projects → assemblies (×qty) → parts cut from catalog 
 - Lengths are millimetres everywhere in data; convert only for display (`lib/units.ts`).
 - Free-tier AI budget: one model call per user action, no tool loops. Never swallow AI errors into fake content.
 - Colors only through CSS tokens in `globals.css`; logical CSS properties (`ms-`, `pe-`, `start`) so RTL keeps working.
+- Hebrew: UI strings come from `src/messages/{en,he}.json` through `useTranslations` (`use-intl`; `lib/lang.tsx` has the provider and the language setting). Wrap a measurement inside text in `<Ltr>`. Drawings (sketch canvas, 3D view) stay `dir="ltr"`. Letter shortcuts read `shortcutKey(e)` so they work on a Hebrew keyboard.
 - After changing backend models: `make types`. Response models extend `app.models.common.Model` so fields with defaults are required in response schemas.
 - Next.js 16 here differs from older versions: read `frontend/node_modules/next/dist/docs/` before using new APIs. `cacheComponents` is off on purpose (client-rendered SPA).
 - Before finishing: `make test`, `make lint`, and `make e2e` with the servers running.

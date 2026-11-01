@@ -2,6 +2,7 @@
 
 import { Grid3x3 } from "lucide-react";
 import { Switch } from "@/components/ui/field";
+import { Ltr } from "@/components/ui/misc";
 import { Pop } from "@/components/ui/overlay";
 import { cn } from "@/lib/cn";
 import { useSketchUI } from "@/lib/sketch/ui";
@@ -23,7 +24,7 @@ export function GridControl({ view, units }: { view: View; units: Units }) {
         <button type="button" aria-label={`Grid: ${label(now)}${grid === "auto" ? " (follows the zoom)" : ""}, snapping ${snap ? "on" : "off"}`}
           className={cn("inline-flex h-8 items-center gap-1.5 rounded-full bg-surface/90 px-2.5 text-[13px] font-medium shadow-[var(--shadow-card)] backdrop-blur",
             snap ? "text-ink" : "text-ink-3")}>
-          <Grid3x3 size={15} /><span className="tnum">{label(now)}</span>
+          <Grid3x3 size={15} /><span className="tnum"><Ltr>{label(now)}</Ltr></span>
         </button>
       }>
       <div className="flex flex-col gap-3">
@@ -34,7 +35,7 @@ export function GridControl({ view, units }: { view: View; units: Units }) {
             {(["auto", ...SIZES] as const).map((g) => (
               <button key={g} type="button" role="radio" aria-checked={grid === g} onClick={() => setGrid({ grid: g })}
                 className={cn("tnum h-8 rounded-lg px-2.5 text-[13px] font-medium", grid === g ? "bg-ink text-surface" : "bg-surface-2 text-ink-2 hover:text-ink")}>
-                {g === "auto" ? "Auto" : label(g)}
+                {g === "auto" ? "Auto" : <Ltr>{label(g)}</Ltr>}
               </button>
             ))}
           </div>

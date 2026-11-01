@@ -24,7 +24,7 @@ import { solveFrame } from "@/lib/frame/parts";
 import type { Frame } from "@/lib/frame/types";
 import { FLAT, flatPlane, resetFrameUI, useFrameUI, type Tool, type View } from "@/lib/frame/ui";
 import { useCatalog, useItemMap } from "@/lib/queries";
-import { isTyping } from "@/lib/typing";
+import { isTyping, shortcutKey } from "@/lib/typing";
 
 const VIEWS: { value: View; label: string }[] = [
   { value: "iso", label: "3D" }, { value: "front", label: "Front" }, { value: "side", label: "Side" }, { value: "top", label: "Top" },
@@ -134,8 +134,9 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
       if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
       const ui = useFrameUI.getState();
       if (ui.drag) return; // finish (or drop) the drag first
-      if (e.key === "v" || e.key === "V") ui.setTool("select");
-      else if (e.key === "l" || e.key === "L") ui.setTool("draw");
+      const key = shortcutKey(e);
+      if (key === "v") ui.setTool("select");
+      else if (key === "l") ui.setTool("draw");
       // Deleting is stricter: only from the page, the 3D view or the cut list, never a focused button.
       else if ((e.key === "Delete" || e.key === "Backspace") && ui.tool === "select" && onCanvasOrPage(e.target)) deleteSelected();
       else if (e.key === "Escape" && ui.tool === "select") { if (ui.back) ui.goBack(); else ui.select(null); }
@@ -151,7 +152,7 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
       <div className={cn("relative min-h-[46dvh] min-w-0 flex-1", tool === "draw" && !readOnly && "cursor-crosshair")}>
         <div className="absolute inset-x-3 top-3 z-10 flex flex-wrap items-center gap-2">
           <Link href={`/projects/${projectId}/build`} aria-label="Back to Build"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-ink-2 shadow-[var(--shadow-card)] backdrop-blur hover:text-ink"><ArrowLeft size={18} /></Link>
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-ink-2 shadow-[var(--shadow-card)] backdrop-blur hover:text-ink"><ArrowLeft size={18} className="rtl:-scale-x-100" /></Link>
           <span className="rounded-full bg-surface/90 px-3 py-1.5 text-[14px] font-semibold shadow-[var(--shadow-card)] backdrop-blur">{asm.letter} · {asm.name}</span>
           {!readOnly ? (
             <div role="radiogroup" aria-label="Tool" className="flex rounded-full bg-surface/90 p-0.5 shadow-[var(--shadow-card)] backdrop-blur">
@@ -175,13 +176,14 @@ function Loaded({ asm, frame, byId, readOnly, smallScreen, projectId }: {
             <IconButton label="Download 3D model (STL)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!result.members.length}
               onClick={() => saveBlob(frameStl(result.members), `${asm.name || "frame"}.stl`)}><Download size={16} /></IconButton>
             {!readOnly ? <>
-              <IconButton label="Undo (⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.past} onClick={ed.undo}><Undo2 size={16} /></IconButton>
-              <IconButton label="Redo (⇧⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.future} onClick={ed.redo}><Redo2 size={16} /></IconButton>
+              <IconButton label="Undo (⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.past} onClick={ed.undo}><Undo2 size={16} className="rtl:-scale-x-100" /></IconButton>
+              <IconButton label="Redo (⇧⌘Z)" size="sm" className="bg-surface/90 shadow-[var(--shadow-card)]" disabled={!ed.future} onClick={ed.redo}><Redo2 size={16} className="rtl:-scale-x-100" /></IconButton>
             </> : null}
           </div>
         </div>
         <Viewport frame={shown} members={result.members} joints={joints} steel={steel} readOnly={readOnly} edit={handlers} anchors={tool === "select" ? anchors : []} labels={labels} />
-        {tool === "select" ? <div className="pointer-events-none absolute inset-0 overflow-hidden"><DimensionLabels anchors={anchors} labels={labels} onCommit={handlers.onLabel} /></div> : null}
+        {/* Left to right in Hebrew too: the labels are placed at screen x. */}
+        {tool === "select" ? <div dir="ltr" className="pointer-events-none absolute inset-0 overflow-hidden"><DimensionLabels anchors={anchors} labels={labels} onCommit={handlers.onLabel} /></div> : null}
         {tool === "draw" && !readOnly ? <DrawHint /> : null}
         {tool === "select" && !readOnly ? <DragHint frame={frame} /> : null}
         {mode !== "3d" && !readOnly ? <DepthChip mode={mode} frame={shown} /> : null}

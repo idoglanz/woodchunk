@@ -1,6 +1,6 @@
 "use client";
 
-import { Hammer, LayoutGrid, LibraryBig, LogOut, Settings, Shield, Warehouse } from "lucide-react";
+import { Hammer, Languages, LayoutGrid, LibraryBig, LogOut, Settings, Shield, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { LangSync } from "@/lib/lang";
-import { useMe } from "@/lib/queries";
+import { useMe, useSetLang } from "@/lib/queries";
 import { ThemeSync, type Theme } from "@/lib/theme";
 
 const NAV = [
@@ -29,6 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const me = useMe(ready && signedIn);
   const t = useTranslations("nav");
+  const setLang = useSetLang();
 
   useEffect(() => {
     if (ready && !signedIn) router.replace(`/sign-in?next=${encodeURIComponent(pathname)}`);
@@ -76,6 +77,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <MenuSeparator />
               </div>
               <MenuItem icon={<Settings size={15} />} onSelect={() => router.push("/settings")}>{t("settings")}</MenuItem>
+              {/* One tap to the other language, named in its own script. */}
+              {user ? (user.prefs.lang === "he"
+                ? <MenuItem icon={<Languages size={15} />} onSelect={() => setLang("en")}><span lang="en">English</span></MenuItem>
+                : <MenuItem icon={<Languages size={15} />} onSelect={() => setLang("he")}><span lang="he">עברית</span></MenuItem>) : null}
               {user?.role === "admin" ? <MenuItem icon={<Shield size={15} />} onSelect={() => router.push("/admin")}>{t("admin")}</MenuItem> : null}
               <MenuSeparator />
               <MenuItem icon={<LogOut size={15} className="rtl:-scale-x-100" />} onSelect={() => { signOut(); router.replace("/sign-in"); }}>{t("signOut")}</MenuItem>

@@ -8,6 +8,8 @@ import {
   type CatalogImport, type CatalogItem, type CatalogItemIn, type Conversation, type InventoryEntry, type Plan, type Prefs,
   type Project, type ProjectSummary, type Shopping, type Supplier, type TemplateSummary, type User,
 } from "@/lib/api/client";
+import type { Lang } from "@/lib/i18n";
+import { applyLang } from "@/lib/lang";
 import { toast } from "@/lib/toast";
 
 export const qk = {
@@ -44,6 +46,17 @@ export function useUpdateMe() {
     onSuccess: (u) => qc.setQueryData(qk.me, u),
     onError,
   });
+}
+
+/** Switches the app's language at once and saves it to the account. */
+export function useSetLang() {
+  const qc = useQueryClient();
+  const update = useUpdateMe();
+  return (lang: Lang) => {
+    applyLang(lang);
+    const me = qc.getQueryData<User>(qk.me);
+    if (me) update.mutate({ name: null, prefs: { ...me.prefs, lang } });
+  };
 }
 
 export function useProjects(archived = false) {

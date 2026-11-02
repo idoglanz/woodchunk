@@ -1,9 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { he } from "../src/messages";
 
-// The switch shows for admins only while the interface is being translated (see admin.spec.ts).
-// The admin test only looks: the admin account is shared, so its language is never changed here.
-const ADMIN = process.env.E2E_ADMIN_EMAIL;
 const API = (process.env.E2E_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
 async function signIn(page: Page, email: string) {
@@ -13,18 +10,25 @@ async function signIn(page: Page, email: string) {
   await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
 }
 
-test("the language switch is for admins only, for now", async ({ page }, info) => {
+test("anyone can switch language from the account menu", async ({ page }, info) => {
   await signIn(page, `e2e-lang-${info.project.name}-${Date.now()}@test.dev`);
-  await page.goto("/settings");
-  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
-  await expect(page.getByRole("tablist", { name: "Language", exact: true })).toHaveCount(0);
-  await expect(page.locator("html")).not.toHaveAttribute("dir", "rtl");
+  await page.getByRole("button", { name: "Account" }).click();
+  const saved = page.waitForResponse((r) => r.url().endsWith("/api/me") && r.request().method() === "PUT");
+  await page.getByRole("menuitem", { name: "עברית" }).click();
+  expect((await saved).ok()).toBeTruthy();
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await expect(page.getByRole("heading", { name: he.home.title })).toBeVisible();
 
-  if (!ADMIN) return;
-  await page.evaluate(() => localStorage.clear()); // signed out, or the sign-in page moves on by itself
-  await signIn(page, ADMIN);
+  // Saved to the account: Settings shows it, and it outlasts a reload.
   await page.goto("/settings");
-  await expect(page.getByRole("tablist", { name: "Language", exact: true }).getByRole("tab", { name: "עברית" })).toBeVisible();
+  await expect(page.getByRole("tablist", { name: he.settings.language, exact: true }).getByRole("tab", { name: "עברית" })).toHaveAttribute("aria-selected", "true");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+
+  await page.getByRole("button", { name: he.nav.account }).click();
+  await page.getByRole("menuitem", { name: "English" }).click();
+  await expect(page.locator("html")).not.toHaveAttribute("dir", "rtl");
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 });
 
 test("Hebrew: right to left from the first paint, drawings left to right", async ({ page, request }, info) => {
